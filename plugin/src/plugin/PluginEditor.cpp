@@ -66,7 +66,7 @@ void TurboSynthEditor::AboutOverlay::paint (juce::Graphics& g)
         "",
         "Free software under GPLv3 \xe2\x80\x94 source available from ZQ SFX.",
         "",
-        "Knob filmstrips: Analog Knob Kit 01 by Julian Behrens (Noisehead).",
+        "Knobs: CC0 designs from the g200kg KnobGallery (SolurOathLabs, dh96, C. Anders).",
         "Fonts: Barlow Condensed, VT323, IBM Plex Mono (SIL OFL).",
         "",
         "Not affiliated with a third party, Digidesign, or the band.",

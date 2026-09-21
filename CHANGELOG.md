@@ -1100,3 +1100,24 @@ plus my own findings on the same shot.
   SUCCEEDED, pluginval strictness 5 on the VST3 SUCCESS (opens the editor), bundle id
   `com.zqsfx.broken`. AU + VST3 reinstalled. Fuzz, bench, and the render harness were NOT
   re-run (no DSP or parameter code touched).
+
+## 2026-09-21 — Broken moves to the ZQ SFX house knobs (owner decision; no version bump)
+- **Visible change, by the owner's decision ("keep everything consistent"):** every knob on
+  the panel is now one of the three CC0 house filmstrips embedded in `zqsfx_ui` v0.2.0, the same
+  knobs every other ZQ SFX product uses. Dials 56 px and up: silver cap in a black lobed skirt
+  (KnobGallery #2638). 42 px and up: black with a white pointer (#2410). Smaller: brushed silver
+  cap (#2075). 128 frames, 270 degree sweep.
+- **Removed the Noisehead "Analog Knob Kit 01" strips and their licence file** from the project
+  (`plugin/assets/` is gone). That art is licensed for use inside plugin projects but cannot be
+  redistributed from a shared library, which is why it could not become the house knob. With it
+  gone, Broken carries no third-party GUI art and no credit obligation for knobs; README, PANEL.md,
+  and the About box now credit the CC0 designs instead. `TsLookAndFeel` is now simply an alias
+  of `zqsfx::ui::LookAndFeel`.
+- Known trade-off, accepted: the large knob's pointer is a small dark tick on the rim and reads
+  less clearly than the old scalloped knob's white line on DRIVE / MOD / FILTER / RES. The
+  `.knob` source is in `zqsfx_ui`, so the pointer can be brightened there for every product.
+- `ts_ui_snapshot` before vs after: 73,833 of 1,556,480 pixels changed (4.74 percent), all
+  inside knob dials; the result is pixel-identical to the preview the owner approved.
+- Gates: build clean (0 project warnings), ctest **114/114**, `auval -v aumf Brkn ZQSF`
+  SUCCEEDED, pluginval strictness 5 SUCCESS. AU + VST3 reinstalled. No DSP or parameter code
+  touched, so fuzz, bench, and the render harness were not re-run.

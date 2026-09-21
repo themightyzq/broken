@@ -58,11 +58,10 @@ under its GPLv3 option. "TurboSynth" is a trademark of a third party Technology;
 referenced as historical context only. No affiliation with either.
 
 Third-party assets, each under its own licence (not GPL):
-- **Knob artwork:** "Analog Knob Kit 01" by **Julian Behrens** (Noisehead /
-  [vst-design.com](https://www.vst-design.com)) — used and modified with permission of its
-  licence, which requires this credit for open-source use and forbids reselling or
-  redistributing the images as standalone design resources. Licence text:
-  `plugin/assets/knobs/LICENSE-Noisehead-KnobKit.txt`.
+- **Knob artwork:** three CC0 (public domain) designs from the
+  [g200kg KnobGallery](https://www.g200kg.com/en/webknobman/gallery.php) by SolurOathLabs,
+  dh96, and C. Anders, embedded by the shared zqsfx_ui module (provenance in its
+  `assets/knobs/PROVENANCE.md`). No credit is required for CC0; it is given anyway.
 - **Fonts:** Barlow Condensed, VT323, IBM Plex Mono — SIL Open Font License. They are embedded
   by the shared [zqsfx_ui](https://github.com/themightyzq/zqsfx_ui) module, which carries the
   licence texts in its `assets/fonts/`.

@@ -3,8 +3,8 @@
 > **Visual spec of record (v0.27): `ClaudeDesign/design_handoff_broken_ui/README.md`.**
 > The panel implements that handoff — "degraded 90s rackmount sampler": rack-metal
 > chassis, teal silkscreen labels, green VFD/LCD readouts, filmstrip analog knobs
-> (Analog Knob Kit 01 by Julian Behrens / Noisehead, credited; licence bundled at
-> `plugin/assets/knobs/`), orange LEDs, grain/vignette grime, corner screws. Fonts:
+> (the ZQ SFX house knobs since 2026-09-21: three CC0 designs embedded by the shared
+> `zqsfx_ui` module), orange LEDs, grain/vignette grime, corner screws. Fonts:
 > Barlow Condensed (silkscreen), VT323 (LCD values), IBM Plex Mono (serial stamps) —
 > all OFL, embedded. Where this file and the handoff disagree on LOOK, the handoff wins;
 > where they disagree on BEHAVIOUR, this file and DSP-NOTES win.

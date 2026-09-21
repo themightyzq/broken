@@ -18,7 +18,7 @@ FetchContent_MakeAvailable(JUCE)
 # ts_ui_snapshot and compare (see CHANGELOG).
 FetchContent_Declare(zqsfx_ui
   GIT_REPOSITORY https://github.com/themightyzq/zqsfx_ui.git
-  GIT_TAG v0.1.1
+  GIT_TAG v0.2.0
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(zqsfx_ui)
 
@@ -33,10 +33,8 @@ FetchContent_MakeAvailable(Catch2)
 file(GLOB TS_PRESET_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/snapshots/*.json)
 juce_add_binary_data(TurboSynthPresets SOURCES ${TS_PRESET_FILES})
 
-# The house knob art: the Noisehead Analog Knob Kit 01 filmstrips (Julian Behrens, credited in
-# README and the About box; his licence ships alongside the strips and forbids redistributing
-# them as a standalone resource, which is why they live here and not in zqsfx_ui). Embedded as
-# ZqsfxKnobStrips.h by the helper at the bottom of this file, once every target exists.
+# Knobs, fonts, and every shared control come from zqsfx_ui (the knobs are its CC0 house
+# filmstrips), so this project carries no GUI art of its own.
 
 set(TS_PLUGIN_SOURCES
   src/plugin/Params.h
@@ -102,9 +100,6 @@ target_compile_definitions(ts_ui_snapshot PRIVATE
 target_link_libraries(ts_ui_snapshot
   PRIVATE TurboSynthPresets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
-
-# ts_cli and ts_ui_snapshot compile the editor too, so they need the strips as well
-zqsfx_ui_add_knob_strips(DIR assets/knobs TARGETS TurboSynth ts_cli ts_ui_snapshot)
 
 # --- unit tests: pure DSP only, JUCE-free by design (src/dsp must not include JUCE)
 enable_testing()
