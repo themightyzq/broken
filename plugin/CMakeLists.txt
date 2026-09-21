@@ -87,6 +87,18 @@ target_link_libraries(ts_cli
   PRIVATE TurboSynthPresets BrokenAssets juce::juce_audio_utils juce::juce_dsp
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
+# --- headless panel renderer: the look-and-feel regression gate (render, change, render,
+# compare; the grime is seeded so identical code gives a byte-identical PNG)
+juce_add_console_app(ts_ui_snapshot PRODUCT_NAME "ts_ui_snapshot")
+target_sources(ts_ui_snapshot PRIVATE src/cli/ui_snapshot.cpp ${TS_PLUGIN_SOURCES})
+target_include_directories(ts_ui_snapshot PRIVATE src)
+target_compile_definitions(ts_ui_snapshot PRIVATE
+  JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=0
+  BROKEN_VERSION="${PROJECT_VERSION}")
+target_link_libraries(ts_ui_snapshot
+  PRIVATE TurboSynthPresets BrokenAssets juce::juce_audio_utils juce::juce_dsp
+  PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+
 # --- unit tests: pure DSP only, JUCE-free by design (src/dsp must not include JUCE)
 enable_testing()
 # GLOB so test files can be added without touching this file (agents work on disjoint files)
