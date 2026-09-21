@@ -41,7 +41,7 @@ projects migrate onto. Keep making those changes against the design spec of reco
 - Renders: `tests/renders/<fixture>__<snapshot>__vNN.wav`, produced by `ts_cli` at
   48 kHz/24-bit (parity runs at 44.1 k).
 - Versioning: git, local only, no remote (first repository created 2026-09-21, branch
-  `chore/zqsfx-identity` off `main`) — see ../CLAUDE.md section 3. A **milestone** = a
+  `main`) — see ../CLAUDE.md section 3. A **milestone** = a
   P-step passing its gates; tag/note milestones in CHANGELOG.
 - No oversampling in the signal chain by default — aliasing is era-correct and deliberate.
 - Python scripts (`scripts/make_fixtures.py`, `scripts/analyze.py`) run in a `.venv` that is
