@@ -18,7 +18,7 @@ FetchContent_MakeAvailable(JUCE)
 # ts_ui_snapshot and compare (see CHANGELOG).
 FetchContent_Declare(zqsfx_ui
   GIT_REPOSITORY https://github.com/themightyzq/zqsfx_ui.git
-  GIT_TAG v0.1.0
+  GIT_TAG v0.1.1
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(zqsfx_ui)
 
@@ -33,13 +33,10 @@ FetchContent_MakeAvailable(Catch2)
 file(GLOB TS_PRESET_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/snapshots/*.json)
 juce_add_binary_data(TurboSynthPresets SOURCES ${TS_PRESET_FILES})
 
-# Broken-only GUI art: the Noisehead Analog Knob Kit 01 filmstrips (Julian Behrens, credited in
-# README; his licence ships alongside the strips). The OFL fonts moved into zqsfx_ui, which
-# embeds them for every ZQ SFX product. ts_cli compiles the editor too, so it links this.
-juce_add_binary_data(BrokenAssets HEADER_NAME BrokenAssets.h NAMESPACE BrokenAssets SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/assets/knobs/strip_a.png
-  ${CMAKE_CURRENT_SOURCE_DIR}/assets/knobs/strip_b.png
-  ${CMAKE_CURRENT_SOURCE_DIR}/assets/knobs/strip_c.png)
+# The house knob art: the Noisehead Analog Knob Kit 01 filmstrips (Julian Behrens, credited in
+# README and the About box; his licence ships alongside the strips and forbids redistributing
+# them as a standalone resource, which is why they live here and not in zqsfx_ui). Embedded as
+# ZqsfxKnobStrips.h by the helper at the bottom of this file, once every target exists.
 
 set(TS_PLUGIN_SOURCES
   src/plugin/Params.h
@@ -76,7 +73,7 @@ target_compile_definitions(TurboSynth PUBLIC
   JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0
   BROKEN_VERSION="${PROJECT_VERSION}")
 target_link_libraries(TurboSynth
-  PRIVATE TurboSynthPresets BrokenAssets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
+  PRIVATE TurboSynthPresets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
 # --- headless render CLI: same processor sources compiled into a console app,
@@ -91,7 +88,7 @@ target_compile_definitions(ts_cli PRIVATE
 # warning flags as the plugin target -- otherwise the "no new warnings" gate is silent
 # whenever only ts_cli is built.
 target_link_libraries(ts_cli
-  PRIVATE TurboSynthPresets BrokenAssets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
+  PRIVATE TurboSynthPresets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
 # --- headless panel renderer: the look-and-feel regression gate (render, change, render,
@@ -103,8 +100,11 @@ target_compile_definitions(ts_ui_snapshot PRIVATE
   JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=0
   BROKEN_VERSION="${PROJECT_VERSION}")
 target_link_libraries(ts_ui_snapshot
-  PRIVATE TurboSynthPresets BrokenAssets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
+  PRIVATE TurboSynthPresets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+
+# ts_cli and ts_ui_snapshot compile the editor too, so they need the strips as well
+zqsfx_ui_add_knob_strips(DIR assets/knobs TARGETS TurboSynth ts_cli ts_ui_snapshot)
 
 # --- unit tests: pure DSP only, JUCE-free by design (src/dsp must not include JUCE)
 enable_testing()

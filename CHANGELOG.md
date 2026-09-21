@@ -1090,10 +1090,12 @@ plus my own findings on the same shot.
 - Two deliberate differences, neither visible in that render: keyboard focus is now a 2 px
   `accent` outline from `createFocusOutlineForComponent` (was a hand-drawn 1 px `tick` ring),
   and the bound controls publish their tooltip as accessible description and help text.
-- **Open for the owner:** section titles (`Block`) are drawn in the platform bold face, while
-  the handoff specifies Barlow Condensed 600. The shared `Panel` follows the handoff. `Block`
-  was kept local so this migration changed nothing visible; switching it is a one-line alias
-  and a visible change, so it waits for sign-off.
+- **Owner decisions the same day:** platform-bold section titles stay and become the house
+  standard, so `zqsfx_ui` v0.1.1's `Panel` draws them that way and `Block` is now just
+  `using Block = zqsfx::ui::Panel`. Broken's filmstrip knobs are the house knob for every
+  product; the strips are embedded here through `zqsfx_ui_add_knob_strips()` (the recipe every
+  product follows), since the licence keeps them out of the public module. Re-rendered on
+  v0.1.1: still **0 differing pixels** against the original baseline.
 - Gates: build clean (0 project warnings), ctest **114/114**, `auval -v aumf Brkn ZQSF`
   SUCCEEDED, pluginval strictness 5 on the VST3 SUCCESS (opens the editor), bundle id
   `com.zqsfx.broken`. AU + VST3 reinstalled. Fuzz, bench, and the render harness were NOT
