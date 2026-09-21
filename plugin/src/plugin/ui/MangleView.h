@@ -262,8 +262,9 @@ public:
         };
         tapeBlock.addAndMakeVisible (saveButton);
 
-        // screen-reader disambiguation: two knobs/buttons share silk labels (v0.33)
-        mixKnob->setAccessibleTitle ("OUTPUT MIX");
+        // screen-reader disambiguation: two knobs/buttons share silk labels (v0.33).
+        // (OUTPUT MIX is titled below, right after mixKnob is created: doing it here
+        // dereferenced a null unique_ptr and crashed every editor open.)
         delayMixKnob->setAccessibleTitle ("DELAY MIX");
         saveButton.setTitle ("SAVE TAPE WAV");
         takeReadout.proc = &processor;
@@ -281,6 +282,7 @@ public:
             "Wet/dry. Dry = the un-mangled source, blended in before COLOUR and OUT \xe2\x80\x94 "
             "parallel mangling in every mode.", false, true, "%",
             [] (double v) { return juce::String (juce::roundToInt (v * 100.0)) + " %"; });
+        mixKnob->setAccessibleTitle ("OUTPUT MIX");
         colourCombo = std::make_unique<Combo> (av, "col.mode", params::colourModes, "COLOUR",
             "The sound of the sampler this would have been rendered to.");
         rateKnob = std::make_unique<Knob> (av, "col.rate", "RATE",
