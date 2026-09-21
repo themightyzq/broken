@@ -1113,9 +1113,10 @@ plus my own findings on the same shot.
   gone, Broken carries no third-party GUI art and no credit obligation for knobs; README, PANEL.md,
   and the About box now credit the CC0 designs instead. `TsLookAndFeel` is now simply an alias
   of `zqsfx::ui::LookAndFeel`.
-- Known trade-off, accepted: the large knob's pointer is a small dark tick on the rim and reads
-  less clearly than the old scalloped knob's white line on DRIVE / MOD / FILTER / RES. The
-  `.knob` source is in `zqsfx_ui`, so the pointer can be brightened there for every product.
+- The large knob's own pointer is a small dark tick that was close to unreadable on DRIVE /
+  MOD / FILTER / RES. Fixed for every product in `zqsfx_ui` v0.2.1, which paints a cream
+  (`pointer` token) line on that strip; Broken is pinned to v0.2.1. The as-designed strip is
+  kept in the module and restoring it is a one-file copy there.
 - `ts_ui_snapshot` before vs after: 73,833 of 1,556,480 pixels changed (4.74 percent), all
   inside knob dials; the result is pixel-identical to the preview the owner approved.
 - Gates: build clean (0 project warnings), ctest **114/114**, `auval -v aumf Brkn ZQSF`
