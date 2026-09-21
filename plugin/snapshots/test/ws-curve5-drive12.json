@@ -1,0 +1,17 @@
+{
+  "name": "ws-curve5-drive12",
+  "comment": "Asym at 12 dB: even harmonics + DC blocker check",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 0,
+    "ws.on": 1,
+    "flt.on": 0,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 0,
+    "out.level": 0.0,
+    "ws.curve": 4,
+    "ws.drive": 12.0
+  }
+}

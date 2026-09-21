@@ -1,0 +1,20 @@
+{
+  "name": "notes-osc-clean",
+  "comment": "instrument: sine osc, modules off, for tuning/envelope gates",
+  "params": {
+    "source.mode": 2,
+    "mod.on": 0,
+    "ws.on": 0,
+    "flt.on": 0,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 0,
+    "out.level": 0.0,
+    "source.oscwave": 0,
+    "amp.a": 0.005,
+    "amp.d": 0.2,
+    "amp.s": 0.8,
+    "amp.r": 0.15
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "00 Init",
+  "comment": "Empty params object = every parameter at its Params.h default (the deliberate init state from docs/PANEL.md).",
+  "params": {
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

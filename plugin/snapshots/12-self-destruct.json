@@ -1,0 +1,24 @@
+{
+  "name": "12-self-destruct",
+  "comment": "Self-modulation: the sound rings itself. Squaring + shaper = the death-vocal extreme.",
+  "params": {
+    "source.mode": 0,
+    "mod.on": 1,
+    "mod.mode": 1,
+    "mod.source": 1,
+    "mod.amount": 1.0,
+    "ws.on": 1,
+    "ws.curve": 2,
+    "ws.drive": 16.0,
+    "flt.on": 1,
+    "flt.cutoff": 3500.0,
+    "flt.poles": 2,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 1,
+    "amp.s": 1.0,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

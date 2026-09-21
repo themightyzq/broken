@@ -1,0 +1,400 @@
+{
+  "fixtures": {
+    "bend.mid": {
+      "duration_s": 4.125,
+      "filename": "bend.mid",
+      "note": "held C3 (48); wheel centred / full up / centred / full down, 1 s each",
+      "sha256": "437f4977e5e59fb54cef3cef138b3420d15aac10f2691f4e25ff2ebc639f362c",
+      "windows_s": {
+        "centre": [
+          0.0,
+          1.0
+        ],
+        "down": [
+          3.0,
+          4.0
+        ],
+        "recentre": [
+          2.0,
+          3.0
+        ],
+        "up": [
+          1.0,
+          2.0
+        ]
+      }
+    },
+    "dcstep.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "2 s: silence / +0.25 DC step for 1 s / silence",
+      "duration_s": 2.0,
+      "expected_duration_s": 2.0,
+      "filename": "dcstep.wav",
+      "peak_dbfs": -12.041199826559248,
+      "rms_dbfs": -15.05149978319906,
+      "sha256": "837ad62eebf81ab849f8b716cc1e14c8290c7c8cfb6a2d0f4eb18880f7c91137",
+      "sr": 48000
+    },
+    "drone110.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "110 Hz naive sawtooth, peak -6 dBFS, 4 s, 10 ms fades",
+      "duration_s": 4.0,
+      "expected_duration_s": 4.0,
+      "filename": "drone110.wav",
+      "peak_dbfs": -5.999998424704031,
+      "rms_dbfs": -10.786440913302481,
+      "sha256": "d940da6ea9172b6af6330aaddb245bdf65f79ce8dcdbc1bc7b9470eed2f1f045",
+      "sr": 48000
+    },
+    "drum.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "synthesized kick (80->40 Hz sweep) + snare (noise+200 Hz) at t=1s, peak -6 dBFS, 2 s",
+      "duration_s": 2.0,
+      "expected_duration_s": 2.0,
+      "filename": "drum.wav",
+      "peak_dbfs": -6.0000004906757844,
+      "rms_dbfs": -25.21447608955199,
+      "sha256": "f694f2a83a1db9d6595ec7cd0fd68ef045d8ac691fbf429c72fb639a76a58f7f",
+      "sr": 48000
+    },
+    "guitar.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "power-chunk stand-in: E2/B2/E3 sawtooths doubled +7c detuned, decay to 70%, peak -6 dBFS, 2 s",
+      "duration_s": 2.0,
+      "expected_duration_s": 2.0,
+      "filename": "guitar.wav",
+      "peak_dbfs": -6.0000004906757844,
+      "rms_dbfs": -18.333087346468414,
+      "sha256": "459aafa0da893eb35b315758d4a423beafd4fc322431aa18c2e73e444916140c",
+      "sr": 48000
+    },
+    "impulse.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "single-sample impulse (amp 0.5) at sample 24000 in 2 s of silence",
+      "duration_s": 2.0,
+      "expected_duration_s": 2.0,
+      "filename": "impulse.wav",
+      "peak_dbfs": -6.020599913279624,
+      "rms_dbfs": -55.84331224367531,
+      "sha256": "9033d9c8f9d2ecbc6b6392fa8223f57fbe93d729a8cc68f2fe389bb0934d4aad",
+      "sr": 48000
+    },
+    "multitone.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "10 log-spaced non-harmonic sines, bin-exact for 65536-pt FFT, equal-level, file peak -6 dBFS, 10 ms fades",
+      "duration_s": 5.0,
+      "expected_duration_s": 5.0,
+      "filename": "multitone.wav",
+      "peak_dbfs": -5.999998424704031,
+      "rms_dbfs": -18.351345278021878,
+      "sha256": "c8f6838be5741adbe9d6315775d2bc7253ed32f11c5501c14028da1c476fc1ee",
+      "sr": 48000,
+      "tone_amplitude_dbfs": -25.33027700981087,
+      "tone_frequencies_hz": [
+        49.8046875,
+        92.28515625,
+        169.189453125,
+        310.546875,
+        571.2890625,
+        1050.29296875,
+        1930.6640625,
+        3550.048828125,
+        6527.34375,
+        12000.0
+      ]
+    },
+    "notes.mid": {
+      "bit_depth": null,
+      "channels": null,
+      "description": "SMF format 0, 480 tpq, 120 bpm: scale / held note / chord / retrigger / legato pair",
+      "duration_s": 12.5,
+      "expected_duration_s": 12.5,
+      "filename": "notes.mid",
+      "notes": [
+        {
+          "end_tick": 480,
+          "pitch": 48,
+          "section": "a_scale",
+          "start_tick": 0,
+          "velocity": 100
+        },
+        {
+          "end_tick": 960,
+          "pitch": 50,
+          "section": "a_scale",
+          "start_tick": 480,
+          "velocity": 100
+        },
+        {
+          "end_tick": 1440,
+          "pitch": 52,
+          "section": "a_scale",
+          "start_tick": 960,
+          "velocity": 100
+        },
+        {
+          "end_tick": 1920,
+          "pitch": 53,
+          "section": "a_scale",
+          "start_tick": 1440,
+          "velocity": 100
+        },
+        {
+          "end_tick": 2400,
+          "pitch": 55,
+          "section": "a_scale",
+          "start_tick": 1920,
+          "velocity": 100
+        },
+        {
+          "end_tick": 2880,
+          "pitch": 57,
+          "section": "a_scale",
+          "start_tick": 2400,
+          "velocity": 100
+        },
+        {
+          "end_tick": 3360,
+          "pitch": 59,
+          "section": "a_scale",
+          "start_tick": 2880,
+          "velocity": 100
+        },
+        {
+          "end_tick": 3840,
+          "pitch": 60,
+          "section": "a_scale",
+          "start_tick": 3360,
+          "velocity": 100
+        },
+        {
+          "end_tick": 6240,
+          "pitch": 36,
+          "section": "b_held_c2",
+          "start_tick": 4320,
+          "velocity": 100
+        },
+        {
+          "end_tick": 7680,
+          "pitch": 48,
+          "section": "c_chord",
+          "start_tick": 6720,
+          "velocity": 100
+        },
+        {
+          "end_tick": 7680,
+          "pitch": 52,
+          "section": "c_chord",
+          "start_tick": 6720,
+          "velocity": 100
+        },
+        {
+          "end_tick": 7680,
+          "pitch": 55,
+          "section": "c_chord",
+          "start_tick": 6720,
+          "velocity": 100
+        },
+        {
+          "end_tick": 8220,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 8160,
+          "velocity": 100
+        },
+        {
+          "end_tick": 8340,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 8280,
+          "velocity": 100
+        },
+        {
+          "end_tick": 8460,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 8400,
+          "velocity": 100
+        },
+        {
+          "end_tick": 8580,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 8520,
+          "velocity": 100
+        },
+        {
+          "end_tick": 8700,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 8640,
+          "velocity": 100
+        },
+        {
+          "end_tick": 8820,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 8760,
+          "velocity": 100
+        },
+        {
+          "end_tick": 8940,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 8880,
+          "velocity": 100
+        },
+        {
+          "end_tick": 9060,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 9000,
+          "velocity": 100
+        },
+        {
+          "end_tick": 9180,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 9120,
+          "velocity": 100
+        },
+        {
+          "end_tick": 9300,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 9240,
+          "velocity": 100
+        },
+        {
+          "end_tick": 9420,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 9360,
+          "velocity": 100
+        },
+        {
+          "end_tick": 9540,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 9480,
+          "velocity": 100
+        },
+        {
+          "end_tick": 9660,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 9600,
+          "velocity": 100
+        },
+        {
+          "end_tick": 9780,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 9720,
+          "velocity": 100
+        },
+        {
+          "end_tick": 9900,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 9840,
+          "velocity": 100
+        },
+        {
+          "end_tick": 10020,
+          "pitch": 48,
+          "section": "d_retrigger",
+          "start_tick": 9960,
+          "velocity": 100
+        },
+        {
+          "end_tick": 11520,
+          "pitch": 48,
+          "section": "e_legato",
+          "start_tick": 10560,
+          "velocity": 100
+        },
+        {
+          "end_tick": 12000,
+          "pitch": 52,
+          "section": "e_legato",
+          "start_tick": 11040,
+          "velocity": 100
+        }
+      ],
+      "peak_dbfs": null,
+      "rms_dbfs": null,
+      "sha256": "97760c96a023496b3720275f2398140b4ede62d63289aee676922ba40efc1f23",
+      "sr": null,
+      "tempo_usec_per_quarter": 500000,
+      "ticks_per_quarter": 480
+    },
+    "pink.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "FFT 1/f pink noise, RMS -18 dBFS, 5 s",
+      "duration_s": 5.0,
+      "expected_duration_s": 5.0,
+      "filename": "pink.wav",
+      "peak_dbfs": -4.997330414277765,
+      "rms_dbfs": -18.000000002610758,
+      "sha256": "491b64def00c672087e2f60bb72a98a5739547a082066c02115ff0ed7cf7eeff",
+      "sr": 48000
+    },
+    "silence.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "5 s true digital zero",
+      "duration_s": 5.0,
+      "expected_duration_s": 5.0,
+      "filename": "silence.wav",
+      "peak_dbfs": null,
+      "rms_dbfs": null,
+      "sha256": "d65e01388e6b4d6db8d10293ee1f8a754b479ba9bd928692eac567cca572186f",
+      "sr": 48000
+    },
+    "sweep.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "20 Hz-20 kHz exponential sine sweep, 10 s, 50 ms fades",
+      "duration_s": 10.0,
+      "expected_duration_s": 10.0,
+      "filename": "sweep.wav",
+      "peak_dbfs": -5.999998424704031,
+      "rms_dbfs": -9.03756130579678,
+      "sha256": "55f88e0fb21dbdbe9e0a10844485f1bf6f194231490ec265fc01518c0dde5c58",
+      "sr": 48000
+    },
+    "tone1k.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "1000.0 Hz sine, peak -6 dBFS, 3 s, 10 ms fades",
+      "duration_s": 3.0,
+      "expected_duration_s": 3.0,
+      "filename": "tone1k.wav",
+      "peak_dbfs": -5.999998424704031,
+      "rms_dbfs": -9.028463504963442,
+      "sha256": "cb60cf025bc7e98aeaf4d83aebe24fd6cc82808277bb630b1e5be07875e15d19",
+      "sr": 48000
+    },
+    "white.wav": {
+      "bit_depth": 24,
+      "channels": 2,
+      "description": "seeded uniform white noise, RMS -18 dBFS, 5 s",
+      "duration_s": 5.0,
+      "expected_duration_s": 5.0,
+      "filename": "white.wav",
+      "peak_dbfs": -13.231024704137106,
+      "rms_dbfs": -18.000000013014223,
+      "sha256": "f967dbab00fe9f228a96e44b44ad90caf06ed274667503de97fcb6bbf26eea88",
+      "sr": 48000
+    }
+  },
+  "spec_version": 1
+}

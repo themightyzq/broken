@@ -1,0 +1,27 @@
+{
+  "name": "31-crushed-room",
+  "comment": "Drum crush plus a short tuned comb: metallic fake room.",
+  "params": {
+    "source.mode": 0,
+    "mod.on": 0,
+    "ws.on": 1,
+    "ws.curve": 5,
+    "ws.drive": 14.0,
+    "flt.on": 1,
+    "flt.cutoff": 7000.0,
+    "flt.poles": 1,
+    "res.on": 1,
+    "res.freq": 180.0,
+    "res.fb": 0.6,
+    "res.damp": 4000.0,
+    "inv.on": 0,
+    "dly.on": 1,
+    "dly.time": 60.0,
+    "dly.mix": 0.25,
+    "col.mode": 2,
+    "col.rate": 22050.0,
+    "amp.s": 1.0,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

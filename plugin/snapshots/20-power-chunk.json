@@ -1,0 +1,22 @@
+{
+  "name": "20-power-chunk",
+  "comment": "HardClip at high drive on an already-distorted source: the 'super-thick' layer.",
+  "params": {
+    "source.mode": 0,
+    "mod.on": 0,
+    "ws.on": 1,
+    "ws.curve": 1,
+    "ws.drive": 24.0,
+    "flt.on": 1,
+    "flt.cutoff": 4500.0,
+    "flt.poles": 1,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 1,
+    "amp.s": 1.0,
+    "amp.r": 0.12,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "test-unity",
+  "comment": "FX pass-through: all modules bypassed; must null against any fixture",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 0,
+    "ws.on": 0,
+    "flt.on": 0,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 0,
+    "out.level": 0.0
+  }
+}

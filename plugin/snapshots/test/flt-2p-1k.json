@@ -1,0 +1,17 @@
+{
+  "name": "flt-2p-1k",
+  "comment": "2-pole LP at 1 kHz",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 0,
+    "ws.on": 0,
+    "flt.on": 1,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 0,
+    "out.level": 0.0,
+    "flt.cutoff": 1000.0,
+    "flt.poles": 2
+  }
+}

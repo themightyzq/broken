@@ -1,0 +1,42 @@
+Julian Behrens - Noisehad Design Asset Bundle License
+© 2024 Julian Behrens. All rights reserved.
+
+License Terms:
+
+Usage Rights:
+
+You are permitted to use these design assets in commercial and non-commercial VST plugin projects.
+Modification of the assets is allowed to suit your project needs.
+
+
+Open Source Projects:
+
+For open source projects, credit must be given to Julian Behrens as the original creator of the design assets.
+
+
+Restrictions:
+
+Resale of these assets is strictly prohibited, whether in their original, altered, or edited state.
+You may not redistribute these assets as standalone design resources.
+
+
+Attribution:
+
+Attribution is appreciated but not required for commercial projects.
+
+
+No Warranty:
+
+These assets are provided "as is" without warranty of any kind.
+
+
+
+By using these design assets, you agree to comply with the terms of this license. Julian Behrens reserves the right to modify this license for future versions of the asset bundle.
+For questions regarding this license, please message: contact@julianbehrens.studio
+
+=====================================================================
+
+My work: www.vst-design.com
+
+
+

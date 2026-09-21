@@ -1,0 +1,16 @@
+{
+  "name": "inv-mix1",
+  "comment": "full spectral flip: 1 kHz -> 23 kHz",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 0,
+    "ws.on": 0,
+    "flt.on": 0,
+    "res.on": 0,
+    "inv.on": 1,
+    "dly.on": 0,
+    "col.mode": 0,
+    "out.level": 0.0,
+    "inv.mix": 1.0
+  }
+}

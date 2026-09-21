@@ -1,0 +1,28 @@
+{
+  "name": "22-chorus-chunk",
+  "comment": "PM chorus at 4.5 Hz over pitch-mix detune - the spec's own recipe, made ugly.",
+  "params": {
+    "source.mode": 0,
+    "mod.on": 1,
+    "mod.mode": 3,
+    "mod.source": 0,
+    "mod.wave": 0,
+    "mod.freq": 4.5,
+    "mod.amount": 0.5,
+    "source.pitchmix": 0.5,
+    "source.finecents": 8.0,
+    "ws.on": 1,
+    "ws.curve": 1,
+    "ws.drive": 20.0,
+    "flt.on": 1,
+    "flt.cutoff": 5000.0,
+    "flt.poles": 1,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 1,
+    "amp.s": 1.0,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

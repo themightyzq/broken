@@ -1,0 +1,26 @@
+{
+  "name": "10-death-vocal",
+  "comment": "the artist's documented modulator trick: RM against a low bell tone. Load a vocal or guitar sample.",
+  "params": {
+    "source.mode": 0,
+    "mod.on": 1,
+    "mod.mode": 1,
+    "mod.wave": 1,
+    "mod.freq": 40.0,
+    "mod.amount": 0.9,
+    "ws.on": 1,
+    "ws.curve": 2,
+    "ws.drive": 18.0,
+    "flt.on": 1,
+    "flt.cutoff": 3200.0,
+    "flt.poles": 2,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 1,
+    "amp.s": 1.0,
+    "amp.r": 0.3,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

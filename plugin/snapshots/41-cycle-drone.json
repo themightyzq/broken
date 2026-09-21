@@ -1,0 +1,33 @@
+{
+  "name": "41-cycle-drone",
+  "comment": "CYCLE mode at a real low pitch: 'convert sample to oscillator', the insane-sounds quote.",
+  "params": {
+    "source.mode": 1,
+    "source.pitch": -12.0,
+    "source.winlen": 2048.0,
+    "source.xfade": 12.0,
+    "mod.on": 1,
+    "mod.mode": 0,
+    "mod.wave": 1,
+    "mod.freq": 2.0,
+    "mod.amount": 0.35,
+    "ws.on": 1,
+    "ws.curve": 2,
+    "ws.drive": 12.0,
+    "flt.on": 1,
+    "flt.cutoff": 3000.0,
+    "flt.poles": 2,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 1,
+    "dly.time": 700.0,
+    "dly.mix": 0.3,
+    "dly.fb": 0.4,
+    "col.mode": 1,
+    "amp.a": 0.5,
+    "amp.s": 1.0,
+    "amp.r": 1.5,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

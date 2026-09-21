@@ -1,0 +1,54 @@
+{
+  "profiles": {
+    "unity": {
+      "checks": [
+        {"type": "null_residual_max_dbfs", "value": -60.0},
+        {"type": "flatness_max_db", "value": 0.1},
+        {"type": "added_lines_max_count", "value": 0},
+        {"type": "added_dc_max_dbfs", "value": -90.0}
+      ]
+    },
+    "resonator_220_fb09": {
+      "checks": [
+        {"type": "ring_freq_hz", "value": 220, "tol_pct": 2},
+        {"type": "t60_s", "value": 0.75, "tol_pct": 25}
+      ]
+    },
+    "delay_80ms": {
+      "checks": [
+        {"type": "echo_ms", "value": 80, "tol_ms": 0.05},
+        {"type": "echo_polarity", "value": "positive"}
+      ]
+    },
+    "delay_80ms_inv": {
+      "checks": [
+        {"type": "echo_ms", "value": 80, "tol_ms": 0.05},
+        {"type": "echo_polarity", "value": "negative"}
+      ]
+    },
+    "notes_default_env": {
+      "checks": [
+        {"type": "tuning_cents_max", "value": 3.0},
+        {"type": "attack_tol_pct", "expected_s": 0.005, "value": 60},
+        {"type": "release_tol_pct", "expected_s": 0.15, "value": 60},
+        {"type": "retrigger_count", "value": 16}
+      ]
+    },
+    "colour_12bit_1k": {
+      "checks": [
+        {"type": "noise_floor_dbfs_max", "value": -71},
+        {"type": "noise_floor_dbfs_min", "value": -77}
+      ]
+    },
+    "colour_sh8k_1k": {
+      "checks": [
+        {"type": "sh_images_present", "rate_hz": 8000, "fundamental_hz": 1000, "min_level_db_rel": -40}
+      ]
+    },
+    "tape_flip_clean": {
+      "checks": [
+        {"type": "max_step_dbfs", "value": -6.0}
+      ]
+    }
+  }
+}

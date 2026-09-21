@@ -1,0 +1,21 @@
+{
+  "name": "42-tape-ghost",
+  "comment": "Plays the TAPE buffer: record a mangle, FLIP, then re-mangle the generation. Needs a take on tape.",
+  "params": {
+    "source.mode": 5,
+    "mod.on": 0,
+    "ws.on": 1,
+    "ws.curve": 2,
+    "ws.drive": 10.0,
+    "flt.on": 1,
+    "flt.cutoff": 5000.0,
+    "flt.poles": 2,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 1,
+    "amp.s": 1.0,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

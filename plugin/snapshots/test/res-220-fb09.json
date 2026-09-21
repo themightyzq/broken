@@ -1,0 +1,18 @@
+{
+  "name": "res-220-fb09",
+  "comment": "comb at 220 Hz, fb 0.9, damping open",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 0,
+    "ws.on": 0,
+    "flt.on": 0,
+    "res.on": 1,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 0,
+    "out.level": 0.0,
+    "res.freq": 220.0,
+    "res.fb": 0.9,
+    "res.damp": 15000.0
+  }
+}

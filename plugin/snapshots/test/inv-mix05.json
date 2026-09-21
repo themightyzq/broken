@@ -1,0 +1,16 @@
+{
+  "name": "inv-mix05",
+  "comment": "half flip: both lines",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 0,
+    "ws.on": 0,
+    "flt.on": 0,
+    "res.on": 0,
+    "inv.on": 1,
+    "dly.on": 0,
+    "col.mode": 0,
+    "out.level": 0.0,
+    "inv.mix": 0.5
+  }
+}

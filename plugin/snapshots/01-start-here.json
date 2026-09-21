@@ -1,0 +1,33 @@
+{
+  "name": "01-start-here",
+  "comment": "START HERE. Needs no sample: press PLAY (no keyboard required) and turn DRIVE. Saw osc into soft saturation, the filter, and the resonator ringing at C3.",
+  "params": {
+    "source.mode": 2,
+    "source.oscwave": 2,
+    "osc.mode": 0,
+    "ws.on": 1,
+    "ws.curve": 2,
+    "ws.drive": 18.0,
+    "ws.morph": 1.0,
+    "flt.on": 1,
+    "flt.cutoff": 2400.0,
+    "flt.poles": 2,
+    "res.on": 1,
+    "res.fb": 0.6,
+    "res.damp": 6000.0,
+    "dly.on": 1,
+    "dly.mix": 0.2,
+    "dly.fb": 0.35,
+    "dly.time": 320.0,
+    "amp.a": 0.005,
+    "amp.d": 0.3,
+    "amp.s": 0.8,
+    "amp.r": 0.4,
+    "voice.mode": 0,
+    "play.hold": 0,
+    "ws.trim": -9.0,
+    "out.level": -8.0,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

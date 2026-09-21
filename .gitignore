@@ -1,0 +1,18 @@
+# Build output (path-bound, always regenerated)
+build/
+build-*/
+cmake-build-*/
+_deps/
+.cache/
+
+# Python venv (recreate from requirements.lock.txt)
+.venv/
+__pycache__/
+
+# Generated test output
+tests/renders/
+
+# Tooling / OS
+.DS_Store
+.remember/
+.diversion/

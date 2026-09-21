@@ -1,0 +1,23 @@
+{
+  "name": "30-drum-crush",
+  "comment": "Stair-quantize + 8-bit colour on a drum hit. (Community-lore technique, not primary-sourced.)",
+  "params": {
+    "source.mode": 0,
+    "mod.on": 0,
+    "ws.on": 1,
+    "ws.curve": 5,
+    "ws.drive": 16.0,
+    "flt.on": 1,
+    "flt.cutoff": 9000.0,
+    "flt.poles": 1,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 2,
+    "col.rate": 24000.0,
+    "amp.s": 1.0,
+    "amp.r": 0.08,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "mod-am-55",
+  "comment": "AM by 55 Hz sine, full depth",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 1,
+    "ws.on": 0,
+    "flt.on": 0,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 0,
+    "out.level": 0.0,
+    "mod.amount": 1.0,
+    "mod.freq": 55.0,
+    "mod.mode": 0,
+    "mod.wave": 0
+  }
+}

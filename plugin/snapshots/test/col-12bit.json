@@ -1,0 +1,16 @@
+{
+  "name": "col-12bit",
+  "comment": "12-bit quantize at full rate",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 0,
+    "ws.on": 0,
+    "flt.on": 0,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 1,
+    "out.level": 0.0,
+    "col.rate": 48000.0
+  }
+}

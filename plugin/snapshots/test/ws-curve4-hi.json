@@ -1,0 +1,17 @@
+{
+  "name": "ws-curve4-hi",
+  "comment": "Fold at 30 dB: aliasing signature baseline",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 0,
+    "ws.on": 1,
+    "flt.on": 0,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 0,
+    "out.level": 0.0,
+    "ws.curve": 3,
+    "ws.drive": 30.0
+  }
+}

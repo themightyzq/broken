@@ -1,0 +1,26 @@
+{
+  "name": "11-death-vocal-fm",
+  "comment": "Same idea, FM mode: bell tone bends the sample's playback rate. Uglier.",
+  "params": {
+    "source.mode": 0,
+    "mod.on": 1,
+    "mod.mode": 2,
+    "mod.wave": 1,
+    "mod.freq": 28.0,
+    "mod.amount": 0.7,
+    "mod.fmindex": 4.0,
+    "ws.on": 1,
+    "ws.curve": 2,
+    "ws.drive": 14.0,
+    "flt.on": 1,
+    "flt.cutoff": 4000.0,
+    "flt.poles": 2,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 1,
+    "amp.s": 1.0,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

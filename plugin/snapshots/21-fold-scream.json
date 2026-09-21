@@ -1,0 +1,21 @@
+{
+  "name": "21-fold-scream",
+  "comment": "Wavefolder past sanity. Aliasing is the point.",
+  "params": {
+    "source.mode": 0,
+    "mod.on": 0,
+    "ws.on": 1,
+    "ws.curve": 3,
+    "ws.drive": 30.0,
+    "flt.on": 1,
+    "flt.cutoff": 6000.0,
+    "flt.poles": 1,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 1,
+    "amp.s": 1.0,
+    "chain.mix": 1.0,
+    "bypass": 0
+  }
+}

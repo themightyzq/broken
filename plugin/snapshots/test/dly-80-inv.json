@@ -1,0 +1,18 @@
+{
+  "name": "dly-80-inv",
+  "comment": "80 ms inverted echo",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 0,
+    "ws.on": 0,
+    "flt.on": 0,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 1,
+    "col.mode": 0,
+    "out.level": 0.0,
+    "dly.time": 80.0,
+    "dly.mix": 0.5,
+    "dly.inv": 1
+  }
+}

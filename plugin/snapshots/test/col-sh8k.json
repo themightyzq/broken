@@ -1,0 +1,16 @@
+{
+  "name": "col-sh8k",
+  "comment": "12-bit + 8 kHz sample-hold: images at 7k/9k",
+  "params": {
+    "source.mode": 4,
+    "mod.on": 0,
+    "ws.on": 0,
+    "flt.on": 0,
+    "res.on": 0,
+    "inv.on": 0,
+    "dly.on": 0,
+    "col.mode": 1,
+    "out.level": 0.0,
+    "col.rate": 8000.0
+  }
+}
