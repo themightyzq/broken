@@ -1068,3 +1068,33 @@ plus my own findings on the same shot.
   `ABCDEF019182FAEB5A515346` (ZQSF); `auval -v aumf Brkn ZQSF` SUCCEEDED; AU + VST3
   reinstalled. ctest, fuzz, and the render harness were NOT re-run for this change (identity
   only, no source touched).
+
+## 2026-09-21 — Editor crash fix; Broken moves onto the shared zqsfx_ui module (no version bump)
+- **Fixed: the editor crashed on every open.** v0.33 added `mixKnob->setAccessibleTitle
+  ("OUTPUT MIX")` 14 lines above the `make_unique` that creates `mixKnob`, so `MangleView`'s
+  constructor dereferenced a null `unique_ptr` (EXC_BAD_ACCESS at 0x108 in
+  `juce::Component::setTitle`). ctest, auval, fuzz, and the render gates never open the editor,
+  so every gate stayed green from v0.33 on. Found by the new snapshot tool below. **Gap closed:**
+  the editor is now constructed by a tool on every look-and-feel change, and pluginval
+  (which opens the editor) is part of the gates listed here.
+- **New gate: `ts_ui_snapshot <out.png> [scale]`** renders the editor headlessly. The grime is
+  seeded and nothing animates, so identical code gives a byte-identical PNG.
+- **Broken's UI core now comes from `zqsfx_ui` v0.1.0** (github.com/themightyzq/zqsfx_ui, pinned
+  by tag in `plugin/CMakeLists.txt`), the ZQ SFX house UI that was lifted from this project.
+  `Theme.h`, `TsLookAndFeel.h`, and `Controls.h` are now thin adapters that keep the `ts::ui`
+  names. The OFL fonts moved into the module (`plugin/assets/fonts/` removed). The Noisehead
+  knob strips stay here and are handed to the shared LookAndFeel through `setKnobStrips`,
+  because that licence forbids redistributing the images as a standalone resource.
+- **Proof of no visual change:** `ts_ui_snapshot` before vs after the migration, 1520x1024:
+  **0 differing pixels of 1,556,480**, max channel delta 0.
+- Two deliberate differences, neither visible in that render: keyboard focus is now a 2 px
+  `accent` outline from `createFocusOutlineForComponent` (was a hand-drawn 1 px `tick` ring),
+  and the bound controls publish their tooltip as accessible description and help text.
+- **Open for the owner:** section titles (`Block`) are drawn in the platform bold face, while
+  the handoff specifies Barlow Condensed 600. The shared `Panel` follows the handoff. `Block`
+  was kept local so this migration changed nothing visible; switching it is a one-line alias
+  and a visible change, so it waits for sign-off.
+- Gates: build clean (0 project warnings), ctest **114/114**, `auval -v aumf Brkn ZQSF`
+  SUCCEEDED, pluginval strictness 5 on the VST3 SUCCESS (opens the editor), bundle id
+  `com.zqsfx.broken`. AU + VST3 reinstalled. Fuzz, bench, and the render harness were NOT
+  re-run (no DSP or parameter code touched).

@@ -13,6 +13,15 @@ FetchContent_Declare(JUCE
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(JUCE)
 
+# The ZQ SFX house UI (tokens, LookAndFeel, bound controls, embedded OFL fonts). Lifted from
+# this project; must come AFTER JUCE. Pinned by tag: bump deliberately, then re-run
+# ts_ui_snapshot and compare (see CHANGELOG).
+FetchContent_Declare(zqsfx_ui
+  GIT_REPOSITORY https://github.com/themightyzq/zqsfx_ui.git
+  GIT_TAG v0.1.0
+  GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(zqsfx_ui)
+
 FetchContent_Declare(Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
   GIT_TAG v3.7.1
@@ -24,12 +33,10 @@ FetchContent_MakeAvailable(Catch2)
 file(GLOB TS_PRESET_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/snapshots/*.json)
 juce_add_binary_data(TurboSynthPresets SOURCES ${TS_PRESET_FILES})
 
-# v0.27 rack GUI assets: OFL fonts (Barlow Condensed / VT323 / IBM Plex Mono) and the
-# Noisehead Analog Knob Kit 01 filmstrips (Julian Behrens — credited in README; his
-# licence ships alongside the strips). ts_cli compiles the editor too, so it links this.
-file(GLOB TS_FONT_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/*.ttf)
+# Broken-only GUI art: the Noisehead Analog Knob Kit 01 filmstrips (Julian Behrens, credited in
+# README; his licence ships alongside the strips). The OFL fonts moved into zqsfx_ui, which
+# embeds them for every ZQ SFX product. ts_cli compiles the editor too, so it links this.
 juce_add_binary_data(BrokenAssets HEADER_NAME BrokenAssets.h NAMESPACE BrokenAssets SOURCES
-  ${TS_FONT_FILES}
   ${CMAKE_CURRENT_SOURCE_DIR}/assets/knobs/strip_a.png
   ${CMAKE_CURRENT_SOURCE_DIR}/assets/knobs/strip_b.png
   ${CMAKE_CURRENT_SOURCE_DIR}/assets/knobs/strip_c.png)
@@ -69,7 +76,7 @@ target_compile_definitions(TurboSynth PUBLIC
   JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0
   BROKEN_VERSION="${PROJECT_VERSION}")
 target_link_libraries(TurboSynth
-  PRIVATE TurboSynthPresets BrokenAssets juce::juce_audio_utils juce::juce_dsp
+  PRIVATE TurboSynthPresets BrokenAssets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
 # --- headless render CLI: same processor sources compiled into a console app,
@@ -84,7 +91,7 @@ target_compile_definitions(ts_cli PRIVATE
 # warning flags as the plugin target -- otherwise the "no new warnings" gate is silent
 # whenever only ts_cli is built.
 target_link_libraries(ts_cli
-  PRIVATE TurboSynthPresets BrokenAssets juce::juce_audio_utils juce::juce_dsp
+  PRIVATE TurboSynthPresets BrokenAssets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
 # --- headless panel renderer: the look-and-feel regression gate (render, change, render,
@@ -96,7 +103,7 @@ target_compile_definitions(ts_ui_snapshot PRIVATE
   JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=0
   BROKEN_VERSION="${PROJECT_VERSION}")
 target_link_libraries(ts_ui_snapshot
-  PRIVATE TurboSynthPresets BrokenAssets juce::juce_audio_utils juce::juce_dsp
+  PRIVATE TurboSynthPresets BrokenAssets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
 # --- unit tests: pure DSP only, JUCE-free by design (src/dsp must not include JUCE)

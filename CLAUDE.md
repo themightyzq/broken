@@ -27,10 +27,13 @@ is the evidence base for era claims. For the panel's visual design, the spec of 
 remains `ClaudeDesign/design_handoff_broken_ui/README.md` (with its `BEHAVIOR.md`); that
 does not change with the note below.
 
-Broken is now the baseline for the house visual style
-(`../docs/ZQSFX_UI_STYLE_GUIDE.md`, draft): changes to `plugin/src/plugin/ui/Theme.h`,
-`TsLookAndFeel.h`, or `Controls.h` will feed the future shared design system other
-projects migrate onto. Keep making those changes against the design spec of record above.
+Broken is the baseline for the house visual style (`../docs/ZQSFX_UI_STYLE_GUIDE.md`), and
+its UI core now lives in the shared `zqsfx_ui` module (`../zqsfx_ui/`, fetched by tag in
+`plugin/CMakeLists.txt`). `plugin/src/plugin/ui/Theme.h`, `TsLookAndFeel.h`, and `Controls.h`
+are thin adapters. To change a token or a shared control: change it in `zqsfx_ui`, keep its
+`TokenTests` green, tag a release, bump `GIT_TAG` here, then prove the panel with
+`ts_ui_snapshot` before and after. Broken-only decoration (grime, screws, mirrored K, the
+licensed knob strips) stays in this project. The design spec of record above still governs.
 
 ## Conventions
 - Build: CMake out-of-source in `plugin/build/`; JUCE 8 pinned via FetchContent.
@@ -54,7 +57,10 @@ projects migrate onto. Keep making those changes against the design spec of reco
 3. `ts_cli` renders of the milestone's TEST-PLAN fixtures analyzed by
    `scripts/analyze.py` with the matching expectations profile — numeric PASS, run by
    Claude directly (never trusted from a subagent's report).
-4. CHANGELOG entry with the numbers.
+4. For anything touching the editor or look-and-feel: `ts_ui_snapshot` renders before and
+   after (pixel diff reported), and pluginval on the VST3 (it opens the editor; the unit and
+   render gates do not, which is how a crash-on-open once shipped green).
+5. CHANGELOG entry with the numbers.
 
 ## Definition of done (per feature)
 Design entry current → implemented → verified as above → user-facing behavior confirmed

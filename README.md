@@ -63,5 +63,8 @@ Third-party assets, each under its own licence (not GPL):
   licence, which requires this credit for open-source use and forbids reselling or
   redistributing the images as standalone design resources. Licence text:
   `plugin/assets/knobs/LICENSE-Noisehead-KnobKit.txt`.
-- **Fonts:** Barlow Condensed, VT323, IBM Plex Mono — SIL Open Font License, texts in
-  `plugin/assets/fonts/`.
+- **Fonts:** Barlow Condensed, VT323, IBM Plex Mono — SIL Open Font License. They are embedded
+  by the shared [zqsfx_ui](https://github.com/themightyzq/zqsfx_ui) module, which carries the
+  licence texts in its `assets/fonts/`.
+- **House UI:** tokens, LookAndFeel, and bound controls come from zqsfx_ui (GPL-3.0-or-later),
+  which was lifted from this project.
