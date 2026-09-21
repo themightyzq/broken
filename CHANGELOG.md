@@ -1051,3 +1051,20 @@ plus my own findings on the same shot.
   param-check 320/0, preset-check 17/0, roundtrip/migrate PASS, bend 0, tune 0 c,
   bypass-check PASS, rnd-check PASS, fuzz 300/0 (worst 17.052 @ 100059), check_ids 58
   OK, auval SUCCEEDED (now reporting version 0.34.0). AU + VST3 reinstalled.
+
+## 2026-09-21 — ZQ SFX identity unification (owner override of the v0.24 freeze; no version bump)
+- **`PLUGIN_MANUFACTURER_CODE Zqsx` → `ZQSF`.** v0.24 froze the identity codes, and that
+  entry stands as history. The owner has since unified every ZQ SFX plugin on one
+  manufacturer code (`ZQSF`) so hosts group them as one vendor, accepting that DAW sessions
+  saved against `Zqsx` need Broken re-inserted. Broken is pre-release, so the cost is local.
+  `PLUGIN_CODE Brkn`, `PRODUCT_NAME "Broken"`, `BUNDLE_ID com.zqsfx.broken`, parameter IDs, the
+  APVTS tree type, and the preset folder (`~/Library/Audio/Presets/ZQ SFX/Broken`) are
+  unchanged. **The freeze now applies to `ZQSF` + `Brkn`.**
+- Added `COMPANY_WEBSITE "https://www.zq-sfx.com"`, `COMPANY_EMAIL "connect@zq-sfx.com"`,
+  `COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"`.
+- Project moved to `PROJECTS_Apps/JUCE/Project_TurboSynth`. First git commit made (local
+  only). `.venv` is no longer kept in the tree; recreate it from `requirements.lock.txt`.
+- Gates: clean Release build green; built bundles report `com.zqsfx.broken`; VST3 CID prefix
+  `ABCDEF019182FAEB5A515346` (ZQSF); `auval -v aumf Brkn ZQSF` SUCCEEDED; AU + VST3
+  reinstalled. ctest, fuzz, and the render harness were NOT re-run for this change (identity
+  only, no source touched).

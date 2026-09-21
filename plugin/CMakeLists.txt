@@ -41,14 +41,19 @@ set(TS_PLUGIN_SOURCES
   src/plugin/PluginEditor.h
   src/plugin/PluginEditor.cpp)
 
-# --- the plugin itself: audio in + MIDI in (aumf). Product name "Broken" by ZQ SFX;
+# --- the plugin itself: audio in + MIDI in (aumf), so Sample/Osc AND Input modes live in one
+# binary. Product name "Broken" by ZQ SFX;
 # the CMake target keeps the working name (internal only). Identity codes below are
-# set ONCE before release and must never change afterwards (hosts key sessions on them)., so Sample/Osc AND Input modes live in one binary
+# frozen (hosts key sessions on them). The manufacturer code is the company-wide ZQSF, set
+# 2026-09-21 by owner override of the original Zqsx (see CHANGELOG); Brkn must never change.
 juce_add_plugin(TurboSynth
   PRODUCT_NAME "Broken"
   COMPANY_NAME "ZQ SFX"
+  COMPANY_WEBSITE "https://www.zq-sfx.com"
+  COMPANY_EMAIL "connect@zq-sfx.com"
+  COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
   BUNDLE_ID com.zqsfx.broken
-  PLUGIN_MANUFACTURER_CODE Zqsx
+  PLUGIN_MANUFACTURER_CODE ZQSF
   PLUGIN_CODE Brkn
   FORMATS AU VST3 Standalone
   IS_SYNTH FALSE

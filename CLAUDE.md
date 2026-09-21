@@ -1,3 +1,5 @@
+Universal ZQ SFX rules (identity, real-time safety, VCS policy, signing, shared agents, shared docs) live in ../CLAUDE.md and apply here. This file only adds what is specific to Broken.
+
 # CLAUDE.md — Project TurboSynth (JUCE)
 
 ## What this is
@@ -21,7 +23,14 @@ Product name: **Broken** (ZQ SFX). "TurboSynth" refers to the original a third p
 `docs/DSP-NOTES.md` (math, ranges, coefficients) and `docs/PANEL.md` (controls, defaults,
 info text) define the implementation. Code follows docs; if implementation forces a
 deviation, the doc is updated FIRST, with the reason, then the code. `docs/RESEARCH.md`
-is the evidence base for era claims.
+is the evidence base for era claims. For the panel's visual design, the spec of record
+remains `ClaudeDesign/design_handoff_broken_ui/README.md` (with its `BEHAVIOR.md`); that
+does not change with the note below.
+
+Broken is now the baseline for the house visual style
+(`../docs/ZQSFX_UI_STYLE_GUIDE.md`, draft): changes to `plugin/src/plugin/ui/Theme.h`,
+`TsLookAndFeel.h`, or `Controls.h` will feed the future shared design system other
+projects migrate onto. Keep making those changes against the design spec of record above.
 
 ## Conventions
 - Build: CMake out-of-source in `plugin/build/`; JUCE 8 pinned via FetchContent.
@@ -31,9 +40,13 @@ is the evidence base for era claims.
   song names.
 - Renders: `tests/renders/<fixture>__<snapshot>__vNN.wav`, produced by `ts_cli` at
   48 kHz/24-bit (parity runs at 44.1 k).
-- Versioning: Diversion for Desktop, continuous. A **milestone** = a P-step passing its
-  gates; tag/note milestones in CHANGELOG.
+- Versioning: git, local only, no remote (first repository created 2026-09-21, branch
+  `chore/zqsfx-identity` off `main`) — see ../CLAUDE.md section 3. A **milestone** = a
+  P-step passing its gates; tag/note milestones in CHANGELOG.
 - No oversampling in the signal chain by default — aliasing is era-correct and deliberate.
+- Python scripts (`scripts/make_fixtures.py`, `scripts/analyze.py`) run in a `.venv` that is
+  not kept in the tree. Recreate it with `python3 -m venv .venv && .venv/bin/pip install -r
+  requirements.lock.txt` before using `.venv/bin/python` per README.md.
 
 ## Definition of verify (per milestone)
 1. `cmake --build` clean (no new warnings in project code).
