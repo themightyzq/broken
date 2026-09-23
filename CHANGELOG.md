@@ -1176,3 +1176,26 @@ plus my own findings on the same shot.
   `"arm64;x86_64"`. Verified at the artefact, not in CMake text: `lipo -info` on the built
   VST3 reports `x86_64 arm64`; 0 errors; ctest **114/114**. README "Building" updated.
 - macOS deployment target pinned to 11.0; earlier builds declared 15.0 and would not load on macOS 13/14.
+
+## 2026-09-23 - zqsfx_ui v0.4.0; resize floor fixed; ts_ui_snapshot size args
+- `zqsfx_ui` bumped v0.2.1 -> v0.4.0: every knob now takes keyboard focus, double-click
+  resets to the parameter default, Shift+arrow nudges by a tenth of the step, and a focus
+  ring is drawn. Broken uses the shared Knob directly (`Controls.h`), so no call sites changed.
+- Resize floor: the editor's `ComponentBoundsConstrainer` allowed 0.55x, at which the six
+  module on/off switches (laid out at exactly 22 px in design coordinates) rendered at about
+  12 px, under the house 22 px hit-target floor. The minimum is now 0.65x (988x666, which
+  still fits a 13-inch laptop) and `MangleView.h` reserves a 34 px design square for each
+  switch (`lightRowH`), so they land at 22 px on screen at the floor; the lamp itself paints
+  at its old size, centred. Maximum is 2x. `setResizeLimits()` is deliberately not called:
+  with a custom constrainer installed JUCE asserts and ignores it.
+- Still under 22 px at the 0.65x floor, left for a later pass: the 33 px combos
+  (`oscWaveCombo`, `oscModeCombo`, `curveCombo`, `modModeCombo`, `modWaveCombo`,
+  `modSourceCombo`, `polesCombo`, `auxDest`, `oscMode`, `oscWave`, `invType`), the 24-26 px
+  text toggles (`delayInvToggle`, `unisonToggle`, `voiceRetrig`, `bypassToggle`, `fltExt`,
+  `sourceExt`, `stretchOn`, `flattenOn`), `tuneButton`, `rndButton`, `copyButton`,
+  `sourceMode`, the OSCILLATOR `sawButton`/`squareButton`/`flatShapeButton` (22 px at 100%),
+  and the preset bar's `<`, `>` and `...` buttons (22-26 px wide).
+- `ts_ui_snapshot <out.png> [scale] [width height]`: optional size so the minimum can be
+  rendered and gated (`setSize` bypasses the constrainer).
+- Preset rename already existed in the preset bar's `...` menu; unchanged.
+- Gates: build 0 errors, ctest 114/114, pluginval strictness 5, auval aumf Brkn ZQSF.

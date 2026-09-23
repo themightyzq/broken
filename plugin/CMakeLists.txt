@@ -23,7 +23,7 @@ FetchContent_MakeAvailable(JUCE)
 # ts_ui_snapshot and compare (see CHANGELOG).
 FetchContent_Declare(zqsfx_ui
   GIT_REPOSITORY https://github.com/themightyzq/zqsfx_ui.git
-  GIT_TAG v0.2.1
+  GIT_TAG v0.4.0
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(zqsfx_ui)
 

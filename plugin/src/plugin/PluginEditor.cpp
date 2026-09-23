@@ -189,15 +189,41 @@ TurboSynthEditor::TurboSynthEditor (TurboSynthProcessor& p)
     // Uniform scaling keeps every block's internal layout in design coordinates, so the
     // aspect ratio is locked; the alternative is maintaining a layout per size.
     constrainer.setFixedAspectRatio ((double) designW / (double) designH);
-    constrainer.setSizeLimits ((int) (designW * 0.55), (int) (designH * 0.55),
-                               (int) (designW * 1.75), (int) (designH * 1.75));
+    // Minimum = 0.65x default (988x666): the workspace rule that editors stay usable on a
+    // 13-inch laptop (1512x982) needs a real shrink floor, not the 100% (no-shrink) floor
+    // this constant briefly held. That 100% floor existed because the six module on/off
+    // switches (wsLight/modLight/fltLight/resLight/invLight/dlyLight, MangleView.h) were
+    // sized to exactly geom::minHitTargetPx (22px) in design coordinates, with zero margin
+    // -- shrinking at all would have put them under the house 22px accessibility floor.
+    // Resolved the other way instead: MangleView.h's layoutModuleColumn now gives each
+    // switch a 34px-design hit box (ceil(22 / 0.65) = 33.85, rounded up) while the drawn
+    // LED itself stays its original small size, centred -- so at this 0.65x floor the
+    // switches land at 34*0.65 = 22.1 screen px, back at (just over) the floor. The
+    // next-smallest control, geom::knobS (the POS/LEN/IN TRIM/SPREAD/ADSR/BEND dials,
+    // 40px), lands at 40*0.65 = 26px, comfortably clear. Several OTHER controls do drop
+    // below 22px at this floor and were NOT touched (out of the scope handed down for this
+    // pass) -- reported in full in the CHANGELOG entry for this change and to the user:
+    // multiple Combo dropdowns at 33px design height (21.45px at 0.65x), several
+    // TextToggle buttons at 24-26px (15.6-16.9px), the SOURCE panel's SAW/SQUARE/FLAT
+    // curve buttons at 22px design height (14.3px, EditView.h layoutOscillator), and the
+    // preset bar's `<`/`>` step buttons at 22px design width (14.3px, PresetBar.h).
+    // Maximum = 2x default: growing has no accessibility downside, so this is a generous
+    // but otherwise arbitrary ceiling.
+    constrainer.setSizeLimits (988, 666, designW * 2, designH * 2);
     setConstrainer (&constrainer);
     setResizable (true, true);
+    // AudioProcessorEditor::setResizeLimits() is deliberately NOT used here: once a custom
+    // constrainer has been installed via setConstrainer() (above), JUCE's own
+    // setResizeLimits() hits `jassertfalse` and returns without changing anything
+    // (juce_AudioProcessorEditor.cpp: "if you've set up a custom constrainer then these
+    // settings won't have any effect") -- calling it after this point would assert in
+    // debug builds and silently do nothing in release. constrainer.setSizeLimits() above
+    // is the real mechanism in effect.
 
-    // 55% keeps the whole panel usable on a 1512x982 laptop, which matters for release
+    // Restore the user's last window width, clamped to the (now 0.65x-2x) resize range.
     int w = designW;
     if (auto v = proc.apvts.state.getProperty (kEditorWidth); ! v.isVoid())
-        w = juce::jlimit ((int) (designW * 0.55), (int) (designW * 1.75), (int) v);
+        w = juce::jlimit (988, designW * 2, (int) v);
     setSize (w, juce::roundToInt ((double) w * designH / designW));
 }
 

@@ -379,6 +379,16 @@ private:
     static constexpr int outerPad = 18; // README: 18px side padding
     static constexpr int outerGap = 10; // README: 10px gaps
     static constexpr int headerPad = 20; // Block title reserves this much at the top
+    // LED/light row above a knob column (layoutModuleColumn): was headerPad+6 (26 design
+    // px), sized only to fit the LitToggle's own 22px hit box. At the editor's 0.65x
+    // resize floor (PluginEditor.cpp) that 22px box would scale to ~14px on screen, under
+    // the house 22px accessibility floor -- so the six module on/off switches now claim a
+    // 34px-tall row (ceil(22 / 0.65) = 33.85, rounded up), which keeps their CLICKABLE
+    // area >=22px at the floor while the drawn LED itself stays its original small size,
+    // centred (LitToggle/LedButton clamp the dot to geom::lightSize regardless of the
+    // bounds it's given). Used for both the light row and the matching blank spacers
+    // (mixCol/invBtnCol) so the four columns in rows 1 and 4 stay grid-aligned.
+    static constexpr int lightRowH = 34;
 
     // Right column split: PLAY (wider — MONO/POLY, ADSR row, RETRIG+BEND) sits left of
     // the narrower TAPE column; OUTPUT spans the full 544-ish width below both.
@@ -480,15 +490,15 @@ private:
         r = r.reduced (6);
         // v0.31: the rows used to top-pack and pool ~150px of void under row 4. Spread
         // the spare height into the three inter-row gaps (capped so rows stay grouped).
-        const int mangleFixedH = headerPad + (headerPad + 6 + xlBoxH) + 16 + 33
-                               + (14 + 2 + 14) + lBoxH + 16 + (headerPad + 6 + lBoxH);
+        const int mangleFixedH = headerPad + (lightRowH + xlBoxH) + 16 + 33
+                               + (14 + 2 + 14) + lBoxH + 16 + (lightRowH + lBoxH);
         const int extra = juce::jlimit (0, 40, (r.getHeight() - mangleFixedH) / 3);
         r.removeFromTop (headerPad);
 
         // Row 1: DRIVE / MOD / FILTER / RES — 60px dials (geom::knobXL), LED above,
         // LCD readout below (the big-knob Knob already draws it). One 4-column grid that
         // rows 3 and 4 reuse below, so every row's knobs line up vertically.
-        auto topRow = r.removeFromTop (headerPad + 6 + xlBoxH);
+        auto topRow = r.removeFromTop (lightRowH + xlBoxH);
         int colW = topRow.getWidth() / 4;
         auto driveCol = topRow.removeFromLeft (colW);
         auto modCol   = topRow.removeFromLeft (colW);
@@ -538,7 +548,7 @@ private:
 
         // Row 4: INVERT / DELAY (each with its LED) / MIX — 42px dials in columns 1-3,
         // the INV (polarity) toggle in column 4. Same 4-column grid as row 1.
-        auto rowC = r.removeFromTop (headerPad + 6 + lBoxH);
+        auto rowC = r.removeFromTop (lightRowH + lBoxH);
         colW = rowC.getWidth() / 4;
         auto invCol = rowC.removeFromLeft (colW);
         auto dlyCol = rowC.removeFromLeft (colW);
@@ -549,9 +559,9 @@ private:
         { invertKnob->setBounds (c.withSizeKeepingCentre (geom::knobL, lBoxH)); });
         layoutModuleColumn (dlyCol, *dlyLight, [this] (juce::Rectangle<int> c)
         { delayTimeKnob->setBounds (c.withSizeKeepingCentre (geom::knobL, lBoxH)); });
-        mixCol.removeFromTop (headerPad + 6); // blank spacer matching the LED row above, for alignment
+        mixCol.removeFromTop (lightRowH); // blank spacer matching the LED row above, for alignment
         delayMixKnob->setBounds (mixCol.withSizeKeepingCentre (geom::knobL, lBoxH));
-        invBtnCol.removeFromTop (headerPad + 6);
+        invBtnCol.removeFromTop (lightRowH);
         delayInvToggle->setBounds (invBtnCol.withSizeKeepingCentre (juce::jmin (invBtnCol.getWidth(), 60), 24));
     }
 
@@ -559,11 +569,12 @@ private:
     template <typename LayoutFn>
     static void layoutModuleColumn (juce::Rectangle<int> col, LitToggle& light, LayoutFn&& layoutFn)
     {
-        auto lightRow = col.removeFromTop (headerPad + 6);
+        auto lightRow = col.removeFromTop (lightRowH);
         // centred over the knob so the lamp reads as THAT module's switch, not corner
-        // decoration; bounds are ~2x the lamp so it is clickable by mortals (the LED
-        // paints small and centred inside whatever bounds it gets)
-        light.setBounds (lightRow.withSizeKeepingCentre (22, 22));
+        // decoration; the clickable bounds (lightRowH square, see its declaration) are
+        // much bigger than the lamp itself, which paints small and centred inside
+        // whatever bounds it gets (LedButton clamps the dot to geom::lightSize)
+        light.setBounds (lightRow.withSizeKeepingCentre (lightRowH, lightRowH));
         col.removeFromTop (2);
         layoutFn (col);
     }
