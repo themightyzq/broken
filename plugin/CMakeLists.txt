@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.24)
+
+if(APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version (universal binaries cannot go below 11.0)")
+endif()
+
 project(TurboSynth VERSION 0.34.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)

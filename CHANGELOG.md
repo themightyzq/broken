@@ -1175,3 +1175,4 @@ plus my own findings on the same shot.
   anything else, and the earlier README said "Apple Silicon" because that was true. Now
   `"arm64;x86_64"`. Verified at the artefact, not in CMake text: `lipo -info` on the built
   VST3 reports `x86_64 arm64`; 0 errors; ctest **114/114**. README "Building" updated.
+- macOS deployment target pinned to 11.0; earlier builds declared 15.0 and would not load on macOS 13/14.

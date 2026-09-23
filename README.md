@@ -21,6 +21,8 @@ There are no packaged releases yet; build from source (below). The built
 plugin is unsigned, so first launch needs right-click, Open, and hosts
 such as Soundminer will refuse to load it until it is signed locally.
 
+Requires macOS 11.0 or later.
+
 ## Use
 
 Load a sample, or feed Broken live audio, and shape it with the source,
