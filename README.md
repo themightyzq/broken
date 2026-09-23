@@ -1,69 +1,63 @@
-# Project TurboSynth
+# Broken
 
-A JUCE audio plugin (VST3 / AU / Standalone, macOS) recreating Digidesign TurboSynth (1988) as the band used it — sample mangling through waveshaping, modulation, and generational resampling. Product name: **Broken**, by ZQ SFX. "TurboSynth" here refers to the original Digidesign hardware, an a third party trademark; this is an independent recreation, not affiliated with a third party or the band.
+This project is called TurboSynth internally because it recreates the
+Digidesign TurboSynth (1988) the way the band used it; the shipped
+plugin is named Broken. It mangles a sample or live audio input into
+degraded, industrial textures: the signal runs through waveshaping,
+AM/RM/FM modulation, a filter stack, a resonator, a spectral inverter,
+delay, three envelopes, and 6-voice mono/poly/unison playback, with
+bit-depth reduction along the way. A "tape" loop lets you bounce the
+current output back through the chain for generational resampling inside
+the plugin. "TurboSynth" is a trademark of a third party Technology (originally
+Digidesign); the band is referenced as historical context only.
+Broken is an independent recreation with no affiliation to either.
 
-## Status
+17 factory presets ship with it, and you can save, rename, and delete your
+own. AU, VST3, and Standalone, macOS.
 
-v0.2 — design docs, verified test harness, JUCE build in progress. See [CHANGELOG.md](CHANGELOG.md). (The project began as a the prototyping environment ensemble; [docs/builds/M1.md](docs/builds/M1.md) is that retired path's record.)
+## Install
 
-## Layout
+There are no packaged releases yet; build from source (below). The built
+plugin is unsigned, so first launch needs right-click, Open, and hosts
+such as Soundminer will refuse to load it until it is signed locally.
 
-```
-plugin/              JUCE/CMake project: plugin targets, headless render CLI, unit tests
-  src/dsp/           pure C++ DSP (JUCE-free, unit-tested)
-  src/plugin/        processor + editor (the MANGLE panel)
-  src/cli/           ts_cli — renders fixtures through the real engine, headless
-  snapshots/         JSON presets, named by technique
-docs/                DESIGN.md DSP-NOTES.md PANEL.md PITFALLS.md RESEARCH.md
-tests/
-  TEST-PLAN.md       render matrix + manual checklist
-  fixtures/          script-generated test signals (never hand-made)
-  renders/           ts_cli renders of fixtures through the engine
-  results/           analyze.py output (JSON + plots)
-scripts/             make_fixtures.py  analyze.py
-```
+## Use
 
-## The verification loop
+Load a sample, or feed Broken live audio, and shape it with the source,
+modulator, waveshaper, filter, resonator, spectral inverter, delay, and
+envelope sections in the signal chain. One-press tune lock and a
+RANDOMIZE button with undo are on the panel for quick exploration. TAPE
+records the current output and feeds it back through the chain for
+further mangling. Presets save, rename, delete, and overwrite from the
+preset bar.
 
-Fixtures are generated deterministically by `scripts/make_fixtures.py`; `ts_cli` renders each fixture through the actual plugin DSP at named snapshots into `tests/renders/` (naming: `<fixture>__<snapshot>__vNN.wav`); `scripts/analyze.py` compares render to fixture and reports numeric pass/fail plus a plot per render. Every DSP claim is a hypothesis until a render confirms it.
-
-## Running the scripts
+## Building
 
 ```bash
-python3 scripts/make_fixtures.py
+cd plugin
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j 4
 ```
+
+JUCE and the shared house UI module are fetched automatically by CMake.
+This builds the AU, VST3, and Standalone targets as a macOS universal
+binary (Apple Silicon and Intel).
+Built plugins land under `plugin/build/TurboSynth_artefacts/`; the build
+does not install them automatically, so copy the AU and VST3 bundles to
+`~/Library/Audio/Plug-Ins/` yourself to load them in a DAW.
+
+## Testing
 
 ```bash
-python3 scripts/analyze.py selftest
+ctest --test-dir plugin/build --output-on-failure
 ```
 
-If a `.venv/` exists at the project root, use `.venv/bin/python` instead of `python3`.
+For plugin-level checks, run pluginval against the built VST3 and auval
+against the AU.
 
-## Ground rules
+## Licence
 
-- Claude authors code, docs, tests, and scripts; the human is design authority and final judge of sound and panel. See CLAUDE.md for the full contract.
-- Versioning: Diversion for Desktop, continuously; milestones noted in CHANGELOG.
-- Design decisions trace to primary sources collected in [docs/RESEARCH.md](docs/RESEARCH.md).
+GPL-3.0-or-later. See LICENSE. Built with JUCE. Third-party assets (knob
+artwork, embedded fonts) keep their own licences; see LICENSE for details.
 
-## Sources
-
-Sound On Sound Dec 1988; Music Technology Sep 1988; Keyboard Magazine March 1994.
-
-
-## License
-
-Broken is free software released under the **GNU General Public License v3.0** — see
-[LICENSE](LICENSE). Copyright © 2026 ZQ SFX LLC. Built with [JUCE](https://juce.com), used
-under its GPLv3 option. "TurboSynth" is a trademark of a third party Technology; the band is
-referenced as historical context only. No affiliation with either.
-
-Third-party assets, each under its own licence (not GPL):
-- **Knob artwork:** three CC0 (public domain) designs from the
-  [g200kg KnobGallery](https://www.g200kg.com/en/webknobman/gallery.php) by SolurOathLabs,
-  dh96, and C. Anders, embedded by the shared zqsfx_ui module (provenance in its
-  `assets/knobs/PROVENANCE.md`). No credit is required for CC0; it is given anyway.
-- **Fonts:** Barlow Condensed, VT323, IBM Plex Mono — SIL Open Font License. They are embedded
-  by the shared [zqsfx_ui](https://github.com/themightyzq/zqsfx_ui) module, which carries the
-  licence texts in its `assets/fonts/`.
-- **House UI:** tokens, LookAndFeel, and bound controls come from zqsfx_ui (GPL-3.0-or-later),
-  which was lifted from this project.
+ZQ SFX, https://www.zq-sfx.com, connect@zq-sfx.com.

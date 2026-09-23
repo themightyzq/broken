@@ -3,7 +3,7 @@ project(TurboSynth VERSION 0.34.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_ARCHITECTURES arm64)
+set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64") # universal is mandatory: Soundminer will not load anything else (../CLAUDE.md section 5)
 
 include(FetchContent)
 

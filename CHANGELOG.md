@@ -1122,3 +1122,56 @@ plus my own findings on the same shot.
 - Gates: build clean (0 project warnings), ctest **114/114**, `auval -v aumf Brkn ZQSF`
   SUCCEEDED, pluginval strictness 5 SUCCESS. AU + VST3 reinstalled. No DSP or parameter code
   touched, so fuzz, bench, and the render harness were not re-run.
+
+## 2026-09-22 — Two audio-thread allocation bugs fixed; README status brought current (no version bump)
+- **Fixed: heap allocation on the audio thread when a host hands `processBlock` a buffer
+  bigger than the `samplesPerBlock` declared to `prepareToPlay`** (offline bounces do this
+  routinely). `monoIn`/`monoOut` were being `resize()`d inline in `processBlock`
+  (`PluginProcessor.cpp:217`, old code) — a heap allocation on the real-time thread,
+  forbidden by `../CLAUDE.md` §4. They are now sized once in `prepareToPlay` and never
+  grown; an oversized block is instead split into chunks no larger than that pre-allocated
+  capacity and rendered one chunk at a time, with `events` re-sliced per chunk (sample
+  positions shifted to be chunk-relative) — the same pattern already in production in
+  Worldizer's `processChunk` and Reality Reborn's `renderChunk`/`MidiBuffer::addEvents`.
+  For a normal (non-oversized) block the chunk loop runs exactly once at offset 0 with the
+  full buffer, so the change is a no-op in the common case.
+- **Fixed: unbounded growth of the MIDI note-event list on the audio thread.** `events`
+  was `reserve(256)`-ed in `prepareToPlay` but `push_back`-ed without a bound in
+  `processBlock`; a block carrying more than 256 note-on/off messages (a MIDI storm) would
+  reallocate mid-block. `events` (and the new per-chunk `chunkEvents` scratch buffer) now
+  never grow past `maxNoteEventsPerBlock` (256, unchanged cap) — overflow is dropped and
+  counted rather than grown into or silently discarded. The running total is exposed via
+  the new `TurboSynthProcessor::getDroppedNoteEventCount()` (not currently wired into the
+  panel).
+- **Verified numerically** (temporary, removed-after-use `ts_cli --oversize-check`
+  instrumentation, not shipped): a single oversized `processBlock` call (2048 samples
+  against a declared 512-sample `prepareToPlay`) produced **bit-exact** audio (max diff
+  0.0, rms diff 0.0 over 2048 samples/channel) versus four sequential well-behaved
+  512-sample host calls covering the same audio. A 300-note-on storm into one oversized
+  block dropped exactly 44 (300 − the 256 cap) and `getDroppedNoteEventCount()` reported
+  44.
+- **README.md rewritten**: the "Status" section had said "v0.2 — design docs, verified
+  test harness, JUCE build in progress" since the the prototyping environment-era intake, two platform pivots
+  and 32 versions out of date (docs/DESIGN.md §1 already flagged this staleness). It now
+  states v0.34.0, feature-complete, the actual signal chain, gate results, and that
+  signing/notarization are not done. Added "Building" and "Testing" sections (CMake
+  configure/build, `ctest`, `pluginval`, `auval`) that did not exist before. Also corrected
+  "Ground rules" from "Versioning: Diversion for Desktop" to "local git only, no remote"
+  to match this project's own CLAUDE.md (Project_TurboSynth has no Diversion repo).
+- Gates: build clean (0 project warnings, 1 distinct first-party warning unchanged and
+  pre-existing — `test_sourceengine.cpp:10` unused `exactlyEqual`, unrelated to this
+  change), ctest **114/114**, `pluginval` strictness 5 SUCCESS (VST3, opens the editor),
+  `auval -v aumf Brkn ZQSF` SUCCEEDED (against the previously-installed AU component —
+  this build does not install, see README "Building"). `ts_cli` self-checks re-run and
+  matched or exceeded the v0.34.0 baseline exactly: param-check 320/0, preset-check 17/0,
+  state-roundtrip PASS, state-migrate-check PASS, bend-test 0 failures, tune-test PASS,
+  rnd-check 50/0, bypass-check 0/0 (worst 0), fuzz 300/0 (worst peak **17.052 @ seed
+  100059** — identical to the v0.34.0 number), check_ids OK (59 files). AU/VST3 were not
+  reinstalled (no lock taken; this project's build does not install per its own
+  CLAUDE.md). Signing/notarization not run (none claimed).
+- **Universal binary restored**: `plugin/CMakeLists.txt` had `set(CMAKE_OSX_ARCHITECTURES
+  arm64)`, so every local build was Apple Silicon only. The workspace rule
+  (`../CLAUDE.md` section 5) makes universal mandatory because Soundminer will not load
+  anything else, and the earlier README said "Apple Silicon" because that was true. Now
+  `"arm64;x86_64"`. Verified at the artefact, not in CMake text: `lipo -info` on the built
+  VST3 reports `x86_64 arm64`; 0 errors; ctest **114/114**. README "Building" updated.

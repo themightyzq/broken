@@ -95,7 +95,9 @@ void TurboSynthProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     pitchBendNorm = 0.0f; // nor a held wheel: it would leave the instrument detuned
     bypassFadeStep = 1.0f / (0.025f * (float) sampleRate); // 25 ms fade
     bypassFade = p ("bypass") > 0.5f ? 1.0f : 0.0f; // a session restored bypassed must not fade in
-    events.reserve (256);
+    events.reserve (maxNoteEventsPerBlock);
+    chunkEvents.reserve (maxNoteEventsPerBlock); // never larger than `events`, same cap
+    droppedNoteEvents.store (0, std::memory_order_relaxed);
 }
 
 bool TurboSynthProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -214,7 +216,20 @@ void TurboSynthProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
 {
     juce::ScopedNoDenormals noDenormals;
     const int n = buffer.getNumSamples();
-    if ((int) monoIn.size() < n) { monoIn.resize ((size_t) n); monoOut.resize ((size_t) n); }
+
+    // `events` is reserve()'d once in prepareToPlay (maxNoteEventsPerBlock) and must never
+    // grow past that here -- growth would allocate on the audio thread. A block with more
+    // note-ons/offs than the cap is a MIDI storm; the overflow is dropped and counted
+    // (droppedNoteEvents) rather than silently grown into or silently discarded unaccounted-for.
+    const auto pushEvent = [this] (dsp::NoteEvent e)
+    {
+        if (events.size() >= maxNoteEventsPerBlock)
+        {
+            droppedNoteEvents.fetch_add (1, std::memory_order_relaxed);
+            return;
+        }
+        events.push_back (e);
+    };
 
     // MIDI is parsed BEFORE applyParams on purpose: gatherParams folds pitchBendNorm into
     // the source transpose, so parsing after would apply every bend one block late.
@@ -224,10 +239,9 @@ void TurboSynthProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     {
         const auto msg = meta.getMessage();
         if (msg.isNoteOn())
-            events.push_back ({ meta.samplePosition, true, msg.getNoteNumber(),
-                                msg.getFloatVelocity() });
+            pushEvent ({ meta.samplePosition, true, msg.getNoteNumber(), msg.getFloatVelocity() });
         else if (msg.isNoteOff())
-            events.push_back ({ meta.samplePosition, false, msg.getNoteNumber(), 0.0f });
+            pushEvent ({ meta.samplePosition, false, msg.getNoteNumber(), 0.0f });
         else if (msg.isPitchWheel())
             pitchBendNorm = ((float) msg.getPitchWheelValue() - 8192.0f) / 8192.0f;
     }
@@ -252,14 +266,6 @@ void TurboSynthProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
         outPeak.store (std::max (pk, outPeak.load() * 0.8f));
         return;
     }
-    for (int i = 0; i < n; ++i)
-    {
-        float s = 0.0f;
-        for (int ch = 0; ch < inChans; ++ch)
-            s += buffer.getReadPointer (ch)[i];
-        monoIn[(size_t) i] = inChans > 0 ? s / (float) inChans : 0.0f;
-    }
-
     // NOTE: events was cleared and filled from MIDI above, before applyParams. Do not
     // clear it here - that would drop every real note on the floor.
 
@@ -269,46 +275,76 @@ void TurboSynthProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     if (playNow != playHeld)
     {
         playHeld = playNow;
-        events.push_back ({ 0, playNow, dsp::SourceEngine::rootNote, 1.0f });
+        pushEvent ({ 0, playNow, dsp::SourceEngine::rootNote, 1.0f });
     }
 
+    // monoIn/monoOut are sized ONCE in prepareToPlay and never grown here: growing them on
+    // this thread would allocate, which is forbidden on the audio thread (../CLAUDE.md
+    // section 4). A host that hands us a block bigger than the samplesPerBlock it declared
+    // to prepareToPlay -- offline bounces do this routinely -- is instead split into chunks
+    // no larger than that pre-allocated capacity and rendered one chunk at a time, so no
+    // buffer ever has to grow regardless of host behaviour (same pattern as Worldizer's
+    // processChunk / Reality Reborn's renderChunk). `events` is re-sliced per chunk with
+    // sample positions shifted to be chunk-relative, mirroring
+    // juce::MidiBuffer::addEvents(midi, offset, chunkLen, -offset) for our plain vector.
+    const int capacity = (int) monoIn.size();
+    jassert (capacity > 0);
+    float peak = 0.0f;
 
-    engine.process (monoIn.data(), monoOut.data(), n,
-                    events.data(), (int) events.size());
-
-    float pk = 0.0f;
-    for (int i = 0; i < n; ++i)
-        pk = std::max (pk, std::abs (monoOut[(size_t) i]));
-    outPeak.store (std::max (pk, outPeak.load() * 0.8f)); // crude ballistic decay for the meter
-
-    if (bypassFade <= 0.0f && bypTarget <= 0.0f)
+    for (int offset = 0; offset < n; offset += capacity)
     {
-        // active steady state: the plain copy, kept verbatim so the unity null stays
-        // bit-exact (a 0-weighted blend is NOT guaranteed bit-identical)
-        for (int ch = 0; ch < outChans; ++ch)
-            buffer.copyFrom (ch, 0, monoOut.data(), n); // mono chain, duplicated (DESIGN §2)
-    }
-    else
-    {
-        // engaging/releasing bypass: crossfade wet against the TRUE per-channel input,
-        // read in place before each write. All channels share one fade trajectory.
-        const float startFade = bypassFade;
-        float f = startFade;
-        for (int ch = 0; ch < outChans; ++ch)
+        const int chunkLen = juce::jmin (capacity, n - offset);
+
+        for (int i = 0; i < chunkLen; ++i)
         {
-            f = startFade;
-            auto* d = buffer.getWritePointer (ch);
-            const bool hasIn = ch < inChans;
-            for (int i = 0; i < n; ++i)
-            {
-                f = bypTarget > f ? std::min (bypTarget, f + bypassFadeStep)
-                                  : std::max (bypTarget, f - bypassFadeStep);
-                const float in = hasIn ? d[i] : 0.0f;
-                d[i] = (1.0f - f) * monoOut[(size_t) i] + f * in;
-            }
+            float s = 0.0f;
+            for (int ch = 0; ch < inChans; ++ch)
+                s += buffer.getReadPointer (ch, offset)[i];
+            monoIn[(size_t) i] = inChans > 0 ? s / (float) inChans : 0.0f;
         }
-        bypassFade = f;
+
+        chunkEvents.clear(); // capacity reserved to maxNoteEventsPerBlock; never reallocates
+        for (const auto& e : events)
+            if (e.samplePos >= offset && e.samplePos < offset + chunkLen)
+                chunkEvents.push_back ({ e.samplePos - offset, e.on, e.note, e.velocity });
+
+        engine.process (monoIn.data(), monoOut.data(), chunkLen,
+                        chunkEvents.data(), (int) chunkEvents.size());
+
+        for (int i = 0; i < chunkLen; ++i)
+            peak = std::max (peak, std::abs (monoOut[(size_t) i]));
+
+        if (bypassFade <= 0.0f && bypTarget <= 0.0f)
+        {
+            // active steady state: the plain copy, kept verbatim so the unity null stays
+            // bit-exact (a 0-weighted blend is NOT guaranteed bit-identical)
+            for (int ch = 0; ch < outChans; ++ch)
+                buffer.copyFrom (ch, offset, monoOut.data(), chunkLen); // mono chain, duplicated (DESIGN §2)
+        }
+        else
+        {
+            // engaging/releasing bypass: crossfade wet against the TRUE per-channel input,
+            // read in place before each write. All channels share one fade trajectory.
+            const float startFade = bypassFade;
+            float f = startFade;
+            for (int ch = 0; ch < outChans; ++ch)
+            {
+                f = startFade;
+                auto* d = buffer.getWritePointer (ch, offset);
+                const bool hasIn = ch < inChans;
+                for (int i = 0; i < chunkLen; ++i)
+                {
+                    f = bypTarget > f ? std::min (bypTarget, f + bypassFadeStep)
+                                      : std::max (bypTarget, f - bypassFadeStep);
+                    const float in = hasIn ? d[i] : 0.0f;
+                    d[i] = (1.0f - f) * monoOut[(size_t) i] + f * in;
+                }
+            }
+            bypassFade = f;
+        }
     }
+
+    outPeak.store (std::max (peak, outPeak.load() * 0.8f)); // crude ballistic decay for the meter
 }
 
 juce::AudioProcessorEditor* TurboSynthProcessor::createEditor()

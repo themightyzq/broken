@@ -114,6 +114,13 @@ public:
     bool hasRandomUndo() const { return hasRandomUndoState; }
     std::atomic<float> outPeak { 0.0f };
 
+    // Note events dropped this session because a block carried more than
+    // maxNoteEventsPerBlock note-ons/offs (a MIDI storm): `events` is reserve()'d once in
+    // prepareToPlay and never allowed to grow past that in processBlock (growth would
+    // allocate on the audio thread). Exposed so a host/GUI/diagnostic can surface it;
+    // Broken's panel does not currently display it.
+    int getDroppedNoteEventCount() const { return droppedNoteEvents.load (std::memory_order_relaxed); }
+
     // writes the ACTIVE tape take (what plays when source = Tape, i.e. after FLIP)
     // as a mono 24-bit WAV — the era's design-then-export step
     bool saveTapeToFile (const juce::File& file, juce::String& errorOut);
@@ -132,7 +139,14 @@ private:
 
     dsp::Engine engine;
     std::vector<float> monoIn, monoOut;
+    // Capped at maxNoteEventsPerBlock and never allowed to grow past that in processBlock,
+    // so a MIDI storm cannot trigger a reallocation on the audio thread. `chunkEvents` is
+    // the per-chunk re-slice used when a host hands us a block bigger than samplesPerBlock
+    // (see processBlock's chunk loop, same pattern as Worldizer/Reality Reborn).
+    static constexpr size_t maxNoteEventsPerBlock = 256;
     std::vector<dsp::NoteEvent> events;
+    std::vector<dsp::NoteEvent> chunkEvents;
+    std::atomic<int> droppedNoteEvents { 0 };
 
     std::vector<float> sampleBuf;
     double sampleFileSr = 48000.0;
