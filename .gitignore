@@ -16,3 +16,10 @@ tests/renders/
 .DS_Store
 .remember/
 .diversion/
+
+# Working notes and generated analysis stay local, not on the public mirror
+tests/results/
+docs/RESEARCH.md
+docs/DESIGN.md
+docs/DSP-NOTES.md
+docs/builds/

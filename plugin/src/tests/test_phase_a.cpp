@@ -14,8 +14,8 @@ static bool exactlyEqual (float a, float b) { return std::equal_to<float>{} (a, 
 // Phase A (v0.7): PM mode, modulator sources (Self/Sample/Tape), Pitch MIX.
 // Goertzel single-bin power for spectral assertions without an FFT library.
 
-using ts::dsp::Modulator;
-using ts::dsp::SourceEngine;
+using broken::dsp::Modulator;
+using broken::dsp::SourceEngine;
 
 namespace
 {

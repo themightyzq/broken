@@ -11,7 +11,7 @@
 // voice — this test drives that worst case and proves it no longer stalls the audio
 // thread, while the FM itself (in the phase increment) stays audible.
 
-using ts::dsp::SourceEngine;
+using broken::dsp::SourceEngine;
 
 namespace
 {

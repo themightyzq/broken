@@ -9,9 +9,9 @@
 
 // Phase B (v0.8): era Noise model, SpecInv Type B, equal-power loop crossfade.
 
-using ts::dsp::SourceEngine;
-using ts::dsp::SpectralInverter;
-using ts::dsp::PitchDetector;
+using broken::dsp::SourceEngine;
+using broken::dsp::SpectralInverter;
+using broken::dsp::PitchDetector;
 
 namespace
 {

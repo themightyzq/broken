@@ -11,7 +11,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 class TapeBuffer
 {
@@ -121,4 +121,4 @@ private:
     bool inactiveIsNewer = false; // a finished, un-flipped recording exists
     double sr = 48000.0;
 };
-} // namespace ts::dsp
+} // namespace broken::dsp

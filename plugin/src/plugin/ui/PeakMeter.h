@@ -6,12 +6,12 @@
 #include "Theme.h"
 #include "../PluginProcessor.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 class PeakMeter : public juce::Component, public juce::SettableTooltipClient, private juce::Timer
 {
 public:
-    explicit PeakMeter (TurboSynthProcessor& proc) : processor (proc)
+    explicit PeakMeter (BrokenProcessor& proc) : processor (proc)
     {
         setTooltip ("Output level.");
         startTimerHz (30);
@@ -84,7 +84,7 @@ private:
         }
     }
 
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
     float lastPeak = 0.0f;
 };
-} // namespace ts::ui
+} // namespace broken::ui

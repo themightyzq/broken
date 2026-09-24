@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Analysis pipeline for TurboSynth render tests: selftest + per-render metrics/plots."""
+"""Analysis pipeline for Broken render tests: selftest + per-render metrics/plots."""
 import argparse
 import hashlib
 import json
@@ -1290,7 +1290,7 @@ def cmd_render(args):
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="TurboSynth render test analysis")
+    parser = argparse.ArgumentParser(description="Broken render test analysis")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("selftest", help="run every fixture against itself and validate manifest")

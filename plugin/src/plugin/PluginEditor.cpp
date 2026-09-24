@@ -4,15 +4,15 @@
  #define BROKEN_VERSION "dev" // defined by CMake for the plugin target
 #endif
 
-namespace ts
+namespace broken
 {
 // the size the user last dragged the window to, stored on the APVTS state tree so it
 // rides along with getStateInformation and comes back on reopen
 static const juce::Identifier kEditorWidth ("editorWidth");
 
-void TurboSynthEditor::Logo::paint (juce::Graphics& g)
+void BrokenEditor::Logo::paint (juce::Graphics& g)
 {
-    auto* lnf = dynamic_cast<ui::TsLookAndFeel*> (&getLookAndFeel());
+    auto* lnf = dynamic_cast<ui::BrokenLookAndFeel*> (&getLookAndFeel());
     const juce::Font f = lnf != nullptr ? lnf->silkFont (19.0f, true).withExtraKerningFactor (0.42f)
                                         : juce::Font (juce::FontOptions (16.0f, juce::Font::bold));
     g.setFont (f);
@@ -35,7 +35,7 @@ void TurboSynthEditor::Logo::paint (juce::Graphics& g)
 
 }
 
-void TurboSynthEditor::AboutOverlay::paint (juce::Graphics& g)
+void BrokenEditor::AboutOverlay::paint (juce::Graphics& g)
 {
     auto full = getLocalBounds().toFloat();
     g.setColour (juce::Colours::black.withAlpha (0.72f)); // dim the rack behind
@@ -47,7 +47,7 @@ void TurboSynthEditor::AboutOverlay::paint (juce::Graphics& g)
     g.setColour (ui::colour::panelBorder);
     g.drawRect (panel, 1.0f);
 
-    auto* lnf = dynamic_cast<ui::TsLookAndFeel*> (&getLookAndFeel());
+    auto* lnf = dynamic_cast<ui::BrokenLookAndFeel*> (&getLookAndFeel());
     auto r = panel.reduced (28.0f).toNearestInt();
 
     g.setColour (ui::colour::silkTitle);
@@ -61,15 +61,13 @@ void TurboSynthEditor::AboutOverlay::paint (juce::Graphics& g)
     const char* lines[] = {
         "Version " BROKEN_VERSION "  \xc2\xb7  ZQ SFX",
         "",
-        "A sample mangler in the spirit of the Digidesign TurboSynth,",
+        "A sample mangler in the spirit of vintage sample-mangling hardware,",
         "as heard all over early-90s industrial records.",
         "",
         "Free software under GPLv3 \xe2\x80\x94 source available from ZQ SFX.",
         "",
         "Knobs: CC0 designs from the g200kg KnobGallery (SolurOathLabs, dh96, C. Anders).",
         "Fonts: Barlow Condensed, VT323, IBM Plex Mono (SIL OFL).",
-        "",
-        "Not affiliated with a third party, Digidesign, or the band.",
         "",
         "Click anywhere to close.",
     };
@@ -78,16 +76,16 @@ void TurboSynthEditor::AboutOverlay::paint (juce::Graphics& g)
                     juce::Justification::centredLeft);
 }
 
-void TurboSynthEditor::Content::paint (juce::Graphics& g)
+void BrokenEditor::Content::paint (juce::Graphics& g)
 {
-    g.setGradientFill (ts::ui::gradients::chassis (getLocalBounds().toFloat()));
+    g.setGradientFill (broken::ui::gradients::chassis (getLocalBounds().toFloat()));
     g.fillAll();
     g.setColour (ui::colour::ruleTitle);
     g.drawLine (0.0f, (float) headerH, (float) getWidth(), (float) headerH, 1.0f);
 
 }
 
-void TurboSynthEditor::Grime::paint (juce::Graphics& g)
+void BrokenEditor::Grime::paint (juce::Graphics& g)
 {
     const int w = getWidth(), h = getHeight();
     if (w <= 0 || h <= 0) return;
@@ -139,7 +137,7 @@ void TurboSynthEditor::Grime::paint (juce::Graphics& g)
     g.drawImageAt (cache, 0, 0);
 }
 
-void TurboSynthEditor::Content::resized()
+void BrokenEditor::Content::resized()
 {
     if (owner == nullptr) return;
     auto area = getLocalBounds();
@@ -163,7 +161,7 @@ void TurboSynthEditor::Content::resized()
     owner->about.toFront (false); // above the grime: it must eat clicks while open
 }
 
-TurboSynthEditor::TurboSynthEditor (TurboSynthProcessor& p)
+BrokenEditor::BrokenEditor (BrokenProcessor& p)
     : AudioProcessorEditor (p),
       proc (p),
       tooltipWindow (this, 500),
@@ -227,18 +225,18 @@ TurboSynthEditor::TurboSynthEditor (TurboSynthProcessor& p)
     setSize (w, juce::roundToInt ((double) w * designH / designW));
 }
 
-TurboSynthEditor::~TurboSynthEditor()
+BrokenEditor::~BrokenEditor()
 {
     setConstrainer (nullptr);
     setLookAndFeel (nullptr);
 }
 
-void TurboSynthEditor::paint (juce::Graphics& g)
+void BrokenEditor::paint (juce::Graphics& g)
 {
     g.fillAll (ui::colour::bg); // behind the scaled content, for any rounding sliver
 }
 
-void TurboSynthEditor::resized()
+void BrokenEditor::resized()
 {
     const double scale = (double) getWidth() / (double) designW;
     content.setTransform (juce::AffineTransform::scale ((float) scale));
@@ -246,4 +244,4 @@ void TurboSynthEditor::resized()
 
     proc.apvts.state.setProperty (kEditorWidth, getWidth(), nullptr);
 }
-} // namespace ts
+} // namespace broken

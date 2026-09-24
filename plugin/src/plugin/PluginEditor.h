@@ -1,5 +1,5 @@
 #pragma once
-// TurboSynth GUI: ONE industrial-dark panel showing everything at once (v0.22). It used to
+// Broken GUI: ONE industrial-dark panel showing everything at once (v0.22). It used to
 // be a fixed 980x560 window with a MANGLE/EDIT toggle, so half the instrument was always
 // hidden - you could not watch a filter envelope while turning the knob that feeds it.
 //
@@ -10,18 +10,18 @@
 
 #include "PluginProcessor.h"
 #include "ui/Theme.h"
-#include "ui/TsLookAndFeel.h"
+#include "ui/BrokenLookAndFeel.h"
 #include "ui/PresetBar.h"
 #include "ui/MangleView.h"
 #include "ui/EditView.h"
 
-namespace ts
+namespace broken
 {
-class TurboSynthEditor : public juce::AudioProcessorEditor
+class BrokenEditor : public juce::AudioProcessorEditor
 {
 public:
-    explicit TurboSynthEditor (TurboSynthProcessor&);
-    ~TurboSynthEditor() override;
+    explicit BrokenEditor (BrokenProcessor&);
+    ~BrokenEditor() override;
 
     void paint (juce::Graphics&) override;
     void resized() override;
@@ -42,11 +42,11 @@ private:
     {
         void paint (juce::Graphics& g) override;
         void resized() override;
-        TurboSynthEditor* owner = nullptr;
+        BrokenEditor* owner = nullptr;
     };
 
-    TurboSynthProcessor& proc;
-    ui::TsLookAndFeel lookAndFeel;
+    BrokenProcessor& proc;
+    ui::BrokenLookAndFeel lookAndFeel;
     juce::TooltipWindow tooltipWindow;
 
     Content content;
@@ -94,6 +94,6 @@ private:
 
     juce::ComponentBoundsConstrainer constrainer;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TurboSynthEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BrokenEditor)
 };
-} // namespace ts
+} // namespace broken

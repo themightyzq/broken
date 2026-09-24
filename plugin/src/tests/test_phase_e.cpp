@@ -14,7 +14,7 @@ static bool exactlyEqual (float a, float b) { return std::equal_to<float>{} (a, 
 // Phase E (v0.11): Oscillator Harmonic Mode — 64 additive partials (manual's Harmonic
 // Mode, minus the deferred waveform timeline).
 
-using ts::dsp::SourceEngine;
+using broken::dsp::SourceEngine;
 
 namespace
 {

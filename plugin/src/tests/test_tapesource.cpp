@@ -14,7 +14,7 @@ static bool exactlyEqual (float a, float b) { return std::equal_to<float>{} (a, 
 // v0.14: TAPE reads through the same head machinery as SAMPLE. Before this, Tape was a
 // bare one-shot with no region, loop or reverse — while the docs claimed otherwise.
 
-using ts::dsp::SourceEngine;
+using broken::dsp::SourceEngine;
 
 namespace
 {
@@ -112,7 +112,7 @@ TEST_CASE ("tape and sample buffers stay independent", "[tape]")
 // mode, so you saw one thing and heard another). copyActiveTo is that read.
 TEST_CASE ("tape snapshot returns the active take", "[tape]")
 {
-    ts::dsp::TapeBuffer t;
+    broken::dsp::TapeBuffer t;
     t.prepare (48000.0);
 
     t.startRec();
@@ -149,7 +149,7 @@ TEST_CASE ("tape snapshot returns the active take", "[tape]")
 // REC starts overwriting it.
 TEST_CASE ("tape latest-take tracks the newest complete recording", "[tape]")
 {
-    ts::dsp::TapeBuffer tape;
+    broken::dsp::TapeBuffer tape;
     tape.prepare (48000.0);
     REQUIRE (tape.latestLength() == 0);
 

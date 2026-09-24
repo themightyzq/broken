@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 
 // Exponential-segment ADSR. Attack overshoots to 1.5x the target peak so the
@@ -165,4 +165,4 @@ private:
     bool flip = false;
 };
 
-} // namespace ts::dsp
+} // namespace broken::dsp

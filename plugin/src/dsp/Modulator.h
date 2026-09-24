@@ -4,10 +4,10 @@
 #include <cmath>
 #include <vector>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 
-// TurboSynth "death vocal" module: an internal low-range oscillator multiplied
+// Broken "death vocal" module: an internal low-range oscillator multiplied
 // against the incoming signal (AM/RM). FM is applied by the caller (it drives
 // the sound source's own rate), so this class only exposes the raw oscillator
 // sample for that purpose.
@@ -139,4 +139,4 @@ private:
     int pmW_ { 0 };
 };
 
-} // namespace ts::dsp
+} // namespace broken::dsp

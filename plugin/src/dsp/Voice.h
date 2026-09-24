@@ -15,7 +15,7 @@
 #include "SpectralInverter.h"
 #include "DelayLine.h"
 
-namespace ts::dsp
+namespace broken::dsp
 {
 // Block-rate parameter snapshot, filled from APVTS once per block. Field names mirror
 // parameter IDs (Params.h) so drift is visible at a glance.
@@ -279,4 +279,4 @@ private:
     float lastDrySample = 0.0f;
     bool freeRun = false;
 };
-} // namespace ts::dsp
+} // namespace broken::dsp

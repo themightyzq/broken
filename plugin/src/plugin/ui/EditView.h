@@ -14,12 +14,12 @@
 #include "../PluginProcessor.h"
 #include "../Params.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 class EditView : public juce::Component
 {
 public:
-    explicit EditView (TurboSynthProcessor& p) : processor (p)
+    explicit EditView (BrokenProcessor& p) : processor (p)
     {
         auto& av = processor.apvts;
 
@@ -470,7 +470,7 @@ private:
         void paint (juce::Graphics& g) override { g.setColour (colour::ruleInner); g.fillRect (getLocalBounds()); }
     };
 
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
 
     Block envelopesBlock { "ENVELOPES" }, oscillatorBlock { "OSCILLATOR" },
           waveshaperBlock { "WAVESHAPER" }, trimsBlock { "MODULE TRIMS" }, timeBlock { "TIME" };
@@ -512,4 +512,4 @@ private:
     std::unique_ptr<TextToggle> stretchOn, flattenOn;
     std::unique_ptr<Knob> stretchAmount, stretchFreq, stretchPredelay, flatResp;
 };
-} // namespace ts::ui
+} // namespace broken::ui

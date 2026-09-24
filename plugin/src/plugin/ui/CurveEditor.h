@@ -29,14 +29,14 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "../PluginProcessor.h"
 #include "Theme.h"
-#include "TsLookAndFeel.h"
+#include "BrokenLookAndFeel.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 class CurveEditor : public juce::Component, public juce::SettableTooltipClient, private juce::Timer
 {
 public:
-    CurveEditor (TurboSynthProcessor& p)
+    CurveEditor (BrokenProcessor& p)
         : processor (p), apvts (p.apvts)
     {
         fromSampleButton.setTooltip ("Use the CYCLE window of the loaded sample AS the "
@@ -94,7 +94,7 @@ public:
         auto b = getLocalBounds().toFloat();
         // glass covers only the plot; the FROM SAMPLE strip below stays panel, so the
         // button no longer sits ON the screen (v0.29 screenshot review)
-        TsLookAndFeel::drawScreen (g, b.withTrimmedBottom (20.0f));
+        BrokenLookAndFeel::drawScreen (g, b.withTrimmedBottom (20.0f));
 
         // MUST be the same rectangle paintAt() edits, or the curve you see sits offset
         // from the curve you can touch
@@ -372,7 +372,7 @@ private:
         repaint();
     }
 
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
     juce::AudioProcessorValueTreeState& apvts;
     std::atomic<float>* curveRaw = nullptr;
     std::atomic<float>* driveRaw = nullptr;
@@ -392,4 +392,4 @@ private:
     juce::TextButton fromSampleButton { "FROM SAMPLE" };
     juce::Path curvePath; // preallocated; cleared + rebuilt each paint, never reallocated per frame
 };
-} // namespace ts::ui
+} // namespace broken::ui

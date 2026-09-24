@@ -1,8 +1,8 @@
-// ts_cli — headless render tool: plays a fixture through the real TurboSynthProcessor
+// broken_cli — headless render tool: plays a fixture through the real BrokenProcessor
 // and writes the result, so scripts/analyze.py can gate every milestone without a DAW.
 //
-//   ts_cli --in <fixture.wav> --out <render.wav>            (FX / sample-through mode)
-//   ts_cli --midi <notes.mid> --out <render.wav>            (instrument mode)
+//   broken_cli --in <fixture.wav> --out <render.wav>            (FX / sample-through mode)
+//   broken_cli --midi <notes.mid> --out <render.wav>            (instrument mode)
 //   common: [--snapshot <file.json>] [--set id=value ...] [--sample <wav>]
 //           [--block 512] [--tail seconds]
 //
@@ -55,7 +55,7 @@ bool parseArgs (const juce::StringArray& raw, Args& a, juce::String& err)
     return true;
 }
 
-bool applySet (ts::TurboSynthProcessor& proc, const juce::String& spec, juce::String& err)
+bool applySet (broken::BrokenProcessor& proc, const juce::String& spec, juce::String& err)
 {
     auto eq = spec.indexOfChar ('=');
     if (eq <= 0) { err = "--set expects id=value, got: " + spec; return false; }
@@ -113,7 +113,7 @@ bool loadMidi (const juce::File& f, std::vector<TimedMsg>& out, double& lengthSe
 static int stateRoundtrip (const juce::String& samplePath)
 {
     juce::String err;
-    ts::TurboSynthProcessor a;
+    broken::BrokenProcessor a;
     if (! a.loadSampleFile (juce::File::getCurrentWorkingDirectory().getChildFile (samplePath), err))
     { std::cerr << "roundtrip: load failed: " << err << "\n"; return 1; }
     for (auto [id, v] : std::initializer_list<std::pair<const char*, float>> {
@@ -127,7 +127,7 @@ static int stateRoundtrip (const juce::String& samplePath)
     juce::MemoryBlock state;
     a.getStateInformation (state);
 
-    ts::TurboSynthProcessor b;
+    broken::BrokenProcessor b;
     b.setStateInformation (state.getData(), (int) state.getSize());
 
     bool ok = b.getSampleName() == a.getSampleName() && ! b.isSampleMissing()
@@ -165,7 +165,7 @@ struct Rng
 static juce::File writeMaterialFile()
 {
     auto f = juce::File::getSpecialLocation (juce::File::tempDirectory)
-                 .getChildFile ("ts_fuzz_material.wav");
+                 .getChildFile ("broken_fuzz_material.wav");
     if (f.existsAsFile()) return f;
 
     const int n = 48000 * 2;
@@ -188,7 +188,7 @@ static juce::File writeMaterialFile()
     return f;
 }
 
-static void randomiseAll (ts::TurboSynthProcessor& proc, Rng& rng)
+static void randomiseAll (broken::BrokenProcessor& proc, Rng& rng)
 {
     for (auto* p : proc.getParameters())
         if (auto* rp = dynamic_cast<juce::RangedAudioParameter*> (p))
@@ -210,7 +210,7 @@ struct RenderStats
     bool diverging() const { return peakLate > 8.0f * std::max (peakEarly, 1.0e-6f) && peakLate > 4.0f; }
 };
 
-static RenderStats renderBlocks (ts::TurboSynthProcessor& proc, int blocks, int blockSize,
+static RenderStats renderBlocks (broken::BrokenProcessor& proc, int blocks, int blockSize,
                           bool feedInput, bool notes, Rng& rng)
 {
     RenderStats st;
@@ -266,7 +266,7 @@ static int runFuzz (int iterations, int seed)
         const int caseSeed = seed * 100000 + it;
         Rng rng ((uint32_t) caseSeed);
 
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         juce::String loadErr;
         proc.loadSampleFile (materialFile, loadErr);
         randomiseAll (proc, rng);
@@ -303,7 +303,7 @@ static int fuzzDiagnose (int caseSeed)
     auto runCase = [&] (const char* bypassId) -> RenderStats
     {
         Rng rng ((uint32_t) caseSeed);
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         juce::String loadErr;
         proc.loadSampleFile (materialFile, loadErr);
         randomiseAll (proc, rng);
@@ -321,7 +321,7 @@ static int fuzzDiagnose (int caseSeed)
     // print the state that triggered it
     {
         Rng rng ((uint32_t) caseSeed);
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         juce::String loadErr;
         proc.loadSampleFile (materialFile, loadErr);
         randomiseAll (proc, rng);
@@ -364,7 +364,7 @@ static int runBench()
 
     for (const auto& c : cfgs)
     {
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         juce::String loadErr;
         proc.loadSampleFile (materialFile, loadErr);
         auto set = [&proc] (const char* id, float v)
@@ -416,7 +416,7 @@ int main (int argc, char* argv[])
     // so this verifies what users get, not what happens to be on disk
     if (raw.size() == 1 && raw[0] == "--list-presets")
     {
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         for (const auto& e : proc.presets.getEntries())
             std::cout << (e.isUser ? "user   " : "factory") << "  " << e.name << "\n";
         std::cout << proc.presets.getEntries().size() << " presets\n";
@@ -425,7 +425,7 @@ int main (int argc, char* argv[])
 
     if (raw.size() == 2 && raw[0] == "--preset-check")
     {
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         juce::String err;
         if (! proc.loadSampleFile (resolve (raw[1]), err))
         { std::cerr << "preset-check: " << err << "\n"; return 2; }
@@ -476,7 +476,7 @@ int main (int argc, char* argv[])
     {
         auto soundingHz = [] (int wheel, float range)
         {
-            ts::TurboSynthProcessor proc;
+            broken::BrokenProcessor proc;
             for (const char* spec : { "mod.on=0", "ws.on=0", "flt.on=0", "res.on=0",
                                       "inv.on=0", "dly.on=0", "col.mode=0",
                                       "source.mode=2", "source.oscwave=0", "amp.s=1" })
@@ -489,7 +489,7 @@ int main (int argc, char* argv[])
 
             juce::AudioBuffer<float> block (2, 512);
             juce::MidiBuffer midi;
-            midi.addEvent (juce::MidiMessage::noteOn (1, ts::dsp::SourceEngine::rootNote, 1.0f), 0);
+            midi.addEvent (juce::MidiMessage::noteOn (1, broken::dsp::SourceEngine::rootNote, 1.0f), 0);
             midi.addEvent (juce::MidiMessage::pitchWheel (1, wheel), 0);
 
             // let the tap ring fill past the detector window, then read the IN tap
@@ -499,10 +499,10 @@ int main (int argc, char* argv[])
             constexpr int N = 4096;
             std::vector<float> tap ((size_t) N);
             proc.copyTunerTap (false, tap.data(), N);
-            ts::dsp::PitchDetector det;
+            broken::dsp::PitchDetector det;
             det.prepare (48000.0);
             const auto r = det.detect (tap.data());
-            return r.clarity >= ts::dsp::PitchDetector::clarityGate ? (double) r.hz : 0.0;
+            return r.clarity >= broken::dsp::PitchDetector::clarityGate ? (double) r.hz : 0.0;
         };
 
         const double c3 = 130.813;
@@ -531,13 +531,13 @@ int main (int argc, char* argv[])
     // title ("TurboSynth" tag) must still load, or every earlier session/preset is lost.
     if (raw.size() == 1 && raw[0] == "--state-migrate-check")
     {
-        ts::TurboSynthProcessor src;
+        broken::BrokenProcessor src;
         juce::String e;
         applySet (src, "ws.drive=33", e);
         auto xml = src.apvts.copyState().createXml();
         xml->setTagName ("TurboSynth");                  // pretend it was saved pre-rename
 
-        ts::TurboSynthProcessor dst;
+        broken::BrokenProcessor dst;
         dst.restoreFromXml (*xml);
         const float got = dst.apvts.getRawParameterValue ("ws.drive")->load();
         const bool ok = std::abs (got - 33.0f) < 1.0e-3f;
@@ -554,19 +554,19 @@ int main (int argc, char* argv[])
     // them, and every id gatherParams reads, resolves to a real parameter.
     if (raw.size() == 1 && raw[0] == "--param-check")
     {
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         int missing = 0;
         auto check = [&proc, &missing] (const juce::String& id)
         {
             if (proc.apvts.getParameter (id) == nullptr)
             { std::cout << "MISSING " << id << "\n"; ++missing; }
         };
-        for (int i = 1; i <= ts::params::harmonicCount;   ++i) check (ts::params::harmonicId (i));
-        for (int i = 1; i <= ts::params::drawPointCount;  ++i) check (ts::params::drawPointId (i));
-        for (int i = 1; i <= ts::params::curvePointCount; ++i) check (ts::params::curvePointId (i));
+        for (int i = 1; i <= broken::params::harmonicCount;   ++i) check (broken::params::harmonicId (i));
+        for (int i = 1; i <= broken::params::drawPointCount;  ++i) check (broken::params::drawPointId (i));
+        for (int i = 1; i <= broken::params::curvePointCount; ++i) check (broken::params::curvePointId (i));
 
-        const int total = ts::params::harmonicCount + ts::params::drawPointCount
-                        + ts::params::curvePointCount;
+        const int total = broken::params::harmonicCount + broken::params::drawPointCount
+                        + broken::params::curvePointCount;
         std::cout << "param-check: " << total << " banked ids, " << missing << " missing\n";
         return missing == 0 ? 0 : 1;
     }
@@ -577,15 +577,15 @@ int main (int argc, char* argv[])
     // and UNDO must restore the exact prior state (DSP-NOTES 12b).
     if (raw.size() == 1 && raw[0] == "--rnd-check")
     {
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         auto real = [&] (const char* id)
         {
             auto* rp = dynamic_cast<juce::RangedAudioParameter*> (proc.apvts.getParameter (id));
             return rp->convertFrom0to1 (rp->getValue());
         };
         const float mode0 = real ("source.mode"), out0 = real ("out.level");
-        const float draw0  = real (ts::params::drawPointId (64).toRawUTF8());
-        const float curve0 = real (ts::params::curvePointId (64).toRawUTF8());
+        const float draw0  = real (broken::params::drawPointId (64).toRawUTF8());
+        const float curve0 = real (broken::params::curvePointId (64).toRawUTF8());
         auto same = [] (float a, float b) { return std::abs (a - b) < 1.0e-6f; };
 
         int failures = 0;
@@ -604,8 +604,8 @@ int main (int argc, char* argv[])
             expect (real ("ws.drive") <= 30.01f,          "ws.drive over cap");
             expect (real ("amp.a")    <= 2.01f,           "amp.a over cap");
             expect (real ("flt.cutoff") >= 199.9f,        "flt.cutoff under floor");
-            expect (same (real (ts::params::drawPointId (64).toRawUTF8()), draw0),   "draw bank touched");
-            expect (same (real (ts::params::curvePointId (64).toRawUTF8()), curve0), "curve bank touched");
+            expect (same (real (broken::params::drawPointId (64).toRawUTF8()), draw0),   "draw bank touched");
+            expect (same (real (broken::params::curvePointId (64).toRawUTF8()), curve0), "curve bank touched");
         }
         // UNDO restores the state before the LAST roll (that is its contract), so
         // snapshot immediately before one final roll and compare against that.
@@ -633,7 +633,7 @@ int main (int argc, char* argv[])
     // 25 ms crossfade has completed, on both channels of a stereo pair (DSP-NOTES 12b).
     if (raw.size() == 1 && raw[0] == "--bypass-check")
     {
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         {
             juce::String e;
             applySet (proc, "bypass=1", e);
@@ -674,7 +674,7 @@ int main (int argc, char* argv[])
 
     if (raw.size() == 1 && raw[0] == "--tune-test")
     {
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         for (const char* offSpec : { "mod.on=0", "ws.on=0", "flt.on=0", "res.on=0",
                                      "inv.on=0", "dly.on=0", "col.mode=0",
                                      "source.mode=2", "source.oscwave=0", "amp.s=1" })
@@ -713,13 +713,13 @@ int main (int argc, char* argv[])
     if (raw.size() >= 2 && raw[0] == "--dump-state-b64")
     {
         juce::String err;
-        ts::TurboSynthProcessor proc;
+        broken::BrokenProcessor proc;
         if (raw[1] != "-"
             && ! proc.loadSampleFile (juce::File::getCurrentWorkingDirectory().getChildFile (raw[1]), err))
-        { std::cerr << "ts_cli error: " << err << "\n"; return 2; }
+        { std::cerr << "broken_cli error: " << err << "\n"; return 2; }
         for (int i = 2; i < raw.size(); ++i)
             if (! applySet (proc, raw[i], err))
-            { std::cerr << "ts_cli error: " << err << "\n"; return 2; }
+            { std::cerr << "broken_cli error: " << err << "\n"; return 2; }
         for (auto [id, v] : std::initializer_list<std::pair<const char*, float>> {
                  { "sample.regstart", 0.32f }, { "sample.regend", 0.58f },
                  { "sample.loopon", 1.0f }, { "sample.loopstyle", 1.0f },
@@ -734,7 +734,7 @@ int main (int argc, char* argv[])
         return 0;
     }
     juce::String err;
-    if (! parseArgs (raw, args, err)) { std::cerr << "ts_cli error: " << err << "\n"; return 2; }
+    if (! parseArgs (raw, args, err)) { std::cerr << "broken_cli error: " << err << "\n"; return 2; }
 
     std::unique_ptr<juce::AudioFormatReader> reader;
     juce::AudioFormatManager fm;
@@ -742,14 +742,14 @@ int main (int argc, char* argv[])
     if (args.inPath.isNotEmpty())
     {
         reader.reset (fm.createReaderFor (resolve (args.inPath)));
-        if (reader == nullptr) { std::cerr << "ts_cli error: cannot read " << args.inPath << "\n"; return 2; }
+        if (reader == nullptr) { std::cerr << "broken_cli error: cannot read " << args.inPath << "\n"; return 2; }
     }
 
     std::vector<TimedMsg> notes;
     double midiLen = 0.0;
     if (args.midiPath.isNotEmpty())
         if (! loadMidi (resolve (args.midiPath), notes, midiLen, err))
-        { std::cerr << "ts_cli error: " << err << "\n"; return 2; }
+        { std::cerr << "broken_cli error: " << err << "\n"; return 2; }
 
     // timed actions let one render script the TAPE workflow (rec -> flip -> play back)
     struct TimedParam { double t; juce::String spec; };
@@ -757,7 +757,7 @@ int main (int argc, char* argv[])
     for (const auto& a : args.ats)
     {
         const auto colon = a.indexOfChar (':');
-        if (colon <= 0) { std::cerr << "ts_cli error: --at expects <sec>:<action>, got " << a << "\n"; return 2; }
+        if (colon <= 0) { std::cerr << "broken_cli error: --at expects <sec>:<action>, got " << a << "\n"; return 2; }
         const double t = a.substring (0, colon).getDoubleValue();
         const auto action = a.substring (colon + 1);
         if (action.startsWith ("noteon:"))
@@ -780,27 +780,27 @@ int main (int argc, char* argv[])
                                   : (juce::int64) std::llround ((midiLen + 0.5) * sr);
     const juce::int64 totalFrames = numInFrames + (juce::int64) std::llround (args.tailSeconds * sr);
 
-    ts::TurboSynthProcessor proc;
+    broken::BrokenProcessor proc;
 
     if (args.snapshotPath.isNotEmpty())
     {
         auto parsed = juce::JSON::parse (resolve (args.snapshotPath).loadFileAsString());
         if (! proc.loadSnapshotJson (parsed, err))
-        { std::cerr << "ts_cli error: snapshot: " << err << "\n"; return 2; }
+        { std::cerr << "broken_cli error: snapshot: " << err << "\n"; return 2; }
     }
     for (const auto& s : args.sets)
-        if (! applySet (proc, s, err)) { std::cerr << "ts_cli error: " << err << "\n"; return 2; }
+        if (! applySet (proc, s, err)) { std::cerr << "broken_cli error: " << err << "\n"; return 2; }
 
     if (args.presetName.isNotEmpty())
     {
         const int idx = proc.presets.indexOf (args.presetName);
         if (idx < 0 || ! proc.presets.load (idx, err))
-        { std::cerr << "ts_cli error: preset '" << args.presetName << "': " << err << "\n"; return 2; }
+        { std::cerr << "broken_cli error: preset '" << args.presetName << "': " << err << "\n"; return 2; }
     }
 
     if (args.samplePath.isNotEmpty())
         if (! proc.loadSampleFile (resolve (args.samplePath), err))
-        { std::cerr << "ts_cli error: " << err << "\n"; return 2; }
+        { std::cerr << "broken_cli error: " << err << "\n"; return 2; }
 
     proc.setPlayConfigDetails (2, 2, sr, args.blockSize);
     proc.prepareToPlay (sr, args.blockSize);
@@ -811,7 +811,7 @@ int main (int argc, char* argv[])
     juce::WavAudioFormat wavFmt;
     std::unique_ptr<juce::AudioFormatWriter> writer (
         wavFmt.createWriterFor (new juce::FileOutputStream (outFile), sr, 2, 24, {}, 0));
-    if (writer == nullptr) { std::cerr << "ts_cli error: cannot write " << args.outPath << "\n"; return 2; }
+    if (writer == nullptr) { std::cerr << "broken_cli error: cannot write " << args.outPath << "\n"; return 2; }
 
     juce::AudioBuffer<float> block (2, args.blockSize);
     juce::MidiBuffer midi;
@@ -840,7 +840,7 @@ int main (int argc, char* argv[])
                && (juce::int64) std::llround (timedParams[nextTimed].t * sr) < pos + n)
         {
             if (! applySet (proc, timedParams[nextTimed].spec, err))
-            { std::cerr << "ts_cli error: --at: " << err << "\n"; return 2; }
+            { std::cerr << "broken_cli error: --at: " << err << "\n"; return 2; }
             ++nextTimed;
         }
 
@@ -860,15 +860,15 @@ int main (int argc, char* argv[])
     }
 
     writer->flush();
-    std::cout << "ts_cli: wrote " << outFile.getFullPathName()
+    std::cout << "broken_cli: wrote " << outFile.getFullPathName()
               << " (" << totalFrames << " frames @ " << sr << " Hz)\n";
 
     if (args.saveTapePath.isNotEmpty())
     {
         // same code path the panel's SAVE button runs — that's the point
         if (! proc.saveTapeToFile (resolve (args.saveTapePath), err))
-        { std::cerr << "ts_cli error: save-tape: " << err << "\n"; return 3; }
-        std::cout << "ts_cli: saved tape to " << resolve (args.saveTapePath).getFullPathName() << "\n";
+        { std::cerr << "broken_cli error: save-tape: " << err << "\n"; return 3; }
+        std::cout << "broken_cli: saved tape to " << resolve (args.saveTapePath).getFullPathName() << "\n";
     }
     return 0;
 }

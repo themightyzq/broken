@@ -7,14 +7,14 @@
 #include "Theme.h"
 #include "../PluginProcessor.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 class PresetBar : public juce::Component,
                   private juce::Timer,
                   private juce::AudioProcessorValueTreeState::Listener
 {
 public:
-    explicit PresetBar (TurboSynthProcessor& p) : processor (p)
+    explicit PresetBar (BrokenProcessor& p) : processor (p)
     {
         auto style = [this] (juce::TextButton& b, const juce::String& text,
                              const juce::String& tip, std::function<void()> action)
@@ -283,11 +283,11 @@ private:
         }
     }
 
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
     juce::ComboBox presetBox;
     juce::TextButton prevButton, nextButton, saveButton, revealButton, rndButton, undoButton;
     std::atomic<bool> dirtyFlag { false }; // parameterChanged can arrive off the message thread
     bool dirty = false;
     bool ignoreBoxChange = false;
 };
-} // namespace ts::ui
+} // namespace broken::ui

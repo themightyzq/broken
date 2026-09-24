@@ -1,6 +1,6 @@
-# TEST-PLAN — Project TurboSynth (JUCE)
+# TEST-PLAN — Broken (JUCE)
 
-> The loop (v0.2, autonomous): `scripts/make_fixtures.py` generates fixtures → `ts_cli`
+> The loop (v0.2, autonomous): `scripts/make_fixtures.py` generates fixtures → `broken_cli`
 > (plugin/build) renders them through the actual plugin engine at named snapshots
 > (`plugin/snapshots/test/`) into `tests/renders/<fixture>__<snapshot>__vNN.wav` →
 > `scripts/analyze.py render <file> --expect <profile>` gives numeric pass/fail + plot.
@@ -14,7 +14,7 @@
 > the Catch2 envelope/voice unit tests. The `d_retrigger` fixture is staccato (50% gate)
 > because clickless retrigger is amplitude-invisible at zero gap. Mono collapse and
 > unison level-compensation are verified as separate numeric behavior checks on the
-> mono/uni renders. TAPE (M9) is scripted headless via `ts_cli --at` timed actions.
+> mono/uni renders. TAPE (M9) is scripted headless via `broken_cli --at` timed actions.
 
 ## Fixture set (generated, deterministic — never hand-made)
 
@@ -102,7 +102,7 @@ with sr as designed. Open user item: Reaper spot-check by ear.
 ### PingPong turnarounds — re-measured numbers below)
 Loaded sample = `sweep.wav` (a known frequency trajectory makes direction audible in
 analysis); region 0.2–0.3 (sweep content 2.0–3.0 s), note C3 held 0.1–4.5 s via
-`ts_cli --sample ... --at noteon`. Measured results 2026-08-27, all within expectation:
+`broken_cli --sample ... --at noteon`. Measured results 2026-08-27, all within expectation:
 | Check | Expectation | Measured (v0.5, 2026-08-27) |
 |---|---|---|
 | One-shot (LOOP off) | region plays once (~1 s) then silence | −9.0 dB during, −300 dB after |
@@ -113,7 +113,7 @@ analysis); region 0.2–0.3 (sweep content 2.0–3.0 s), note C3 held 0.1–4.5 
 | Loop seam, FILE-HEAD region | internal fade works where v0.4 silently didn't | −52.0 dBFS step at xf 50 |
 | PingPong turnaround | cosine blend smooths the slope corner ≥ 20 dB | second-diff −36.6 → −73.8 dBFS |
 | Unit layer | exact position sequences per control combo | 12 Catch2 cases, 53/53 green |
-| State | sample path + loop controls survive getState/setState | `ts_cli --state-roundtrip` PASS |
+| State | sample path + loop controls survive getState/setState | `broken_cli --state-roundtrip` PASS |
 
 ## Manual-only checklist (user confirms per milestone)
 - [ ] Feel: knob ranges musical, big-knob "three moves" gets a the band-adjacent sound fast
@@ -154,18 +154,18 @@ analysis); region 0.2–0.3 (sweep content 2.0–3.0 s), note C3 held 0.1–4.5 
 These run alongside the render matrix at every milestone from the version noted onward,
 but check invariants rather than a single fixture's numbers.
 
-### M18 — Tune-lock (`ts_cli --tune-test`, v0.6)
+### M18 — Tune-lock (`broken_cli --tune-test`, v0.6)
 Detune the oscillator (+30¢), trigger TUNE, re-measure: locked pitch must land at 0¢.
 
-### M19 — Fuzz hardening (`ts_cli --fuzz N`, v0.12)
+### M19 — Fuzz hardening (`broken_cli --fuzz N`, v0.12)
 N seeded random states over all APVTS parameters; pass = finite output and no divergence
 on every seed (divergence heuristic: output must not grow unbounded across the render).
 
-### M20 — Param-check (`ts_cli --param-check`, v0.21)
+### M20 — Param-check (`broken_cli --param-check`, v0.21)
 Every id the GUI's indexed-bank builders generate (curve points, draw points, harmonics)
 must resolve to a real parameter; pass = 0 missing out of the full banked-id count.
 
-### M21 — Bend test (`ts_cli --bend-test`, v0.22)
+### M21 — Bend test (`broken_cli --bend-test`, v0.22)
 Render `bend.mid` (held root note, wheel centred / full-up / centred / full-down) at a
 fixed bend range; pass = all 4 wheel positions measure the expected frequency.
 
@@ -174,6 +174,6 @@ Static scan of the source tree; pass = no hand-formatted bank-id strings (e.g.
 `"ws.c%02d"`-style) exist outside `Params.h`.
 
 ### M23 — State migration (v0.24)
-`ts_cli --state-migrate-check`: a state tree saved under the pre-rename tag ("TurboSynth")
+`broken_cli --state-migrate-check`: a state tree saved under the pre-rename tag ("TurboSynth")
 must restore into the renamed product ("Broken") with its values intact — pass = the
 probe parameter survives. Guards the rename landmine: hosts and presets key on the tag.

@@ -31,7 +31,7 @@
       as a literal `"ws.c%02d"`-style string in more than one file lets a renumbering
       (v0.20) orphan callers the compiler can't see — `COPY→CUSTOM` went silently dead this
       way (v0.20/v0.21). `Params.h` now owns every banked id and count; go through it, never
-      re-derive an id string locally. Guarded by `ts_cli --param-check` (every generated id
+      re-derive an id string locally. Guarded by `broken_cli --param-check` (every generated id
       must resolve to a real parameter) and `scripts/check_ids.py` (v0.23: no hand-formatted
       bank ids exist outside `Params.h`).
 
@@ -49,7 +49,7 @@
       instrument detuned. Grep for the described behavior; don't trust the comment.
 
 ## Harness limits masquerading as product bugs
-- [ ] **Before filing a regression, rule out the test harness.** `ts_cli`'s MIDI reader
+- [ ] **Before filing a regression, rule out the test harness.** `broken_cli`'s MIDI reader
       flattened files to note-on/off only and silently dropped pitch-wheel messages, which
       first made bend look like it did nothing (v0.22, fixed by `TimedMsg` carrying the raw
       `juce::MidiMessage`). Separately, running the M8 tuning gate against a *mono* render

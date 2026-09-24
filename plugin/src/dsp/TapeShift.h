@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 class TapeShift
 {
@@ -106,4 +106,4 @@ private:
     double ratio = 1.0;
     float semis = 0.0f;
 };
-} // namespace ts::dsp
+} // namespace broken::dsp

@@ -7,8 +7,8 @@
 
 // Phase D (v0.10): Stretcher / Time Compressor, realtime Envelope Removal (FLATTEN).
 
-using ts::dsp::SourceEngine;
-using ts::dsp::Flatten;
+using broken::dsp::SourceEngine;
+using broken::dsp::Flatten;
 
 namespace
 {

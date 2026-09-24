@@ -1,6 +1,6 @@
 #pragma once
 // Deliberately free of JucePlugin_* macros so the identical translation unit
-// builds inside the plugin targets AND the ts_cli console app.
+// builds inside the plugin targets AND the broken_cli console app.
 
 #include <atomic>
 #include <string>
@@ -11,12 +11,12 @@
 #include "PresetManager.h"
 #include "dsp/Engine.h"
 
-namespace ts
+namespace broken
 {
-class TurboSynthProcessor : public juce::AudioProcessor
+class BrokenProcessor : public juce::AudioProcessor
 {
 public:
-    TurboSynthProcessor();
+    BrokenProcessor();
 
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override {}
@@ -168,6 +168,6 @@ private:
     float pitchBendNorm = 0.0f;
     double currentSampleRate = 48000.0;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TurboSynthProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BrokenProcessor)
 };
-} // namespace ts
+} // namespace broken

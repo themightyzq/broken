@@ -24,9 +24,9 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "../Params.h"
 #include "Theme.h"
-#include "TsLookAndFeel.h"
+#include "BrokenLookAndFeel.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 class HarmonicEditor : public juce::Component, public juce::SettableTooltipClient, private juce::Timer
 {
@@ -61,7 +61,7 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto b = getLocalBounds().toFloat();
-        TsLookAndFeel::drawScreen (g, b); // shared 90s phosphor glass (bezel, wash, scanlines)
+        BrokenLookAndFeel::drawScreen (g, b); // shared 90s phosphor glass (bezel, wash, scanlines)
 
         auto area = barsArea();
         if (area.getWidth() <= 1.0f || area.getHeight() <= 1.0f)
@@ -92,7 +92,7 @@ public:
         // partial-number labels, only if there is room for them
         if (showLabels())
         {
-            auto* lnf = dynamic_cast<TsLookAndFeel*> (&getLookAndFeel()); // null briefly in the pop-out window
+            auto* lnf = dynamic_cast<BrokenLookAndFeel*> (&getLookAndFeel()); // null briefly in the pop-out window
             g.setColour (colour::lcdFaint);
             g.setFont (lnf != nullptr ? lnf->lcdFont (11.0f) : juce::Font (juce::FontOptions (9.0f)));
             auto labelStrip = juce::Rectangle<float> (area.getX(), area.getBottom(),
@@ -238,4 +238,4 @@ private:
 
     juce::Point<float> dragStart, lastDragPos;
 };
-} // namespace ts::ui
+} // namespace broken::ui

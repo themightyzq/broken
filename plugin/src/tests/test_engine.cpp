@@ -9,10 +9,10 @@
 // chain (waveshaper/filter/resonator/etc.) makes exact sample-for-sample prediction
 // impractical, but relative levels between otherwise-identical renders are meaningful.
 
-using ts::dsp::Engine;
-using ts::dsp::EngineParams;
-using ts::dsp::NoteEvent;
-using ts::dsp::SourceEngine;
+using broken::dsp::Engine;
+using broken::dsp::EngineParams;
+using broken::dsp::NoteEvent;
+using broken::dsp::SourceEngine;
 
 namespace
 {

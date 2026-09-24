@@ -10,7 +10,7 @@
 // the check: this is still ==, not a tolerance.
 static bool exactlyEqual (float a, float b) { return std::equal_to<float>{} (a, b); }
 
-using ts::dsp::SamplerColour;
+using broken::dsp::SamplerColour;
 
 namespace
 {

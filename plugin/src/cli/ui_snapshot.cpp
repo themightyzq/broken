@@ -1,6 +1,6 @@
-// ts_ui_snapshot: render the editor headlessly to a PNG.
+// broken_ui_snapshot: render the editor headlessly to a PNG.
 //
-//   ts_ui_snapshot <out.png> [scale] [width height]
+//   broken_ui_snapshot <out.png> [scale] [width height]
 //   (scale defaults to 1.0; width/height default to the editor's constructed size --
 //   pass them to gate a render at, e.g., the resize-limit minimum: setSize() bypasses the
 //   constrainer entirely, same as any direct setBounds() call, so this can render sizes a
@@ -18,7 +18,7 @@ int main (int argc, char** argv)
 {
     if (argc < 2)
     {
-        std::cerr << "usage: ts_ui_snapshot <out.png> [scale] [width height]\n";
+        std::cerr << "usage: broken_ui_snapshot <out.png> [scale] [width height]\n";
         return 2;
     }
 
@@ -26,7 +26,7 @@ int main (int argc, char** argv)
     const juce::File out = juce::File::getCurrentWorkingDirectory().getChildFile (juce::String (argv[1]));
     const float scale = argc > 2 ? juce::String (argv[2]).getFloatValue() : 1.0f;
 
-    ts::TurboSynthProcessor processor;
+    broken::BrokenProcessor processor;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
     if (editor == nullptr)
     {
@@ -47,7 +47,7 @@ int main (int argc, char** argv)
     }
     else if (argc == 4)
     {
-        std::cerr << "usage: ts_ui_snapshot <out.png> [scale] [width height]\n";
+        std::cerr << "usage: broken_ui_snapshot <out.png> [scale] [width height]\n";
         return 2;
     }
 

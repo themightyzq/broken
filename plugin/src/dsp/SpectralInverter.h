@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 
 // the spec's two inverter flavors, FFT-free:
@@ -49,4 +49,4 @@ private:
     int phase_ { 0 };
 };
 
-} // namespace ts::dsp
+} // namespace broken::dsp

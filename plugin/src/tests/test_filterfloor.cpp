@@ -14,7 +14,7 @@ namespace
 // returns the peak |y| over the final `tailSamples`, once transients have
 // died out. (Mirrors the helper in test_filterstack.cpp -- kept local since
 // tests are separate translation units.)
-float steadyStatePeak (ts::dsp::FilterStack& f, double sr, double freq, int totalSamples, int tailSamples)
+float steadyStatePeak (broken::dsp::FilterStack& f, double sr, double freq, int totalSamples, int tailSamples)
 {
     std::vector<float> tail (static_cast<std::size_t> (tailSamples));
 
@@ -41,7 +41,7 @@ float steadyStatePeak (ts::dsp::FilterStack& f, double sr, double freq, int tota
 
 TEST_CASE ("floor holds the cutoff up when envelope modulation pulls it down (EXT off)", "[filter]")
 {
-    ts::dsp::FilterStack f;
+    broken::dsp::FilterStack f;
     const double sr = 48000.0;
     f.prepare (sr);
     f.setPoles (1);
@@ -59,7 +59,7 @@ TEST_CASE ("floor holds the cutoff up when envelope modulation pulls it down (EX
 
 TEST_CASE ("EXT lets the same modulation pull the cutoff down near the 20 Hz floor", "[filter]")
 {
-    ts::dsp::FilterStack f;
+    broken::dsp::FilterStack f;
     const double sr = 48000.0;
     f.prepare (sr);
     f.setPoles (1);

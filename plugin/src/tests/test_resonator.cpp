@@ -6,7 +6,7 @@
 
 #include "dsp/Resonator.h"
 
-using ts::dsp::Resonator;
+using broken::dsp::Resonator;
 
 namespace
 {

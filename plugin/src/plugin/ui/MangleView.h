@@ -14,12 +14,12 @@
 #include "../PluginProcessor.h"
 #include "../Params.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 class MangleView : public juce::Component, private juce::Timer
 {
 public:
-    explicit MangleView (TurboSynthProcessor& p) : processor (p)
+    explicit MangleView (BrokenProcessor& p) : processor (p)
     {
         auto& av = processor.apvts;
 
@@ -399,7 +399,7 @@ private:
 
     // Knob box heights = label(11, if titled) + dial + textbox(14, if it has a readout).
     // Passing a WIDTH equal to the dial size (not the wider column) is what pins the
-    // rendered dial to that exact geom:: size — see Knob/TsLookAndFeel::drawRotarySlider.
+    // rendered dial to that exact geom:: size — see Knob/BrokenLookAndFeel::drawRotarySlider.
     static constexpr int xlBoxH = 13 + geom::knobXL + 16; // 95: DRIVE/MOD/FILTER/RES (+readout)
     static constexpr int lBoxH  = 13 + geom::knobL + 16;  // 75: MORPH/FREQ/FB, INVERT/DELAY/MIX (+LCD readout, v0.32)
     static constexpr int pitchDial = 50, pitchBoxH = 13 + 50 + 16; // 79: PITCH (upsized v0.30)
@@ -786,7 +786,7 @@ private:
     struct TakeReadout : public juce::Component, public juce::SettableTooltipClient
     {
         juce::String text = "TAKE --";
-        TurboSynthProcessor* proc = nullptr;
+        BrokenProcessor* proc = nullptr;
         void paint (juce::Graphics& g) override
         {
             auto b = getLocalBounds();
@@ -816,7 +816,7 @@ private:
         bool dragging = false; // one drag per gesture; macOS reenters mouseDrag during it
     };
 
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
 
     Block sourceBlock { "SOURCE" }, mangleBlock { "MANGLE" }, playBlock { "PLAY" },
           tapeBlock { "TAPE" }, outputBlock { "OUTPUT" };
@@ -889,4 +889,4 @@ private:
     std::unique_ptr<Knob> rateKnob, outKnob;
     std::unique_ptr<PeakMeter> meter;
 };
-} // namespace ts::ui
+} // namespace broken::ui

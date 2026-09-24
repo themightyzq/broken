@@ -15,11 +15,11 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Theme.h"
 #include "Controls.h"
-#include "TsLookAndFeel.h"
+#include "BrokenLookAndFeel.h"
 #include "../PluginProcessor.h"
 #include "../Params.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 // ---------------------------------------------------------------------------------
 // Peak pyramid: max/min per block at four block sizes, built once from the mono
@@ -142,9 +142,9 @@ private:
 // Shared live state between the waveform area and the minimap.
 struct EditorState
 {
-    explicit EditorState (TurboSynthProcessor& p) : processor (p) {}
+    explicit EditorState (BrokenProcessor& p) : processor (p) {}
 
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
     std::unique_ptr<PeakPyramid> pyramid;
     double viewStart01 = 0.0;
     double viewEnd01 = 1.0;
@@ -498,11 +498,11 @@ public:
 
 private:
     // The LnF installed on this component can briefly still be the JUCE default (before
-    // the plugin editor installs TsLookAndFeel on the tree) — fall back rather than crash
+    // the plugin editor installs BrokenLookAndFeel on the tree) — fall back rather than crash
     // on a null cast.
     juce::Font lcdPlaceholderFont() const
     {
-        if (auto* lnf = dynamic_cast<TsLookAndFeel*> (&getLookAndFeel()))
+        if (auto* lnf = dynamic_cast<BrokenLookAndFeel*> (&getLookAndFeel()))
             return lnf->lcdFont (14.0f);
         return juce::Font (juce::FontOptions (13.0f));
     }
@@ -814,7 +814,7 @@ private:
 class SampleEditor : public juce::Component, private juce::Timer
 {
 public:
-    explicit SampleEditor (TurboSynthProcessor& p) : processor (p), state (p)
+    explicit SampleEditor (BrokenProcessor& p) : processor (p), state (p)
     {
         setWantsKeyboardFocus (true);
 
@@ -977,11 +977,11 @@ private:
         else                setVisible (false); // legacy in-panel overlay
     }
 
-    // The cast can fail briefly before the owner installs TsLookAndFeel on the component
+    // The cast can fail briefly before the owner installs BrokenLookAndFeel on the component
     // tree — fall back to a plain font rather than crash on a null LnF.
     void applyReadoutFont()
     {
-        if (auto* lnf = dynamic_cast<TsLookAndFeel*> (&getLookAndFeel()))
+        if (auto* lnf = dynamic_cast<BrokenLookAndFeel*> (&getLookAndFeel()))
             readoutLabel.setFont (lnf->lcdFont (14.0f));
         else
             readoutLabel.setFont (juce::Font (juce::FontOptions (12.0f)));
@@ -1117,7 +1117,7 @@ private:
         }
     }
 
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
     EditorState state;
     PyramidBuilder builder;
     juce::String lastBuiltName;
@@ -1169,4 +1169,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SampleEditorWindow)
 };
 
-} // namespace ts::ui
+} // namespace broken::ui

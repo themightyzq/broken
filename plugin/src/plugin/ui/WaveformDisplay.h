@@ -7,10 +7,10 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "OscCurve.h"
 #include "Theme.h"
-#include "TsLookAndFeel.h"
+#include "BrokenLookAndFeel.h"
 #include "../PluginProcessor.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 class WaveformDisplay : public juce::Component,
                          public juce::FileDragAndDropTarget,
@@ -18,7 +18,7 @@ class WaveformDisplay : public juce::Component,
                          private juce::Timer
 {
 public:
-    explicit WaveformDisplay (TurboSynthProcessor& proc) : processor (proc)
+    explicit WaveformDisplay (BrokenProcessor& proc) : processor (proc)
     {
         setTooltip ("Shows the loaded sample, the region (tinted band), and the cycle window. "
                     "Double-click or hit EDIT to open the region editor.");
@@ -41,10 +41,10 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto b = getLocalBounds();
-        auto* lnf = dynamic_cast<TsLookAndFeel*> (&getLookAndFeel()); // may be null in the pop-out window briefly
+        auto* lnf = dynamic_cast<BrokenLookAndFeel*> (&getLookAndFeel()); // may be null in the pop-out window briefly
 
         // shared 90s phosphor glass; its own scanlines replace the old stripe helper
-        TsLookAndFeel::drawScreen (g, b.toFloat());
+        BrokenLookAndFeel::drawScreen (g, b.toFloat());
         if (dragHover) { g.setColour (colour::lcdText); g.drawRect (b, 1); }
 
         // OSC has no sample: draw the cycle you are actually hearing. Without this the
@@ -312,7 +312,7 @@ private:
         }
     }
 
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
     std::unique_ptr<juce::FileChooser> chooser;
     juce::TextButton editButton;
     int sourceMode = 0;
@@ -328,4 +328,4 @@ private:
     juce::String lastName;
     juce::String emptyStateText { "DROP SAMPLE or CLICK" };
 };
-} // namespace ts::ui
+} // namespace broken::ui

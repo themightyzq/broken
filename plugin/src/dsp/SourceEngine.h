@@ -14,7 +14,7 @@
 #include <cstddef>
 #include "Waves.h"
 
-namespace ts::dsp
+namespace broken::dsp
 {
 class SourceEngine
 {
@@ -648,4 +648,4 @@ private:
     uint32_t rng = 1;
     std::atomic<float> playhead01 { 0.0f };
 };
-} // namespace ts::dsp
+} // namespace broken::dsp

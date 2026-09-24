@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstddef>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 
 // Cascade of 1..4 identical one-pole low-passes. Deliberately uncompensated:
@@ -95,4 +95,4 @@ private:
     bool flip = false;
 };
 
-} // namespace ts::dsp
+} // namespace broken::dsp

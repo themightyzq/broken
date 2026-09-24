@@ -5,7 +5,7 @@
 
 #include "dsp/DelayLine.h"
 
-using ts::dsp::DelayLine;
+using broken::dsp::DelayLine;
 
 TEST_CASE ("DelayLine echoes at the programmed time", "[delayline]")
 {

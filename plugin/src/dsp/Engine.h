@@ -11,7 +11,7 @@
 #include "SamplerColour.h"
 #include "TapeBuffer.h"
 
-namespace ts::dsp
+namespace broken::dsp
 {
 struct EngineParams
 {
@@ -278,4 +278,4 @@ private:
     int stealCursor = 0;
     int monitorVoice = 0;
 };
-} // namespace ts::dsp
+} // namespace broken::dsp

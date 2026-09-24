@@ -4,7 +4,7 @@
 #include <set>
 #include "dsp/PitchDetector.h"
 
-namespace ts
+namespace broken
 {
 namespace
 {
@@ -33,7 +33,7 @@ namespace
     };
 }
 
-TurboSynthProcessor::TurboSynthProcessor()
+BrokenProcessor::BrokenProcessor()
     : AudioProcessor (BusesProperties()
                           .withInput ("Input", juce::AudioChannelSet::stereo(), true)
                           .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
@@ -49,7 +49,7 @@ TurboSynthProcessor::TurboSynthProcessor()
     jassert (bypassParam != nullptr);
 
     // Context default (v0.33): a DAW instance is FX-shaped, so it opens listening to the
-    // track (Input); standalone keeps Sample. Explicitly VST3/AU only — ts_cli constructs
+    // track (Input); standalone keeps Sample. Explicitly VST3/AU only — broken_cli constructs
     // with wrapperType_Undefined and every gate baseline assumes the Sample default.
     // Session restore and preset loads arrive later and override this.
     if (wrapperType == wrapperType_VST3 || wrapperType == wrapperType_AudioUnit)
@@ -83,7 +83,7 @@ TurboSynthProcessor::TurboSynthProcessor()
     cached["osc.mode"] = apvts.getRawParameterValue ("osc.mode");
 }
 
-void TurboSynthProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void BrokenProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
     engine.prepare (sampleRate);
@@ -100,7 +100,7 @@ void TurboSynthProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     droppedNoteEvents.store (0, std::memory_order_relaxed);
 }
 
-bool TurboSynthProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool BrokenProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
     const auto& in  = layouts.getMainInputChannelSet();
     const auto& out = layouts.getMainOutputChannelSet();
@@ -109,7 +109,7 @@ bool TurboSynthProcessor::isBusesLayoutSupported (const BusesLayout& layouts) co
     return in == out || in == juce::AudioChannelSet::disabled();
 }
 
-dsp::EngineParams TurboSynthProcessor::gatherParams() const
+dsp::EngineParams BrokenProcessor::gatherParams() const
 {
     dsp::EngineParams e;
     auto& v = e.voice;
@@ -212,7 +212,7 @@ dsp::EngineParams TurboSynthProcessor::gatherParams() const
     return e;
 }
 
-void TurboSynthProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
+void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
     const int n = buffer.getNumSamples();
@@ -347,24 +347,24 @@ void TurboSynthProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     outPeak.store (std::max (peak, outPeak.load() * 0.8f)); // crude ballistic decay for the meter
 }
 
-juce::AudioProcessorEditor* TurboSynthProcessor::createEditor()
+juce::AudioProcessorEditor* BrokenProcessor::createEditor()
 {
-    return new TurboSynthEditor (*this);
+    return new BrokenEditor (*this);
 }
 
-void TurboSynthProcessor::getStateInformation (juce::MemoryBlock& destData)
+void BrokenProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     if (auto xml = apvts.copyState().createXml())
         copyXmlToBinary (*xml, destData);
 }
 
-void TurboSynthProcessor::setStateInformation (const void* data, int sizeInBytes)
+void BrokenProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
         restoreFromXml (*xml);
 }
 
-void TurboSynthProcessor::restoreFromXml (juce::XmlElement& xml)
+void BrokenProcessor::restoreFromXml (juce::XmlElement& xml)
 {
     // v0.24 rename: state saved before the product was named "Broken" carries the
     // working-title tag. Accept it, or every earlier session and preset refuses to load.
@@ -403,7 +403,7 @@ void TurboSynthProcessor::restoreFromXml (juce::XmlElement& xml)
         }
 }
 
-bool TurboSynthProcessor::loadSnapshotJson (const juce::var& parsed, juce::String& errorOut)
+bool BrokenProcessor::loadSnapshotJson (const juce::var& parsed, juce::String& errorOut)
 {
     auto* obj = parsed.getDynamicObject();
     if (obj == nullptr) { errorOut = "snapshot root is not a JSON object"; return false; }
@@ -427,7 +427,7 @@ bool TurboSynthProcessor::loadSnapshotJson (const juce::var& parsed, juce::Strin
     return true;
 }
 
-juce::var TurboSynthProcessor::snapshotToJson() const
+juce::var BrokenProcessor::snapshotToJson() const
 {
     auto paramsObj = new juce::DynamicObject();
     for (auto* param : getParameters())
@@ -439,7 +439,7 @@ juce::var TurboSynthProcessor::snapshotToJson() const
     return juce::var (root);
 }
 
-bool TurboSynthProcessor::loadSampleFile (const juce::File& file, juce::String& errorOut)
+bool BrokenProcessor::loadSampleFile (const juce::File& file, juce::String& errorOut)
 {
     juce::AudioFormatManager fm;
     fm.registerBasicFormats();
@@ -467,7 +467,7 @@ bool TurboSynthProcessor::loadSampleFile (const juce::File& file, juce::String& 
     return true;
 }
 
-void TurboSynthProcessor::randomizeParams()
+void BrokenProcessor::randomizeParams()
 {
     lastRandomUndoState = apvts.copyState();
     hasRandomUndoState = true;
@@ -508,14 +508,14 @@ void TurboSynthProcessor::randomizeParams()
     }
 }
 
-void TurboSynthProcessor::undoRandomize()
+void BrokenProcessor::undoRandomize()
 {
     if (! hasRandomUndoState) return;
     // copy: replaceState adopts the tree, and a second undo must still work
     apvts.replaceState (lastRandomUndoState.createCopy());
 }
 
-bool TurboSynthProcessor::applyTuneLock()
+bool BrokenProcessor::applyTuneLock()
 {
     std::vector<float> window ((size_t) dsp::PitchDetector::windowSize);
     copyTunerTap (false, window.data(), dsp::PitchDetector::windowSize);
@@ -638,7 +638,7 @@ bool PresetManager::overwriteUser (int index, juce::String& errorOut)
     return saveUser (entries[(size_t) index].name, errorOut); // same name = same file
 }
 
-bool TurboSynthProcessor::saveTapeToFile (const juce::File& file, juce::String& errorOut)
+bool BrokenProcessor::saveTapeToFile (const juce::File& file, juce::String& errorOut)
 {
     std::vector<float> copy;
     double sr = 48000.0;
@@ -667,13 +667,13 @@ bool TurboSynthProcessor::saveTapeToFile (const juce::File& file, juce::String& 
     { errorOut = "write failed"; return false; }
     return true;
 }
-} // namespace ts
+} // namespace broken
 
-// Factory for the plugin targets; ts_cli instantiates the processor directly instead.
+// Factory for the plugin targets; broken_cli instantiates the processor directly instead.
 #if defined (JucePlugin_Name)
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter(); // prototype: the flags now reach every target
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new ts::TurboSynthProcessor();
+    return new broken::BrokenProcessor();
 }
 #endif

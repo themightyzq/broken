@@ -5,18 +5,18 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "Theme.h"
-#include "TsLookAndFeel.h"
+#include "BrokenLookAndFeel.h"
 #include "../PluginProcessor.h"
 #include "../../dsp/PitchDetector.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 class TunerDisplay : public juce::Component,
                      public juce::SettableTooltipClient,
                      private juce::Timer
 {
 public:
-    TunerDisplay (TurboSynthProcessor& p, bool postChain, const juce::String& label,
+    TunerDisplay (BrokenProcessor& p, bool postChain, const juce::String& label,
                   const juce::String& tooltip)
         : processor (p), post (postChain), caption (label)
     {
@@ -31,11 +31,11 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto b = getLocalBounds();
-        TsLookAndFeel::drawScreen (g, b.toFloat()); // shared 90s phosphor glass
+        BrokenLookAndFeel::drawScreen (g, b.toFloat()); // shared 90s phosphor glass
 
         auto area = b.reduced (4);
         const bool live = hasPitch();
-        auto* lnf = dynamic_cast<TsLookAndFeel*> (&getLookAndFeel()); // may be null briefly in the pop-out window
+        auto* lnf = dynamic_cast<BrokenLookAndFeel*> (&getLookAndFeel()); // may be null briefly in the pop-out window
 
         // caption sits OUTSIDE the LCD screen feel: small silkscreen caption, not glowing green.
         g.setColour (colour::silkCaption);
@@ -111,7 +111,7 @@ private:
         repaint();
     }
 
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
     dsp::PitchDetector detector;
     std::vector<float> window;
     bool post = false;
@@ -119,4 +119,4 @@ private:
     float hz = 0.0f, cents = 0.0f, clarity = 0.0f;
     int note = 69;
 };
-} // namespace ts::ui
+} // namespace broken::ui

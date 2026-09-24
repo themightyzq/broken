@@ -4,7 +4,7 @@
 
 #include <cmath>
 
-namespace ts::dsp::waves
+namespace broken::dsp::waves
 {
 inline constexpr double twoPi = 6.283185307179586476925286766559;
 
@@ -50,4 +50,4 @@ inline float byIndex (int wave, double ph, int oddMaxHarmonic = 9)
         default: return 0.0f;
     }
 }
-} // namespace ts::dsp::waves
+} // namespace broken::dsp::waves

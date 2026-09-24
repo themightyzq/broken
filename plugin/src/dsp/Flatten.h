@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 class Flatten
 {
@@ -67,4 +67,4 @@ private:
     float attackCoeff = 0.02f;
     float env = 0.0f;
 };
-} // namespace ts::dsp
+} // namespace broken::dsp

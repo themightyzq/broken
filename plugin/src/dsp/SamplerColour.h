@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 
 // Era sampler's output medium: bit-depth quantize + zero-order sample-and-hold
@@ -58,4 +58,4 @@ private:
     float held_ { 0.0f };
 };
 
-} // namespace ts::dsp
+} // namespace broken::dsp

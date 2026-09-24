@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the deterministic audio/MIDI fixture set for the TurboSynth test harness.
+"""Generate the deterministic audio/MIDI fixture set for the Broken test harness.
 
 Every fixture is pure function of its seed/params below -> re-running this script
 must produce byte-identical files (verified by the self-check at the bottom).

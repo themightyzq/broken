@@ -13,7 +13,7 @@
 // v0.12 hardening pass: regression tests for defects found by the parameter fuzz,
 // the sanitizer run, and the two code reviews. Each test FAILED before its fix.
 
-using namespace ts::dsp;
+using namespace broken::dsp;
 
 namespace { constexpr double SR = 48000.0; }
 

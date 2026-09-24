@@ -13,7 +13,7 @@ namespace
 // Runs `totalSamples` of a sine at `freq` through a prepared FilterStack and
 // returns the peak |y| over the final `tailSamples`, once transients have
 // died out.
-float steadyStatePeak (ts::dsp::FilterStack& f, double sr, double freq, int totalSamples, int tailSamples)
+float steadyStatePeak (broken::dsp::FilterStack& f, double sr, double freq, int totalSamples, int tailSamples)
 {
     std::vector<float> tail (static_cast<std::size_t> (tailSamples));
 
@@ -34,7 +34,7 @@ float steadyStatePeak (ts::dsp::FilterStack& f, double sr, double freq, int tota
 
 TEST_CASE ("single pole is roughly -3dB at its cutoff", "[filterstack]")
 {
-    ts::dsp::FilterStack f;
+    broken::dsp::FilterStack f;
     const double sr = 48000.0;
     f.prepare (sr);
     f.setPoles (1);
@@ -49,7 +49,7 @@ TEST_CASE ("single pole is roughly -3dB at its cutoff", "[filterstack]")
 
 TEST_CASE ("single pole attenuates ~-12dB an octave above cutoff", "[filterstack]")
 {
-    ts::dsp::FilterStack f;
+    broken::dsp::FilterStack f;
     const double sr = 48000.0;
     f.prepare (sr);
     f.setPoles (1);
@@ -64,7 +64,7 @@ TEST_CASE ("single pole attenuates ~-12dB an octave above cutoff", "[filterstack
 
 TEST_CASE ("four poles move the composite corner down to ~435 Hz", "[filterstack]")
 {
-    ts::dsp::FilterStack f;
+    broken::dsp::FilterStack f;
     const double sr = 48000.0;
     f.prepare (sr);
     f.setPoles (4);
@@ -81,7 +81,7 @@ TEST_CASE ("DC passes through unattenuated regardless of pole count", "[filterst
 {
     for (int poles = 1; poles <= 4; ++poles)
     {
-        ts::dsp::FilterStack f;
+        broken::dsp::FilterStack f;
         f.prepare (48000.0);
         f.setPoles (poles);
         f.setCutoffHz (1000.0f);
@@ -96,7 +96,7 @@ TEST_CASE ("DC passes through unattenuated regardless of pole count", "[filterst
 
 TEST_CASE ("stack stays finite and settles after an impulse", "[filterstack]")
 {
-    ts::dsp::FilterStack f;
+    broken::dsp::FilterStack f;
     f.prepare (48000.0);
     f.setPoles (4);
     f.setCutoffHz (1000.0f);

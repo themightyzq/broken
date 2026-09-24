@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 struct PitchResult
 {
@@ -100,4 +100,4 @@ private:
     double sr = 48000.0;
     std::vector<float> nsdf;
 };
-} // namespace ts::dsp
+} // namespace broken::dsp

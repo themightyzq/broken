@@ -11,9 +11,9 @@ constexpr double kPi = 3.14159265358979323846;
 
 // Builds a Waveshaper prepared at 48 kHz with the given static settings, ready
 // for a first-sample-after-reset check (blocker state starts at exactly zero).
-ts::dsp::Waveshaper makeShaper (int curve, float driveDb, float morph, float trimDb)
+broken::dsp::Waveshaper makeShaper (int curve, float driveDb, float morph, float trimDb)
 {
-    ts::dsp::Waveshaper ws;
+    broken::dsp::Waveshaper ws;
     ws.prepare (48000.0);
     ws.setCurve (curve);
     ws.setDriveDb (driveDb);

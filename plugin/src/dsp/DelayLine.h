@@ -4,7 +4,7 @@
 #include <cmath>
 #include <vector>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 
 // Simple era delay: coarse+fine time, mix, polarity, optional feedback.
@@ -89,4 +89,4 @@ private:
     float delaySamples = 4410.0f;
 };
 
-} // namespace ts::dsp
+} // namespace broken::dsp

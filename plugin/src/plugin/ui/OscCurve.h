@@ -12,7 +12,7 @@
 #include "dsp/Waves.h"
 #include "../Params.h"
 
-namespace ts::ui::osccurve
+namespace broken::ui::osccurve
 {
 // Raw parameter taps, resolved once so building a curve never looks up strings.
 struct Taps
@@ -77,4 +77,4 @@ inline void build (const Taps& t, float* dst, int n)
     if (peak > 1.0f)
         for (int i = 0; i < n; ++i) dst[i] /= peak;
 }
-} // namespace ts::ui::osccurve
+} // namespace broken::ui::osccurve

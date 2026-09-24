@@ -16,7 +16,7 @@ static bool exactlyEqual (float a, float b) { return std::equal_to<float>{} (a, 
 // v0.5 control mapping: rev is an independent direction toggle; loopOn off = one-shot;
 // loopStyle = Loop (wrap) | PingPong (bounce).
 
-using ts::dsp::SourceEngine;
+using broken::dsp::SourceEngine;
 
 namespace
 {
@@ -365,7 +365,7 @@ TEST_CASE ("a table seeded from a wave plays back as that wave", "[sourceengine]
     {
         std::array<float, N> pts {};
         for (int k = 0; k < N; ++k)
-            pts[(size_t) k] = ts::dsp::waves::byIndex (waveIndex, (double) k / (double) N, 9);
+            pts[(size_t) k] = broken::dsp::waves::byIndex (waveIndex, (double) k / (double) N, 9);
 
         SourceEngine drawn;
         drawn.prepare (48000.0);

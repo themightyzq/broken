@@ -4,10 +4,10 @@
 #include <cmath>
 #include <vector>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 
-// Tuned comb (feedback delay) — the TurboSynth "ringing" module.
+// Tuned comb (feedback delay) — the Broken "ringing" module.
 class Resonator
 {
 public:
@@ -107,4 +107,4 @@ private:
     float dampState = 0.0f;
 };
 
-} // namespace ts::dsp
+} // namespace broken::dsp

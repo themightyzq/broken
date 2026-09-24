@@ -16,12 +16,12 @@
 #include "SampleEditor.h"
 #include "Theme.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 class SourceEditorPanel : public juce::Component, private juce::Timer
 {
 public:
-    explicit SourceEditorPanel (TurboSynthProcessor& p)
+    explicit SourceEditorPanel (BrokenProcessor& p)
         : sampleEditor (p), oscEditor (p)
     {
         modeRaw    = p.apvts.getRawParameterValue ("source.mode");
@@ -133,4 +133,4 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SourceEditorPanel)
 };
-} // namespace ts::ui
+} // namespace broken::ui

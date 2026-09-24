@@ -17,7 +17,7 @@
 #include <zqsfx_ui/zqsfx_ui.h>
 #include "Theme.h"
 
-namespace ts::ui
+namespace broken::ui
 {
-using TsLookAndFeel = zqsfx::ui::LookAndFeel;
-} // namespace ts::ui
+using BrokenLookAndFeel = zqsfx::ui::LookAndFeel;
+} // namespace broken::ui

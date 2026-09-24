@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstdint>
 
-namespace ts::dsp
+namespace broken::dsp
 {
 
 // Drive -> saturate -> morph-blend with dry -> trim, with an optional DC blocker
@@ -131,4 +131,4 @@ private:
     float blockerYPrev_ { 0.0f };
 };
 
-} // namespace ts::dsp
+} // namespace broken::dsp

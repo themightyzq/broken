@@ -6,7 +6,7 @@
 
 TEST_CASE ("attack crosses peak within ~5ms for a 5ms attack time", "[envelope]")
 {
-    ts::dsp::EnvelopeADSR env;
+    broken::dsp::EnvelopeADSR env;
     const double sr = 48000.0;
     env.prepare (sr);
     env.setTimes (0.005f, 0.1f, 0.7f, 0.2f);
@@ -29,7 +29,7 @@ TEST_CASE ("attack crosses peak within ~5ms for a 5ms attack time", "[envelope]"
 
 TEST_CASE ("decay settles near the sustain level after the decay time", "[envelope]")
 {
-    ts::dsp::EnvelopeADSR env;
+    broken::dsp::EnvelopeADSR env;
     const double sr = 48000.0;
     env.prepare (sr);
     env.setTimes (0.01f, 0.2f, 0.5f, 0.2f);
@@ -59,7 +59,7 @@ TEST_CASE ("decay settles near the sustain level after the decay time", "[envelo
 
 TEST_CASE ("release crosses 10% of its start level at the release time", "[envelope]")
 {
-    ts::dsp::EnvelopeADSR env;
+    broken::dsp::EnvelopeADSR env;
     const double sr = 48000.0;
     env.prepare (sr);
     env.setTimes (0.01f, 0.05f, 0.5f, 0.15f);
@@ -90,7 +90,7 @@ TEST_CASE ("release crosses 10% of its start level at the release time", "[envel
 
 TEST_CASE ("retriggering mid-attack does not jump to zero", "[envelope]")
 {
-    ts::dsp::EnvelopeADSR env;
+    broken::dsp::EnvelopeADSR env;
     env.prepare (48000.0);
     env.setTimes (0.05f, 0.1f, 0.7f, 0.2f); // slow attack so 100 samples is still mid-attack
     env.gateOn (1.0f);
@@ -107,7 +107,7 @@ TEST_CASE ("retriggering mid-attack does not jump to zero", "[envelope]")
 
 TEST_CASE ("isActive goes false after release settles, level always finite", "[envelope]")
 {
-    ts::dsp::EnvelopeADSR env;
+    broken::dsp::EnvelopeADSR env;
     const double sr = 48000.0;
     env.prepare (sr);
     env.setTimes (0.01f, 0.05f, 0.5f, 0.1f);
@@ -137,7 +137,7 @@ TEST_CASE ("isActive goes false after release settles, level always finite", "[e
 
 TEST_CASE ("sustain 0 held: level does not go subnormal and voice sleeps", "[envelope]")
 {
-    ts::dsp::EnvelopeADSR env;
+    broken::dsp::EnvelopeADSR env;
     const double sr = 48000.0;
     env.prepare (sr);
     env.setTimes (0.001f, 0.05f, 0.0f, 0.1f);
@@ -174,7 +174,7 @@ TEST_CASE ("sustain 0 held: level does not go subnormal and voice sleeps", "[env
 
 TEST_CASE ("sustain > 0 held stays active", "[envelope]")
 {
-    ts::dsp::EnvelopeADSR env;
+    broken::dsp::EnvelopeADSR env;
     const double sr = 48000.0;
     env.prepare (sr);
     env.setTimes (0.001f, 0.05f, 0.5f, 0.1f);

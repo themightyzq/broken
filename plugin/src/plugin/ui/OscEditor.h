@@ -27,12 +27,12 @@
 #include "OscCurve.h"
 #include "Theme.h"
 
-namespace ts::ui
+namespace broken::ui
 {
 class OscEditor : public juce::Component, public juce::SettableTooltipClient, private juce::Timer
 {
 public:
-    explicit OscEditor (TurboSynthProcessor& p) : processor (p), apvts (p.apvts)
+    explicit OscEditor (BrokenProcessor& p) : processor (p), apvts (p.apvts)
     {
         // the whole plot is the tooltip target; the mode/FROM SAMPLE/SINE buttons
         // below set their own, more specific tooltips and take priority over this one.
@@ -97,7 +97,7 @@ public:
 
         // the plot is an LCD screen set into that panel
         auto area = plotArea().toFloat();
-        TsLookAndFeel::drawScreen (g, area);
+        BrokenLookAndFeel::drawScreen (g, area);
 
         // centre line + quarter-cycle guides
         g.setColour (colour::ruleInner);
@@ -342,7 +342,7 @@ private:
         const int m = modeRaw != nullptr ? (int) modeRaw->load() : 0;
         // toggle state, not a per-button colour override: the global LnF paints a
         // toggled TextButton accent-filled with dark text, matching the reference's
-        // segmented control (drawButtonBackground/drawButtonText in TsLookAndFeel.h).
+        // segmented control (drawButtonBackground/drawButtonText in BrokenLookAndFeel.h).
         for (int i = 0; i < 3; ++i)
             modeButtons[(size_t) i]->setToggleState (i == m, juce::dontSendNotification);
         hint.setText (m == 2 ? "Drag to draw. Sharp corners buzz - that is the era."
@@ -358,7 +358,7 @@ private:
         osccurve::build (taps, curve.data(), kPoints);
     }
 
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
     juce::AudioProcessorValueTreeState& apvts;
 
     std::atomic<float>* modeRaw = nullptr;
@@ -387,4 +387,4 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OscEditor)
 };
-} // namespace ts::ui
+} // namespace broken::ui

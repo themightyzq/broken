@@ -7,7 +7,7 @@
 
 // Phase C (v0.9): Random (seeded) and Custom (16-breakpoint) waveshaper curves.
 
-using ts::dsp::Waveshaper;
+using broken::dsp::Waveshaper;
 
 namespace
 {
@@ -68,7 +68,7 @@ TEST_CASE ("random curve output stays bounded", "[phaseC]")
 TEST_CASE ("custom curve honours its breakpoints", "[phaseC]")
 {
     auto ws = makeShaper (9);
-    constexpr int N = ts::dsp::Waveshaper::customPointCount; // 128 since v0.20
+    constexpr int N = broken::dsp::Waveshaper::customPointCount; // 128 since v0.20
     std::array<float, N> pts {};
     for (int i = 0; i < N; ++i) // identity diagonal = the parameter defaults
         pts[(size_t) i] = -1.0f + 2.0f * (float) i / (float) (N - 1);
@@ -91,7 +91,7 @@ TEST_CASE ("custom curve honours its breakpoints", "[phaseC]")
 TEST_CASE ("custom points are clamped into range", "[phaseC]")
 {
     auto ws = makeShaper (9);
-    std::array<float, ts::dsp::Waveshaper::customPointCount> wild {};
+    std::array<float, broken::dsp::Waveshaper::customPointCount> wild {};
     wild.fill (7.5f); // absurd input must not produce absurd output
     ws.setCustomPoints (wild.data());
     for (int i = 0; i <= 20; ++i)

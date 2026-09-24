@@ -8,7 +8,7 @@
 #include "dsp/SourceEngine.h"
 #include "dsp/Waveshaper.h"
 
-namespace ts::params
+namespace broken::params
 {
 using APVTS = juce::AudioProcessorValueTreeState;
 
@@ -238,4 +238,4 @@ inline APVTS::ParameterLayout createLayout()
 
     return layout;
 }
-} // namespace ts::params
+} // namespace broken::params

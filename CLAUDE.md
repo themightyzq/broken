@@ -1,20 +1,20 @@
 Universal ZQ SFX rules (identity, real-time safety, VCS policy, signing, shared agents, shared docs) live in ../CLAUDE.md and apply here. This file only adds what is specific to Broken.
 
-# CLAUDE.md — Project TurboSynth (JUCE)
+# CLAUDE.md — Broken (JUCE)
 
 ## What this is
-A JUCE/C++ audio plugin (VST3 + AU + Standalone, macOS arm64) replicating Digidesign
-TurboSynth as the band used it: sample mangling via waveshaper, FM/AM modulator, LP stack,
+A JUCE/C++ audio plugin (VST3 + AU + Standalone, macOS arm64); see README.md for the
+one-line attribution. It does sample mangling via waveshaper, FM/AM modulator, LP stack,
 resonator, spectral inverter, plus an in-plugin TAPE resample workflow. v1 scope = the
 fixed chain in docs/DESIGN.md §2 plus the Stretcher (shipped v0.10 as STRETCH/FLATTEN);
 Diffuser and breakpoint envelopes are out.
-Product name: **Broken** (ZQ SFX). "TurboSynth" refers to the original a third party hardware only; internal identifiers keep the working name.
+Product name: **Broken** (ZQ SFX).
 
 ## Ownership
 - Claude authors and builds everything: `plugin/` (C++/CMake), `docs/`, `tests/`,
   `scripts/`, `CHANGELOG.md`, `README.md`.
 - The user is the design authority and the ears: panel review, Reaper integration checks,
-  and the final sound judgment against reference the band material.
+  and the final sound judgment against the reference material.
 - Historical note: the project began as a the prototyping environment ensemble; `docs/builds/M1.md` is the
   retired path's record. The old "the prototyping environment files are user-only" clause is retired;
   DSP-NOTES.md §0's the prototyping environment conventions remain as documentation of the design's origins.
@@ -29,10 +29,10 @@ does not change with the note below.
 
 Broken is the baseline for the house visual style (`../docs/ZQSFX_UI_STYLE_GUIDE.md`), and
 its UI core now lives in the shared `zqsfx_ui` module (`../zqsfx_ui/`, fetched by tag in
-`plugin/CMakeLists.txt`). `plugin/src/plugin/ui/Theme.h`, `TsLookAndFeel.h`, and `Controls.h`
+`plugin/CMakeLists.txt`). `plugin/src/plugin/ui/Theme.h`, `BrokenLookAndFeel.h`, and `Controls.h`
 are thin adapters. To change a token or a shared control: change it in `zqsfx_ui`, keep its
 `TokenTests` green, tag a release, bump `GIT_TAG` here, then prove the panel with
-`ts_ui_snapshot` before and after. Broken-only decoration (grime, screws, mirrored K, the
+`broken_ui_snapshot` before and after. Broken-only decoration (grime, screws, mirrored K, the
 licensed knob strips) stays in this project. The design spec of record above still governs.
 
 ## Conventions
@@ -41,7 +41,7 @@ licensed knob strips) stays in this project. The design spec of record above sti
   `src/plugin/` and `src/cli/`.
 - Presets: JSON APVTS state in `plugin/snapshots/`, named `NN-technique-name` — never
   song names.
-- Renders: `tests/renders/<fixture>__<snapshot>__vNN.wav`, produced by `ts_cli` at
+- Renders: `tests/renders/<fixture>__<snapshot>__vNN.wav`, produced by `broken_cli` at
   48 kHz/24-bit (parity runs at 44.1 k).
 - Versioning: git, local only, no remote (first repository created 2026-09-21, branch
   `main`) — see ../CLAUDE.md section 3. A **milestone** = a
@@ -54,10 +54,10 @@ licensed knob strips) stays in this project. The design spec of record above sti
 ## Definition of verify (per milestone)
 1. `cmake --build` clean (no new warnings in project code).
 2. `ctest` green (Catch2 unit tests for the touched DSP classes).
-3. `ts_cli` renders of the milestone's TEST-PLAN fixtures analyzed by
+3. `broken_cli` renders of the milestone's TEST-PLAN fixtures analyzed by
    `scripts/analyze.py` with the matching expectations profile — numeric PASS, run by
    Claude directly (never trusted from a subagent's report).
-4. For anything touching the editor or look-and-feel: `ts_ui_snapshot` renders before and
+4. For anything touching the editor or look-and-feel: `broken_ui_snapshot` renders before and
    after (pixel diff reported), and pluginval on the VST3 (it opens the editor; the unit and
    render gates do not, which is how a crash-on-open once shipped green).
 5. CHANGELOG entry with the numbers.

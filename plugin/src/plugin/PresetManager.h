@@ -12,9 +12,9 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <BinaryData.h>
 
-namespace ts
+namespace broken
 {
-class TurboSynthProcessor;
+class BrokenProcessor;
 
 class PresetManager
 {
@@ -27,7 +27,7 @@ public:
         juce::File file;        // user: the file on disk
     };
 
-    explicit PresetManager (TurboSynthProcessor& p) : processor (p) { rescan(); }
+    explicit PresetManager (BrokenProcessor& p) : processor (p) { rescan(); }
 
     static juce::File userDirectory()
     {
@@ -77,7 +77,7 @@ public:
         return load (idx, errorOut);
     }
 
-    int indexOf (const juce::String& name) const // used by ts_cli --preset
+    int indexOf (const juce::String& name) const // used by broken_cli --preset
     {
         for (size_t i = 0; i < entries.size(); ++i)
             if (entries[i].name.equalsIgnoreCase (name)) return (int) i;
@@ -85,8 +85,8 @@ public:
     }
 
 private:
-    TurboSynthProcessor& processor;
+    BrokenProcessor& processor;
     std::vector<Entry> entries;
     int currentIndex = -1;
 };
-} // namespace ts
+} // namespace broken
