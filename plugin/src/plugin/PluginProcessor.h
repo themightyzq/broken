@@ -26,8 +26,14 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
 
+#if BROKEN_FX
+    const juce::String getName() const override { return "Broken FX"; }
+    // effect build: always fed from the track, never note-triggered (DESIGN split spec)
+    bool acceptsMidi() const override  { return false; }
+#else
     const juce::String getName() const override { return "Broken"; }
     bool acceptsMidi() const override  { return true; }
+#endif
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
     // delay max is 2 s, but res.fb 0.995 / dly.fb 0.9 ring far longer; hosts use this
@@ -137,8 +143,19 @@ private:
     std::array<std::string, 128> drawIds;
     std::array<std::string, 128> curveIds;
 
+    // FX build: true stereo, two independently-parameterised engines (DESIGN split spec
+    // item 2). `engine` stays the name used everywhere else in this header (tape, tuner
+    // taps, playhead) and is the L/primary channel; `engineR` is the R channel, prepared
+    // and parameterised identically every block so a mono input produces bit-identical
+    // L/R output. The instrument build keeps the single mono `engine` unchanged.
     dsp::Engine engine;
+#if BROKEN_FX
+    dsp::Engine engineR;
+#endif
     std::vector<float> monoIn, monoOut;
+#if BROKEN_FX
+    std::vector<float> monoInR, monoOutR, monoOutMix; // monoOutMix: used only for a mono output bus
+#endif
     // Capped at maxNoteEventsPerBlock and never allowed to grow past that in processBlock,
     // so a MIDI storm cannot trigger a reallocation on the audio thread. `chunkEvents` is
     // the per-chunk re-slice used when a host hands us a block bigger than samplesPerBlock

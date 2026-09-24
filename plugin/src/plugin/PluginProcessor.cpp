@@ -37,7 +37,13 @@ BrokenProcessor::BrokenProcessor()
     : AudioProcessor (BusesProperties()
                           .withInput ("Input", juce::AudioChannelSet::stereo(), true)
                           .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+      // state type tag "BrokenFX" vs "Broken": a state saved by one product must never
+      // silently load into the other (different chain shape, different source lock)
+#if BROKEN_FX
+      apvts (*this, nullptr, "BrokenFX", params::createLayout())
+#else
       apvts (*this, nullptr, "Broken", params::createLayout())
+#endif
 {
     for (auto* id : allIds)
     {
@@ -91,6 +97,15 @@ void BrokenProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
         engine.setSampleData (sampleBuf.data(), sampleBuf.size(), sampleFileSr);
     monoIn.resize ((size_t) samplesPerBlock);
     monoOut.resize ((size_t) samplesPerBlock);
+#if BROKEN_FX
+    // R channel: prepared and sized identically to L so the two engines stay in lockstep
+    engineR.prepare (sampleRate);
+    if (! sampleBuf.empty())
+        engineR.setSampleData (sampleBuf.data(), sampleBuf.size(), sampleFileSr);
+    monoInR.resize ((size_t) samplesPerBlock);
+    monoOutR.resize ((size_t) samplesPerBlock);
+    monoOutMix.resize ((size_t) samplesPerBlock);
+#endif
     playHeld = false; // never strand a held note across a rate/buffer change
     pitchBendNorm = 0.0f; // nor a held wheel: it would leave the instrument detuned
     bypassFadeStep = 1.0f / (0.025f * (float) sampleRate); // 25 ms fade
@@ -115,6 +130,11 @@ dsp::EngineParams BrokenProcessor::gatherParams() const
     auto& v = e.voice;
 
     v.sourceMode  = (int) p ("source.mode");
+#if BROKEN_FX
+    // FX build: the source is always the live input, regardless of what the (hidden,
+    // still-automatable) parameter holds — DESIGN split spec item 1.
+    v.sourceMode = dsp::SourceEngine::Input;
+#endif
     // Pitch bend rides on the source transpose rather than having its own path, so it
     // reaches varispeed, the oscillators and the live input shifter alike (DSP-NOTES §9.1)
     // PITCH EXT: ±24 st unless EXT, per PANEL.md — it was wired to a toggle that
@@ -246,7 +266,16 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
             pitchBendNorm = ((float) msg.getPitchWheelValue() - 8192.0f) / 8192.0f;
     }
 
-    engine.applyParams (gatherParams());
+    {
+        // same EngineParams struct applied to both channels' engines: identical
+        // construction + identical parameters + no note events is what keeps their
+        // modulation sample-coherent (DESIGN split spec item 2)
+        const auto ep = gatherParams();
+        engine.applyParams (ep);
+#if BROKEN_FX
+        engineR.applyParams (ep);
+#endif
+    }
 
     const int inChans  = getTotalNumInputChannels();
     const int outChans = getTotalNumOutputChannels();
@@ -295,6 +324,74 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     {
         const int chunkLen = juce::jmin (capacity, n - offset);
 
+        chunkEvents.clear(); // capacity reserved to maxNoteEventsPerBlock; never reallocates
+        for (const auto& e : events)
+            if (e.samplePos >= offset && e.samplePos < offset + chunkLen)
+                chunkEvents.push_back ({ e.samplePos - offset, e.on, e.note, e.velocity });
+
+#if BROKEN_FX
+        // True stereo: channel 0 feeds the L engine, channel 1 feeds the R engine (or a
+        // copy of channel 0 for a mono input bus) -- DESIGN split spec item 2.
+        for (int i = 0; i < chunkLen; ++i)
+        {
+            const float l = inChans > 0 ? buffer.getReadPointer (0, offset)[i] : 0.0f;
+            const float r = inChans > 1 ? buffer.getReadPointer (1, offset)[i] : l;
+            monoIn[(size_t) i]  = l;
+            monoInR[(size_t) i] = r;
+        }
+
+        engine.process  (monoIn.data(),  monoOut.data(),  chunkLen,
+                         chunkEvents.data(), (int) chunkEvents.size());
+        engineR.process (monoInR.data(), monoOutR.data(), chunkLen,
+                         chunkEvents.data(), (int) chunkEvents.size());
+
+        for (int i = 0; i < chunkLen; ++i)
+            peak = std::max (peak, std::max (std::abs (monoOut[(size_t) i]), std::abs (monoOutR[(size_t) i])));
+
+        if (bypassFade <= 0.0f && bypTarget <= 0.0f)
+        {
+            // active steady state: plain per-channel copy, bit-exact at the unity null.
+            // A mono output bus is the one case that needs an actual blend (still
+            // allocation-free: monoOutMix is sized once in prepareToPlay).
+            if (outChans >= 2)
+            {
+                buffer.copyFrom (0, offset, monoOut.data(), chunkLen);
+                buffer.copyFrom (1, offset, monoOutR.data(), chunkLen);
+            }
+            else if (outChans == 1)
+            {
+                for (int i = 0; i < chunkLen; ++i)
+                    monoOutMix[(size_t) i] = 0.5f * (monoOut[(size_t) i] + monoOutR[(size_t) i]);
+                buffer.copyFrom (0, offset, monoOutMix.data(), chunkLen);
+            }
+        }
+        else
+        {
+            // engaging/releasing bypass: crossfade each output channel's OWN wet signal
+            // against its OWN true input, read in place before each write -- keeps L and
+            // R independent through the fade too, same one fade trajectory as the
+            // instrument build.
+            const float startFade = bypassFade;
+            float f = startFade;
+            for (int ch = 0; ch < outChans; ++ch)
+            {
+                f = startFade;
+                auto* d = buffer.getWritePointer (ch, offset);
+                const bool hasIn = ch < inChans;
+                for (int i = 0; i < chunkLen; ++i)
+                {
+                    f = bypTarget > f ? std::min (bypTarget, f + bypassFadeStep)
+                                      : std::max (bypTarget, f - bypassFadeStep);
+                    const float in = hasIn ? d[i] : 0.0f;
+                    const float w = (outChans == 1)
+                                      ? 0.5f * (monoOut[(size_t) i] + monoOutR[(size_t) i])
+                                      : (ch == 0 ? monoOut[(size_t) i] : monoOutR[(size_t) i]);
+                    d[i] = (1.0f - f) * w + f * in;
+                }
+            }
+            bypassFade = f;
+        }
+#else
         for (int i = 0; i < chunkLen; ++i)
         {
             float s = 0.0f;
@@ -302,11 +399,6 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
                 s += buffer.getReadPointer (ch, offset)[i];
             monoIn[(size_t) i] = inChans > 0 ? s / (float) inChans : 0.0f;
         }
-
-        chunkEvents.clear(); // capacity reserved to maxNoteEventsPerBlock; never reallocates
-        for (const auto& e : events)
-            if (e.samplePos >= offset && e.samplePos < offset + chunkLen)
-                chunkEvents.push_back ({ e.samplePos - offset, e.on, e.note, e.velocity });
 
         engine.process (monoIn.data(), monoOut.data(), chunkLen,
                         chunkEvents.data(), (int) chunkEvents.size());
@@ -342,6 +434,7 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
             }
             bypassFade = f;
         }
+#endif
     }
 
     outPeak.store (std::max (peak, outPeak.load() * 0.8f)); // crude ballistic decay for the meter
@@ -366,10 +459,14 @@ void BrokenProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 void BrokenProcessor::restoreFromXml (juce::XmlElement& xml)
 {
+#if !BROKEN_FX
     // v0.24 rename: state saved before the product was named "Broken" carries the
     // working-title tag. Accept it, or every earlier session and preset refuses to load.
+    // Instrument-only: Broken FX never existed under the old name, so it has no legacy
+    // tag to migrate (DESIGN split spec item 1).
     if (xml.hasTagName ("TurboSynth"))
         xml.setTagName (apvts.state.getType().toString());
+#endif
 
     if (xml.hasTagName (apvts.state.getType()))
     {

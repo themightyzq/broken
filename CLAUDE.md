@@ -7,8 +7,10 @@ A JUCE/C++ audio plugin (VST3 + AU + Standalone, macOS arm64); see README.md for
 one-line attribution. It does sample mangling via waveshaper, FM/AM modulator, LP stack,
 resonator, spectral inverter, plus an in-plugin TAPE resample workflow. v1 scope = the
 fixed chain in docs/DESIGN.md §2 plus the Stretcher (shipped v0.10 as STRETCH/FLATTEN);
-Diffuser and breakpoint envelopes are out.
-Product name: **Broken** (ZQ SFX).
+Diffuser and breakpoint envelopes are out. Two plugins ship from this one codebase: the
+instrument (this section, unchanged) and **Broken FX**, the same engine as a stereo
+insert effect — see "Two targets" below.
+Product name: **Broken** (ZQ SFX); the effect build is **Broken FX**.
 
 ## Ownership
 - Claude authors and builds everything: `plugin/` (C++/CMake), `docs/`, `tests/`,
@@ -79,6 +81,44 @@ twice-failed delegations pull up to the top tier.
   panel is the product. 12 (code review): normal code review of `plugin/`. 13
   (dependencies): JUCE version currency + pin policy. 14 (platform parity): 48 k vs
   44.1 k renders, VST3 vs AU vs Standalone, Reaper vs standalone. 16/17/18 as written.
+
+## Two targets: Broken and Broken FX
+One codebase (`${BROKEN_PLUGIN_SOURCES}` in `plugin/CMakeLists.txt`) builds two CMake
+plugin targets: `Broken` (the instrument, `PLUGIN_CODE Brkn`, `IS_SYNTH FALSE` but
+`NEEDS_MIDI_INPUT TRUE` — MIDI-triggered) and `BrokenFX` (the insert effect,
+`PLUGIN_CODE BrFx`, no MIDI, `com.zqsfx.brokenfx`). `BrokenFX` is compiled with
+`BROKEN_FX=1`; every other target defines it `0` so `#if BROKEN_FX` is never an
+undefined-macro `-Wundef` risk. Everything specific to the FX build lives behind that
+macro in `src/plugin/PluginProcessor.{h,cpp}`, `Params.h`, `PresetManager.h`,
+`PluginEditor.{h,cpp}`, `MangleView.h`, and `EditView.h` — the instrument path (macro
+undefined/0) is byte-identical to before the split.
+
+What `BROKEN_FX` changes: `acceptsMidi()` false; the APVTS state type is `"BrokenFX"`
+(not `"Broken"`, so the two products' saved states can never cross-load, and the
+instrument's legacy `"TurboSynth"` tag migration is instrument-only); `gatherParams()`
+forces the engine's source to Input every block regardless of what the (hidden, still
+technically automatable) `source.mode` parameter holds; `Params.h` gives the FX build
+different DEFAULT VALUES only (never different ids/ranges) — `source.mode` defaults to
+Input, `ws.drive` defaults to 0 dB (was 12 dB, the instrument's value and the known
+cause of a fresh FX instance being too loud); `PresetManager` points at
+`~/Library/Audio/Presets/ZQ SFX/Broken FX` and its own `BrokenFXPresets` binary-data
+target (`snapshots/fx/`, currently just "00 Init"); the editor hides PLAY/TAPE
+(MangleView) and ENVELOPES/OSCILLATOR (EditView) and uses its own, narrower
+`designW`/`designH`.
+
+**True stereo, two engines.** The instrument is mono end to end: one `dsp::Engine`
+averages every input channel into `monoIn` and duplicates `monoOut` to every output
+channel. The FX build instead holds a second `dsp::Engine` (`engineR`, alongside the
+existing `engine` which stays the L/primary channel for the tape/tuner/playhead
+accessors), prepared and given the identical `EngineParams` every block. Each channel's
+raw input feeds its own engine (channel 1 falls back to channel 0 for a mono input bus);
+their outputs write independently to output channels 0 and 1 (a mono output bus
+averages the two). Because both engines are constructed identically, parameterised
+identically, and never see a note event, they stay sample-coherent: a mono input
+produces bit-identical L/R output, and silence on one channel's input stays silence on
+that channel's output regardless of what the other channel is doing. Verify with
+`broken_fx_check` (console-app gate, `ctest` target) and `broken_fx_ui_snapshot`
+(look-and-feel regression gate, same pattern as `broken_ui_snapshot`).
 
 ## Tiered-model note (from user-global CLAUDE.md)
 Architecture, class contracts, Chain/Voice/Tape integration, CMake, and gate reviews stay

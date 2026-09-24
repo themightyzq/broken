@@ -159,9 +159,14 @@ public:
         waveshaperBlock.addAndMakeVisible (wsTrim.get());
 
         curveEditor = std::make_unique<CurveEditor> (processor);
+#if BROKEN_FX
+        curveEditor->setTooltip ("The waveshaper's transfer curve. Just drag on it - that "
+                                 "switches to CUSTOM and keeps the shape you were looking at.");
+#else
         curveEditor->setTooltip ("The waveshaper's transfer curve. Just drag on it \xe2\x80\x94 that "
                                  "switches to CUSTOM and keeps the shape you were looking at. "
                                  "FROM SAMPLE turns the CYCLE window into the curve itself.");
+#endif
         waveshaperBlock.addAndMakeVisible (curveEditor.get());
 
         rndButton.setTooltip ("Roll a new random transfer curve. The seed is saved with the preset.");
@@ -252,26 +257,39 @@ public:
         area.removeFromTop (outerGap);  area.removeFromBottom (outerGap);
 
         const int colW = (area.getWidth() - 2 * outerGap) / 3;
+        auto local = [] (juce::Rectangle<int> r) { return r.withPosition (0, 0); };
 
         auto row1 = area.removeFromTop (row1H);
+#if BROKEN_FX
+        // ENVELOPES is gated by notes and OSCILLATOR only applies to Sample/Cycle/Osc
+        // sources -- neither ever fires in an effect (DESIGN split spec item 4).
+        // WAVESHAPER takes the whole row instead (more room for the curve editor).
+        envelopesBlock.setVisible (false);
+        oscillatorBlock.setVisible (false);
+        auto wsArea = row1;
+#else
         auto envArea = row1.removeFromLeft (colW); row1.removeFromLeft (outerGap);
         auto oscArea = row1.removeFromLeft (colW); row1.removeFromLeft (outerGap);
         auto wsArea  = row1;
+#endif
 
         area.removeFromTop (outerGap);
         auto row2 = area.removeFromTop (row2H);
         auto trimsArea = row2.removeFromLeft (colW * 2 + outerGap); row2.removeFromLeft (outerGap);
         auto timeArea = row2;
 
+#if !BROKEN_FX
         envelopesBlock.setBounds (envArea);
         oscillatorBlock.setBounds (oscArea);
+#endif
         waveshaperBlock.setBounds (wsArea);
         trimsBlock.setBounds (trimsArea);
         timeBlock.setBounds (timeArea);
 
-        auto local = [] (juce::Rectangle<int> r) { return r.withPosition (0, 0); };
+#if !BROKEN_FX
         layoutEnvelopes (local (envArea));
         layoutOscillator (local (oscArea));
+#endif
         layoutWaveshaper (local (wsArea));
         layoutTrims (local (trimsArea));
         layoutTime (local (timeArea));

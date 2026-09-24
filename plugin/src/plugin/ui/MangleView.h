@@ -345,6 +345,31 @@ public:
         area.removeFromLeft (outerPad); area.removeFromRight (outerPad);
         area.removeFromTop (outerGap);  area.removeFromBottom (outerGap);
 
+        // Children live inside each Block, so layout in that Block's *local* coordinate space
+        // (origin 0,0), not MangleView's — setBounds() below already positioned the Block itself.
+        auto local = [] (juce::Rectangle<int> r) { return r.withPosition (0, 0); };
+
+#if BROKEN_FX
+        // PLAY (mono/poly/unison/amp ADSR/retrig/bend) and TAPE (the resample workflow)
+        // never fire in an effect -- no notes, ever (DESIGN split spec item 4). SOURCE
+        // narrows to just the live-input controls; OUTPUT takes the full column height
+        // in place of the PLAY+TAPE row, same proven widths as the instrument otherwise
+        // (mangleArea 620, outputArea 544) so layoutMangle/layoutOutput need no re-tuning.
+        auto sourceArea = area.removeFromLeft (200); area.removeFromLeft (outerGap);
+        auto mangleArea = area.removeFromLeft (620); area.removeFromLeft (outerGap);
+        auto outputArea = area;
+
+        playBlock.setVisible (false);
+        tapeBlock.setVisible (false);
+
+        sourceBlock.setBounds (sourceArea);
+        mangleBlock.setBounds (mangleArea);
+        outputBlock.setBounds (outputArea);
+
+        layoutSourceFX (local (sourceArea));
+        layoutMangle (local (mangleArea));
+        layoutOutput (local (outputArea));
+#else
         auto sourceArea = area.removeFromLeft (300); area.removeFromLeft (outerGap);
         auto mangleArea = area.removeFromLeft (620); area.removeFromLeft (outerGap);
         auto rightArea  = area; // remaining ~544, per README's "1fr"
@@ -365,14 +390,12 @@ public:
         tapeBlock.setBounds (tapeArea);
         outputBlock.setBounds (outputArea);
 
-        // Children live inside each Block, so layout in that Block's *local* coordinate space
-        // (origin 0,0), not MangleView's — setBounds() above already positioned the Block itself.
-        auto local = [] (juce::Rectangle<int> r) { return r.withPosition (0, 0); };
         layoutSource (local (sourceArea));
         layoutMangle (local (mangleArea));
         layoutPlay (local (playArea));
         layoutTape (local (tapeArea));
         layoutOutput (local (outputArea));
+#endif
     }
 
 private:
@@ -484,6 +507,50 @@ private:
         // point is the flexible gap, exactly like the design's own flex:1 spacer.
         tunerIn->setBounds (r.removeFromBottom (46));
     }
+
+#if BROKEN_FX
+    // FX build's SOURCE column: the source is always the live input (never Sample/Cycle/
+    // Osc/Noise/Tape), so only the controls that act on it stay — IN TRIM, PITCH, FINE,
+    // TUNE, and the IN tuner (DESIGN split spec item 4). Everything else that layoutSource
+    // would have placed is force-hidden here (once per resize; cheap and idempotent).
+    void layoutSourceFX (juce::Rectangle<int> r)
+    {
+        sourceMode->setVisible (false);
+        waveform->setVisible (false);
+        playToggle->setVisible (false);
+        oscWaveCombo->setVisible (false);
+        oscModeCombo->setVisible (false);
+        noiseAmpKnob->setVisible (false);
+        noisePhaseKnob->setVisible (false);
+        winPosKnob->setVisible (false);
+        winLenKnob->setVisible (false);
+
+        r = r.reduced (6);
+        r.removeFromTop (headerPad);
+
+        // Centre the (much shorter than the instrument's) control cluster in the space
+        // above the pinned tuner, instead of letting it hug the header and leave one
+        // big void above the tuner (v1 FX screenshot review).
+        constexpr int clusterH = pitchBoxH + 10 + 30 + 16 + sBoxH;
+        constexpr int tunerH = 46;
+        const int topGap = juce::jmax (0, (r.getHeight() - tunerH - clusterH) / 2);
+        r.removeFromTop (topGap);
+
+        auto pitchRow = r.removeFromTop (pitchBoxH);
+        {
+            const int col = pitchRow.getWidth() / 2;
+            pitchKnob->setBounds (pitchRow.removeFromLeft (col).withSizeKeepingCentre (juce::jmin (col, 66), pitchBoxH));
+            fineKnob->setBounds (pitchRow.withSizeKeepingCentre (juce::jmin (pitchRow.getWidth(), 64), pitchBoxH));
+        }
+        r.removeFromTop (10);
+        tuneButton.setBounds (r.removeFromTop (30).withSizeKeepingCentre (juce::jmin (r.getWidth() - 8, 110), 30));
+        r.removeFromTop (16);
+        inTrimKnob->setBounds (r.removeFromTop (sBoxH).withSizeKeepingCentre (geom::knobS, sBoxH));
+
+        // IN tuner pinned to the bottom, same as the instrument layout
+        tunerIn->setBounds (r.removeFromBottom (tunerH));
+    }
+#endif
 
     void layoutMangle (juce::Rectangle<int> r)
     {
@@ -702,10 +769,13 @@ private:
             // OSC WAVE/OSC MODE and AMP NZ/PH NZ share the rectangle and never apply at
             // the same time, so greying would leave two dead controls on top of two live
             // ones (docs/PANEL.md).
+#if !BROKEN_FX
             oscWaveCombo->setVisible (osc);
             oscModeCombo->setVisible (osc);
             noiseAmpKnob->setVisible (noise);
             noisePhaseKnob->setVisible (noise);
+#endif
+            juce::ignoreUnused (osc, noise);
 
             if (tape != tapeLight.on)
             {

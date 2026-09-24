@@ -32,7 +32,11 @@ public:
     static juce::File userDirectory()
     {
         return juce::File::getSpecialLocation (juce::File::userHomeDirectory)
+#if BROKEN_FX
+                   .getChildFile ("Library/Audio/Presets/ZQ SFX/Broken FX");
+#else
                    .getChildFile ("Library/Audio/Presets/ZQ SFX/Broken");
+#endif
     }
 
     void rescan()

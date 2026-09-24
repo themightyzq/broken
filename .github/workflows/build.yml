@@ -39,16 +39,23 @@ jobs:
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
 
-      # pluginval at the portfolio floor (strictness 5) on the built VST3, macOS only.
+      # pluginval at the portfolio floor (strictness 5) on both built VST3s, macOS only.
       - name: Validate with pluginval (macOS)
         if: runner.os == 'macOS'
         run: |
           curl -sL "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip" -o pluginval.zip
           unzip -q pluginval.zip
           pluginval.app/Contents/MacOS/pluginval --strictness-level 5 --validate "build/Broken_artefacts/Release/VST3/Broken.vst3"
+          pluginval.app/Contents/MacOS/pluginval --strictness-level 5 --validate "build/BrokenFX_artefacts/Release/VST3/Broken FX.vst3"
 
-      - name: Upload VST3
+      - name: Upload Broken VST3
         uses: actions/upload-artifact@v4
         with:
           name: Broken-${{ runner.os }}-VST3
           path: plugin/build/Broken_artefacts/Release/VST3/*.vst3
+
+      - name: Upload Broken FX VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: BrokenFX-${{ runner.os }}-VST3
+          path: plugin/build/BrokenFX_artefacts/Release/VST3/*.vst3

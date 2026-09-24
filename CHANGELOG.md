@@ -1199,3 +1199,88 @@ plus my own findings on the same shot.
   rendered and gated (`setSize` bypasses the constrainer).
 - Preset rename already existed in the preset bar's `...` menu; unchanged.
 - Gates: build 0 errors, ctest 114/114, pluginval strictness 5, auval aumf Brkn ZQSF.
+
+## 2026-09-24 - Split into Broken (instrument) and Broken FX (effect), one codebase
+- New `juce_add_plugin(BrokenFX ...)` target in `plugin/CMakeLists.txt`: `PLUGIN_CODE BrFx`,
+  `com.zqsfx.brokenfx`, `IS_SYNTH FALSE`, no MIDI, `AU_MAIN_TYPE kAudioUnitType_Effect`,
+  `VST3_CATEGORIES Fx Distortion`, same `${BROKEN_PLUGIN_SOURCES}` as Broken plus
+  `BROKEN_FX=1`. `COPY_PLUGIN_AFTER_BUILD` stays FALSE on both targets.
+- **Along the way, fixed a pre-existing identity mismatch on Broken itself**: the task
+  spec called for `IS_SYNTH TRUE` / `AU_MAIN_TYPE kAudioUnitType_MusicDevice` /
+  `VST3_CATEGORIES Instrument Synth` (a true instrument, `aumu`) but the CMakeLists still
+  had the pre-split `IS_SYNTH FALSE` / `kAudioUnitType_MusicEffect` / `Fx Instrument`
+  (`aumf`) from when the one binary covered both instrument and FX-shaped use. Caught by
+  `auval -v aumu Brkn ZQSF` initially failing "didn't find the component"; fixed and
+  reverified (see Gates below). Broken keeps its stereo input bus, `PLUGIN_CODE Brkn`,
+  `PRODUCT_NAME`, `BUNDLE_ID`, parameters, presets, UI, and DSP behaviour otherwise
+  unchanged; its 114 existing tests pass unmodified.
+- `BROKEN_FX` (defined `0` on every non-FX target, `1` on BrokenFX and its console-app
+  gates, so `#if BROKEN_FX` is never an undefined-macro risk) gates every FX-specific
+  change, all in the shared source files: `acceptsMidi()` false; APVTS state type
+  `"BrokenFX"` (the instrument's legacy `"TurboSynth"` tag migration is instrument-only —
+  Broken FX never existed under that name); `gatherParams()` forces the engine's source to
+  Input every block regardless of the (hidden, still technically automatable)
+  `source.mode` parameter's own value.
+- **True stereo, two engines** (`PluginProcessor.{h,cpp}`): the instrument stays mono end
+  to end (average all inputs into `monoIn`, one `dsp::Engine`, duplicate `monoOut` to every
+  output channel). The FX build adds a second `dsp::Engine` (`engineR`; the existing
+  `engine` stays the L/primary channel for the tape/tuner/playhead accessors), prepared and
+  given the identical `EngineParams` every block. Each output channel's own engine reads
+  its own input channel (channel 1 falls back to channel 0 for a mono input bus); a mono
+  output bus averages L+R. Verified by `broken_fx_check`: identical L/R input gives
+  bit-identical L/R output, and silence on one channel's input stays silence on that
+  channel's output regardless of what the other channel is doing (test d) — the two
+  engines never see a note event and are parameterised identically, so they never diverge.
+- **FX defaults** (`Params.h`, default VALUES only — no id/range changed): `source.mode`
+  defaults to Input (index 4, was Sample/index 0); `ws.drive` defaults to 0 dB (was 12 dB,
+  the instrument's value); `ws.trim` defaults to -3.5 dB (was 0 dB). Measured with a
+  -14 dBFS RMS 220 Hz tone + light noise through a default instance (1 s settle, 1 s
+  measured): with only the drive change, output came out -10.66 dBFS RMS (+3.34 dB, over
+  the 3 dB budget) — the cause was the default SoftSat curve itself (`Waveshaper::shape`
+  case 2, `1.5u - 0.5u^3`), whose slope at u=0 is 1.5 (+3.52 dB of small-signal gain)
+  regardless of drive. -3.5 dB of `ws.trim` cancels that gain: final measured output
+  -14.16 dBFS RMS (0.16 dB from input), peak -10.8 dBFS (budget: within 3 dB / below
+  -1 dBFS). The instrument's `ws.drive`/`ws.trim` defaults (12 dB / 0 dB) are unchanged.
+- **Presets**: `PresetManager::userDirectory()` points BrokenFX at
+  `~/Library/Audio/Presets/ZQ SFX/Broken FX`; a new `BrokenFXPresets` binary-data target
+  (`snapshots/fx/*.json`, currently just `00-init.json`) keeps the FX bundle from carrying
+  the instrument's 17 presets (they reference sample/cycle/osc params the FX UI hides).
+  The instrument's presets and folder are unchanged.
+- **UI** (`PluginEditor.{h,cpp}`, `MangleView.h`, `EditView.h`, all `#if BROKEN_FX`): FX
+  hides MangleView's PLAY and TAPE blocks and narrows SOURCE to IN TRIM/PITCH/FINE/TUNE/the
+  IN tuner (source selector, waveform/sample-drop area, PLAY button, POS/LEN and OSC/NOISE
+  mode controls all hidden — the source is always Input); EditView hides ENVELOPES and
+  OSCILLATOR (gated by notes or by Sample/Cycle/Osc sources, neither ever fires in an
+  effect) and gives WAVESHAPER the full top row. FX gets its own design size (1420x939,
+  down from 1520x1024; resize floor/ceiling computed as 0.65x/2x of that, same ratio the
+  instrument uses) instead of reusing the instrument's with big holes where PLAY/TAPE used
+  to be. `broken_fx_ui_snapshot` (new target, same pattern as `broken_ui_snapshot`)
+  rendered at default (1420x939) and floor (923x610) size: no overlapping controls, no
+  hole left by a hidden control, checked by eye against the instrument's own default
+  render (1520x1024, unaffected). About-overlay title reads "BROKEN FX" in the FX build;
+  its two non-ASCII escapes (`\xc2\xb7`, `\xe2\x80\x94`) are now plain ASCII (" - ") in
+  both builds.
+- **New tests**: `broken_fx_check` (console app + `ctest` target, `BROKEN_FX=1`) proves,
+  with no MIDI events at all: non-silent default output; level within 3 dB of input RMS
+  and peak below -1 dBFS; bit-identical L/R for identical input; silent-R stays below
+  -60 dBFS with a silent-R/live-L input while L is processed; no NaN/Inf and stable output
+  at block sizes {64,100,1024} x sample rates {44100,48000,96000}; `getLatencySamples()`
+  is 0 and identical across that matrix; bypass returns the input unchanged after the
+  25 ms fade. All 7 checks pass.
+- Docs: `README.md` opening paragraph and Install/Use/Testing sections now describe both
+  plugins (Broken FX = the same engine as a stereo insert effect for DAWs and Soundminer's
+  DSP rack, no MIDI); `CLAUDE.md`'s "Two targets" section documents the split; this entry.
+  `.github/workflows/build.yml`'s macOS pluginval step now validates both
+  `Broken.vst3` and `Broken FX.vst3`, and uploads both artefact trees
+  (`Broken_artefacts`, `BrokenFX_artefacts`).
+- Gates (2026-09-24, this change): `cmake --build` 0 errors, 0 new warnings in project
+  code. `ctest` **115/115** (the instrument's 114 unchanged + `broken_fx_check`).
+  `pluginval` strictness 5 SUCCESS on both `Broken.vst3` and `Broken FX.vst3`.
+  `auval -v aumu Brkn ZQSF` SUCCEEDED (fixed from FATAL, see above);
+  `auval -v aufx BrFx ZQSF` SUCCEEDED. Both bundles universal (`lipo -info`: `x86_64
+  arm64`), minos 11.0. `moduleinfo.json` CID for Broken FX starts `ABCDEF019182FAEB5A515346`
+  (the ZQSF prefix) followed by the BrFx code bytes; `CFBundleIdentifier` is
+  `com.zqsfx.brokenfx` in both the VST3 and the AU. Instrument's `broken_cli --set
+  source.mode=4` (Input mode) render still produces non-silent stereo output (unchanged
+  code path, still exercised). Not run: signing/notarization (none claimed); `dv`/git
+  commit (out of scope for this change per the owner's instructions).

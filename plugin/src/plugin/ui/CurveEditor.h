@@ -43,7 +43,9 @@ public:
                                      "distortion curve. Non-monotonic on purpose \xe2\x80\x94 "
                                      "expect scream, not saturation.");
         fromSampleButton.onClick = [this] { grabCurveFromSample(); };
-        addAndMakeVisible (fromSampleButton);
+#if ! BROKEN_FX
+        addAndMakeVisible (fromSampleButton); // the effect never has a loaded sample
+#endif
         setWantsKeyboardFocus (false);
 
         curveRaw = apvts.getRawParameterValue ("ws.curve");

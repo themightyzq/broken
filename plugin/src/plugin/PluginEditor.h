@@ -30,11 +30,28 @@ public:
     // Matches ClaudeDesign/design_handoff_broken_ui/README.md's Layout section (1520 wide,
     // 18px side padding, 10px gaps, top row 300|620|1fr, bottom row 3 equal columns +
     // MODULE TRIMS/TIME) — see MangleView/EditView::resized() for the grid math.
+#if BROKEN_FX
+    // Compact FX window: PLAY and TAPE (MangleView) and ENVELOPES/OSCILLATOR (EditView)
+    // are hidden (they never fire in an effect — DESIGN split spec), so the SOURCE
+    // column narrows to just PITCH/FINE/TUNE/IN TRIM/tuner and OUTPUT takes the full
+    // column height in their place; WAVESHAPER takes the full top row of EditView.
+    // sourceArea narrows 300 -> 200 (MangleView::resized), everything else keeps the
+    // instrument's proven widths (mangleArea 620, outputArea 544) so their existing
+    // layout code needs no re-tuning: designW = 1520 - 100. mangleH shrinks 545 -> 460
+    // (layoutMangle's own content needs ~440 at minimum -- see its `extra` calc) since
+    // PLAY/TAPE no longer force the row to the instrument's full height.
+    static constexpr int designW      = 1420;
+    static constexpr int headerH      = 48;
+    static constexpr int mangleH      = 460;
+    static constexpr int editH        = 415;
+    static constexpr int designH      = headerH + mangleH + editH + 16;
+#else
     static constexpr int designW      = 1520;
     static constexpr int headerH      = 48;    // logo + stamp + preset bar
     static constexpr int mangleH      = 545;   // SOURCE column needs this much (top row)
     static constexpr int editH        = 415;   // ENVELOPES/OSCILLATOR/WAVESHAPER row + MODULE TRIMS/TIME row
     static constexpr int designH      = headerH + mangleH + editH + 16;
+#endif
 
 private:
     // Holds the whole panel at the design size; the transform on THIS is what scales.

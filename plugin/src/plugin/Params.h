@@ -84,7 +84,16 @@ inline APVTS::ParameterLayout createLayout()
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
     // Source
-    layout.add (std::make_unique<Pc> ("source.mode",  "Source",       sourceModes, 0));
+    // FX build default = Input (index 4): the source is always the live input there
+    // (BrokenProcessor::gatherParams forces it regardless of this value too, but the
+    // parameter's own default should agree — a generic host editor reads this).
+    layout.add (std::make_unique<Pc> ("source.mode",  "Source",       sourceModes,
+#if BROKEN_FX
+        4
+#else
+        0
+#endif
+        ));
     layout.add (Pf ("source.pitch", "Pitch",        Rng (-48.f, 48.f, 0.01f), 0.f, "st", 1));
     layout.add (std::make_unique<Pb> ("source.ext",   "Pitch Ext",    false)); // UI gate: +-24 st unless EXT
     layout.add (Pf ("source.finecents", "Fine",     Rng (-50.f, 50.f, 1.f), 0.f, "c", 0)); // era: +-1/2 st, 1-cent steps
@@ -145,9 +154,29 @@ inline APVTS::ParameterLayout createLayout()
     // Waveshaper
     layout.add (std::make_unique<Pb> ("ws.on",    "Shaper On",   true));
     layout.add (std::make_unique<Pc> ("ws.curve", "Curve",       wsCurves, 2));
-    layout.add (Pf ("ws.drive", "Drive",       Rng (0.f, 40.f, 0.1f), 12.f, "dB", 1));
+    // FX default 0 dB (was 12 dB, the instrument's value): 12 dB of drive into SoftSat
+    // is the known cause of a fresh instance being too loud as a plug-in effect (see
+    // CHANGELOG); the instrument keeps 12 dB unchanged.
+    layout.add (Pf ("ws.drive", "Drive",       Rng (0.f, 40.f, 0.1f),
+#if BROKEN_FX
+        0.f,
+#else
+        12.f,
+#endif
+        "dB", 1));
     layout.add (std::make_unique<P>  ("ws.morph", "Morph",       Rng (0.f, 1.f), 1.f));
-    layout.add (Pf ("ws.trim",  "Trim",        Rng (-24.f, 24.f, 0.1f), 0.f, "dB", 1));
+    // FX default -3.5 dB (was 0 dB): the default SoftSat curve (ws.curve index 2,
+    // 1.5u - 0.5u^3) has slope 1.5 at u=0, i.e. +3.52 dB of small-signal gain even at
+    // ws.drive 0 dB (measured: a -14 dBFS default render came out +3.34 dB hot with
+    // trim at 0 -- see CHANGELOG). -3.5 dB of trim cancels that gain so the curve's
+    // character survives at an honest default level; the instrument keeps 0 dB.
+    layout.add (Pf ("ws.trim",  "Trim",        Rng (-24.f, 24.f, 0.1f),
+#if BROKEN_FX
+        -3.5f,
+#else
+        0.f,
+#endif
+        "dB", 1));
     layout.add (std::make_unique<P>  ("ws.randseed", "Curve Seed", Rng (1.f, 9999.f, 1.f), 1.f));
     for (int i = 1; i <= curvePointCount; ++i)
     {

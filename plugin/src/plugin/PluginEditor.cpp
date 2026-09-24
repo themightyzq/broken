@@ -53,18 +53,24 @@ void BrokenEditor::AboutOverlay::paint (juce::Graphics& g)
     g.setColour (ui::colour::silkTitle);
     g.setFont (lnf != nullptr ? lnf->silkFont (22.0f, true).withExtraKerningFactor (0.3f)
                               : juce::Font (juce::FontOptions (20.0f, juce::Font::bold)));
-    g.drawText ("BROKEN", r.removeFromTop (30), juce::Justification::centredLeft);
+    g.drawText (
+#if BROKEN_FX
+        "BROKEN FX",
+#else
+        "BROKEN",
+#endif
+        r.removeFromTop (30), juce::Justification::centredLeft);
 
     g.setFont (lnf != nullptr ? lnf->silkFont (13.0f, false)
                               : juce::Font (juce::FontOptions (12.0f)));
     g.setColour (ui::colour::silkLabel);
     const char* lines[] = {
-        "Version " BROKEN_VERSION "  \xc2\xb7  ZQ SFX",
+        "Version " BROKEN_VERSION "  -  ZQ SFX",
         "",
         "A sample mangler in the spirit of vintage sample-mangling hardware,",
         "as heard all over early-90s industrial records.",
         "",
-        "Free software under GPLv3 \xe2\x80\x94 source available from ZQ SFX.",
+        "Free software under GPLv3 - source available from ZQ SFX.",
         "",
         "Knobs: CC0 designs from the g200kg KnobGallery (SolurOathLabs, dh96, C. Anders).",
         "Fonts: Barlow Condensed, VT323, IBM Plex Mono (SIL OFL).",
@@ -207,7 +213,12 @@ BrokenEditor::BrokenEditor (BrokenProcessor& p)
     // preset bar's `<`/`>` step buttons at 22px design width (14.3px, PresetBar.h).
     // Maximum = 2x default: growing has no accessibility downside, so this is a generous
     // but otherwise arbitrary ceiling.
-    constrainer.setSizeLimits (988, 666, designW * 2, designH * 2);
+    // The 988x666 the comment above walks through is 0.65x of the INSTRUMENT's own
+    // 1520x1024 design size; computing it from designW/designH keeps that same floor
+    // ratio (and the same reasoning) for the FX build's smaller design size too, instead
+    // of hardcoding the instrument's numbers into a file both builds share.
+    constrainer.setSizeLimits (juce::roundToInt (designW * 0.65), juce::roundToInt (designH * 0.65),
+                               designW * 2, designH * 2);
     setConstrainer (&constrainer);
     setResizable (true, true);
     // AudioProcessorEditor::setResizeLimits() is deliberately NOT used here: once a custom
@@ -221,7 +232,7 @@ BrokenEditor::BrokenEditor (BrokenProcessor& p)
     // Restore the user's last window width, clamped to the (now 0.65x-2x) resize range.
     int w = designW;
     if (auto v = proc.apvts.state.getProperty (kEditorWidth); ! v.isVoid())
-        w = juce::jlimit (988, designW * 2, (int) v);
+        w = juce::jlimit (juce::roundToInt (designW * 0.65), designW * 2, (int) v);
     setSize (w, juce::roundToInt ((double) w * designH / designW));
 }
 
