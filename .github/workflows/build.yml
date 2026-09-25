@@ -59,3 +59,37 @@ jobs:
         with:
           name: BrokenFX-${{ runner.os }}-VST3
           path: plugin/build/BrokenFX_artefacts/Release/VST3/*.vst3
+
+      - name: Verify universal binaries and macOS floor (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          n=0
+          while IFS= read -r -d '' b; do
+            a=$(lipo -archs "$b"); m=$(otool -l "$b" | awk '/minos/{print $2}' | sort -V | tail -1)
+            echo "$b: $a, minimum macOS $m"
+            [[ $a == *arm64* && $a == *x86_64* ]] || { echo "::error::not universal: $b"; exit 1; }
+            [[ $(printf '%s\n' "$m" 11.0 | sort -V | tail -1) == 11.0 ]] || { echo "::error::minimum macOS above 11.0: $b"; exit 1; }
+            n=$((n+1))
+          done < <(find "build/Broken_artefacts/Release/VST3" "build/Broken_artefacts/Release/AU" "build/BrokenFX_artefacts/Release/VST3" "build/BrokenFX_artefacts/Release/AU" -path '*Contents/MacOS/*' -type f -print0)
+          [[ $n -gt 0 ]] || { echo "::error::no macOS binaries found"; exit 1; }
+
+      - name: Upload Broken AU and Standalone (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Broken-macOS-AU-Standalone
+          path: |
+            plugin/build/Broken_artefacts/Release/AU/*.component
+            plugin/build/Broken_artefacts/Release/Standalone/*.app
+          if-no-files-found: error
+
+      - name: Upload Broken FX AU and Standalone (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: BrokenFX-macOS-AU-Standalone
+          path: |
+            plugin/build/BrokenFX_artefacts/Release/AU/*.component
+            plugin/build/BrokenFX_artefacts/Release/Standalone/*.app
+          if-no-files-found: error
