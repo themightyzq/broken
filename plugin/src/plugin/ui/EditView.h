@@ -80,14 +80,32 @@ public:
             envelopesBlock.addAndMakeVisible (c);
 
         // ---------------- OSCILLATOR: HARMONICS + CYCLE/OSC consolidated ----------------
+        // In FX the OSCILLATOR block no longer feeds the SOURCE (FX source is always
+        // Input) -- it exists so the Table mod source (item 2) has a shape to read.
+        // Tooltips say so; the controls and the harmonic-table math underneath are
+        // otherwise identical to the instrument.
         harmonicEditor = std::make_unique<HarmonicEditor> (av);
+#if BROKEN_FX
+        harmonicEditor->setTooltip ("The 64 partials that feed the Table mod source when "
+            "MOD SRC is TABLE (MOD MODE/SRC in MANGLE). Drag bars to draw; hold Shift to "
+            "rake a straight line across them.");
+#endif
         oscillatorBlock.addAndMakeVisible (harmonicEditor.get());
 
+#if BROKEN_FX
+        oscMode = std::make_unique<Combo> (av, "osc.mode", params::oscModes, "OSC MODE",
+            "Which shape the Table mod source reads: Wave (a preset waveform), Harmonic "
+            "(the 64 partials below) or Draw (the hand-drawn shape). Only matters when "
+            "MOD SRC is TABLE.");
+        oscWave = std::make_unique<Combo> (av, "source.oscwave", params::oscWaves, "OSC WAVE",
+            "Waveform the Table mod source reads when OSC MODE is Wave.");
+#else
         oscMode = std::make_unique<Combo> (av, "osc.mode", params::oscModes, "OSC MODE",
             "Wave picks a preset waveform; Harmonic builds the sound from 64 partials; "
             "Draw lets you draw the shape by hand in the source window.");
         oscWave = std::make_unique<Combo> (av, "source.oscwave", params::oscWaves, "OSC WAVE",
             "Waveform used by the OSC source mode.");
+#endif
         oscillatorBlock.addAndMakeVisible (oscMode.get());
         oscillatorBlock.addAndMakeVisible (oscWave.get());
 
@@ -149,24 +167,33 @@ public:
         // OSCILLATOR panel) — same id (sample.xfadeshape)
         xfadeShape = std::make_unique<Combo> (av, "sample.xfadeshape", params::xfadeShapes, "LOOP XFADE",
             "Loop crossfade shape. Equal-power holds the level through the seam.");
+        // item 2 FX check: XFADE (CYCLE-only), PITCH MIX (Sample/Tape-only) and LOOP XFADE
+        // (Sample/Tape loop-seam shape) all read parameters SourceEngine only consults for
+        // Sample/Cycle/Tape source modes, and the FX source is forced to Input -- they do
+        // nothing there, so they are hidden under BROKEN_FX. PITCH EXT stays: it gates
+        // PITCH's range, and PITCH is live on Input via TapeShift (varispeed on the live
+        // signal, DSP-NOTES §14) in both builds.
         juce::Component* const cycleOscComps[] = { cycleXfade.get(), pitchMix.get(),
                                                     sourceExt.get(), xfadeShape.get() };
         for (auto* c : cycleOscComps)
             oscillatorBlock.addAndMakeVisible (c);
+#if BROKEN_FX
+        cycleXfade->setVisible (false);
+        pitchMix->setVisible (false);
+        xfadeShape->setVisible (false);
+#endif
 
         // ---------------- WAVESHAPER (was CURVE) ----------------
         wsTrim = std::make_unique<Knob> (av, "ws.trim", "TRIM", "Waveshaper output trim.", false);
         waveshaperBlock.addAndMakeVisible (wsTrim.get());
 
         curveEditor = std::make_unique<CurveEditor> (processor);
-#if BROKEN_FX
-        curveEditor->setTooltip ("The waveshaper's transfer curve. Just drag on it - that "
-                                 "switches to CUSTOM and keeps the shape you were looking at.");
-#else
+        // item 4: FROM SAMPLE now works in both builds (Broken FX has a sample slot too),
+        // so the FX-specific shorter tooltip that omitted it is gone -- both builds use
+        // the same tooltip.
         curveEditor->setTooltip ("The waveshaper's transfer curve. Just drag on it \xe2\x80\x94 that "
                                  "switches to CUSTOM and keeps the shape you were looking at. "
                                  "FROM SAMPLE turns the CYCLE window into the curve itself.");
-#endif
         waveshaperBlock.addAndMakeVisible (curveEditor.get());
 
         rndButton.setTooltip ("Roll a new random transfer curve. The seed is saved with the preset.");
@@ -225,8 +252,21 @@ public:
             "Noise source: phase randomness. Both at 100 = white noise.", false);
         for (auto* c : { noiseAmp.get(), noisePhase.get() })
             trimsBlock.addAndMakeVisible (c);
+#if BROKEN_FX
+        // item 5: Noise-source-only controls (FX source is always Input); hidden rather
+        // than left dead. layoutTrims() drops the whole NOISE segment + its divider in FX
+        // and stretches FM/DELAY/RESONATOR/INVERT to fill the freed width.
+        noiseAmp->setVisible (false);
+        noisePhase->setVisible (false);
+        trimCaptionNz.setVisible (false);
+        trimDiv4.setVisible (false);
+#endif
 
         // ---------------- TIME: Stretcher + Envelope Removal ----------------
+        // item 5: STRETCH is sample-playback only (SourceEngine's stretch segment-repeat
+        // logic runs only inside playRegioned, called for Sample/Tape modes; it never runs
+        // on Input), so it and its three knobs are hidden in FX and the block is retitled
+        // "FLATTEN" there -- FLATTEN and RESP are the only two that still do anything.
         stretchOn = std::make_unique<TextToggle> (av, "stretch.on", "STRETCH",
             "Segment-repeat time stretch, by design Stretcher. Tune FREQ to the "
             "material or enjoy the artifacts.");
@@ -244,6 +284,12 @@ public:
                                                 stretchPredelay.get(), flattenOn.get(), flatResp.get() };
         for (auto* c : timeComps)
             timeBlock.addAndMakeVisible (c);
+#if BROKEN_FX
+        stretchOn->setVisible (false);
+        stretchAmount->setVisible (false);
+        stretchFreq->setVisible (false);
+        stretchPredelay->setVisible (false);
+#endif
     }
 
     void paint (juce::Graphics&) override {}
@@ -261,12 +307,15 @@ public:
 
         auto row1 = area.removeFromTop (row1H);
 #if BROKEN_FX
-        // ENVELOPES is gated by notes and OSCILLATOR only applies to Sample/Cycle/Osc
-        // sources -- neither ever fires in an effect (DESIGN split spec item 4).
-        // WAVESHAPER takes the whole row instead (more room for the curve editor).
+        // ENVELOPES stays hidden (gated by MIDI notes, which never fire in an effect).
+        // OSCILLATOR is shown again (item 2): the Table mod source reads the OSCILLATOR
+        // panel's current shape, so it needs to be visible and editable even though it no
+        // longer drives the SOURCE. Row 1 becomes two columns instead of three.
         envelopesBlock.setVisible (false);
-        oscillatorBlock.setVisible (false);
-        auto wsArea = row1;
+        oscillatorBlock.setVisible (true);
+        const int colW2 = (row1.getWidth() - outerGap) / 2;
+        auto oscArea = row1.removeFromLeft (colW2); row1.removeFromLeft (outerGap);
+        auto wsArea  = row1;
 #else
         auto envArea = row1.removeFromLeft (colW); row1.removeFromLeft (outerGap);
         auto oscArea = row1.removeFromLeft (colW); row1.removeFromLeft (outerGap);
@@ -280,16 +329,14 @@ public:
 
 #if !BROKEN_FX
         envelopesBlock.setBounds (envArea);
-        oscillatorBlock.setBounds (oscArea);
+        layoutEnvelopes (local (envArea));
 #endif
+        oscillatorBlock.setBounds (oscArea);
         waveshaperBlock.setBounds (wsArea);
         trimsBlock.setBounds (trimsArea);
         timeBlock.setBounds (timeArea);
 
-#if !BROKEN_FX
-        layoutEnvelopes (local (envArea));
         layoutOscillator (local (oscArea));
-#endif
         layoutWaveshaper (local (wsArea));
         layoutTrims (local (trimsArea));
         layoutTime (local (timeArea));
@@ -367,14 +414,21 @@ private:
         flatShapeButton.setBounds (btnRow);
 
         r.removeFromTop (10);
+        auto bottomRow = r.removeFromTop (mBoxH);
+#if BROKEN_FX
+        // item 2: CYCLE XFADE / PITCH MIX / LOOP XFADE are hidden (Sample/Cycle/Tape-only,
+        // FX source is always Input) -- only PITCH EXT remains, centred in the full row
+        // rather than left stranded in a quarter-width cell sized for four controls.
+        sourceExt->setBounds (bottomRow.withSizeKeepingCentre (juce::jmin (bottomRow.getWidth() - 8, 120), 26));
+#else
         // four even cells across the width — the old row crowded left and left a hole
         // under SAW/SQR/FLAT (v0.30 screenshot review)
-        auto bottomRow = r.removeFromTop (mBoxH);
         const int cell = bottomRow.getWidth() / 4;
         cycleXfade->setBounds (bottomRow.removeFromLeft (cell).withSizeKeepingCentre (70, mBoxH));
         pitchMix->setBounds (bottomRow.removeFromLeft (cell).withSizeKeepingCentre (70, mBoxH));
         sourceExt->setBounds (bottomRow.removeFromLeft (cell).withSizeKeepingCentre (juce::jmin (cell - 8, 96), 26));
         xfadeShape->setBounds (bottomRow.withSizeKeepingCentre (juce::jmin (bottomRow.getWidth() - 8, 150), 46));
+#endif
     }
 
     // CURVE cell (now WAVESHAPER): transfer-curve editor left (FROM SAMPLE lives inside
@@ -406,6 +460,22 @@ private:
         r = r.reduced (6);
         r.removeFromTop (headerPad);
 
+#if BROKEN_FX
+        // item 5: NOISE (noise.amp/noise.phase) is Noise-source-only and hidden in FX
+        // (source is always Input), so its segment and divider are dropped entirely and
+        // FM/DELAY/RESONATOR/INVERT stretch to fill the row -- 3 dividers instead of 4,
+        // same 10:16:10:12 flex ratios so the three that remain keep their relative width.
+        const int unit = (r.getWidth() - 3 * (2 * 12 + 1)) / 48;
+        auto take = [&] (int units) { return r.removeFromLeft (unit * units); };
+
+        auto fmSeg = take (10);
+        r.removeFromLeft (12); trimDiv1.setBounds (r.removeFromLeft (1)); r.removeFromLeft (12);
+        auto dlySeg = take (16);
+        r.removeFromLeft (12); trimDiv2.setBounds (r.removeFromLeft (1)); r.removeFromLeft (12);
+        auto resSeg = take (10);
+        r.removeFromLeft (12); trimDiv3.setBounds (r.removeFromLeft (1)); r.removeFromLeft (12);
+        auto invSeg = r; // remainder
+#else
         // flex ratios 1 : 1.6 : 1 : 1.2 : 1.6 (FM : DELAY : RESONATOR : INVERT : NOISE),
         // matching the approved design's proportions
         const int unit = (r.getWidth() - 4 * (2 * 12 + 1)) / 64; // 4 dividers, 12px gap each side
@@ -424,6 +494,7 @@ private:
         auto invSeg = take (12);
         r.removeFromLeft (12); trimDiv4.setBounds (r.removeFromLeft (1)); r.removeFromLeft (12);
         auto nzSeg = r; // remainder
+#endif
 
         layoutTrimSegment (fmSeg, trimCaptionFm, [this] (juce::Rectangle<int> c)
         { fmIndex->setBounds (c.withSizeKeepingCentre (juce::jmin (70, mBoxH + 40), mBoxH)); });
@@ -441,12 +512,14 @@ private:
         layoutTrimSegment (invSeg, trimCaptionInv, [this] (juce::Rectangle<int> c)
         { invType->setBounds (c.withSizeKeepingCentre (juce::jmin (c.getWidth(), 90), 33)); });
 
+#if !BROKEN_FX
         layoutTrimSegment (nzSeg, trimCaptionNz, [this] (juce::Rectangle<int> c)
         {
             int w = c.getWidth() / 2;
             noiseAmp->setBounds (c.removeFromLeft (w).withSizeKeepingCentre (juce::jmin (70, mBoxH + 40), mBoxH));
             noisePhase->setBounds (c.withSizeKeepingCentre (juce::jmin (70, mBoxH + 40), mBoxH));
         });
+#endif
     }
 
     // Segment caption on top, then hands the remaining rect to `layoutFn`.
@@ -469,6 +542,15 @@ private:
 
         auto row = r.withSizeKeepingCentre (r.getWidth(), juce::jmax (sBoxH, 56));
 
+#if BROKEN_FX
+        // item 5: STRETCH + AMOUNT/FREQ/PREDELAY are hidden (sample-playback only); only
+        // FLATTEN + RESP remain, so FLATTEN centres alone in the left column and RESP
+        // takes the whole knob row instead of one quarter of it -- no gap left.
+        auto left = row.removeFromLeft (110);
+        flattenOn->setBounds (left.withSizeKeepingCentre (110, 24));
+        row.removeFromLeft (14);
+        flatResp->setBounds (row.withSizeKeepingCentre (juce::jmin (70, sBoxH + 40), sBoxH));
+#else
         auto left = row.removeFromLeft (110);
         stretchOn->setBounds (left.removeFromTop (24).withSizeKeepingCentre (110, 24));
         left.removeFromTop (8);
@@ -480,6 +562,7 @@ private:
         stretchFreq->setBounds (row.removeFromLeft (w).withSizeKeepingCentre (juce::jmin (70, sBoxH + 40), sBoxH));
         stretchPredelay->setBounds (row.removeFromLeft (w).withSizeKeepingCentre (juce::jmin (70, sBoxH + 40), sBoxH));
         flatResp->setBounds (row.withSizeKeepingCentre (juce::jmin (70, sBoxH + 40), sBoxH));
+#endif
     }
 
     // 1px inner divider (colour::ruleInner).
@@ -491,7 +574,12 @@ private:
     BrokenProcessor& processor;
 
     Block envelopesBlock { "ENVELOPES" }, oscillatorBlock { "OSCILLATOR" },
-          waveshaperBlock { "WAVESHAPER" }, trimsBlock { "MODULE TRIMS" }, timeBlock { "TIME" };
+          waveshaperBlock { "WAVESHAPER" }, trimsBlock { "MODULE TRIMS" },
+#if BROKEN_FX
+          timeBlock { "FLATTEN" }; // item 5: STRETCH is hidden in FX, only FLATTEN/RESP work
+#else
+          timeBlock { "TIME" };
+#endif
     Rule envHairline, trimDiv1, trimDiv2, trimDiv3, trimDiv4;
     juce::Label trimCaptionFm, trimCaptionDly, trimCaptionRes, trimCaptionInv, trimCaptionNz;
     juce::Label envCaptionFlt, envCaptionAux;

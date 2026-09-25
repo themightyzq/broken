@@ -4,7 +4,7 @@ if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version (universal binaries cannot go below 11.0)")
 endif()
 
-project(Broken VERSION 0.34.0 LANGUAGES C CXX)
+project(Broken VERSION 0.35.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -184,3 +184,26 @@ target_link_libraries(broken_fx_check
   PRIVATE BrokenFXPresets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 add_test(NAME broken_fx_check COMMAND broken_fx_check)
+
+# --- broken_control_audit / broken_fx_control_audit: headless control-wiring audit.
+# Same link pattern as broken_cli/broken_fx_check, built for both BROKEN_FX values so it
+# can exercise each product's own gatherParams()/source forcing. Deliberately NOT
+# registered with ctest (add_test) -- this is an audit tool for the owner to read the
+# findings from, not a pass/fail gate yet.
+juce_add_console_app(broken_control_audit PRODUCT_NAME "broken_control_audit")
+target_sources(broken_control_audit PRIVATE src/cli/control_audit.cpp ${BROKEN_PLUGIN_SOURCES})
+target_include_directories(broken_control_audit PRIVATE src)
+target_compile_definitions(broken_control_audit PRIVATE
+  JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=0 BROKEN_FX=0)
+target_link_libraries(broken_control_audit
+  PRIVATE BrokenPresets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
+  PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+
+juce_add_console_app(broken_fx_control_audit PRODUCT_NAME "broken_fx_control_audit")
+target_sources(broken_fx_control_audit PRIVATE src/cli/control_audit.cpp ${BROKEN_PLUGIN_SOURCES})
+target_include_directories(broken_fx_control_audit PRIVATE src)
+target_compile_definitions(broken_fx_control_audit PRIVATE
+  JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=0 BROKEN_FX=1)
+target_link_libraries(broken_fx_control_audit
+  PRIVATE BrokenFXPresets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
+  PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)

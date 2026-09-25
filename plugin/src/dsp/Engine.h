@@ -5,11 +5,13 @@
 
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <vector>
 #include <algorithm>
 #include "Voice.h"
 #include "SamplerColour.h"
 #include "TapeBuffer.h"
+#include "Waves.h"
 
 namespace broken::dsp
 {
@@ -79,6 +81,14 @@ public:
         heldNotes.clear();
         heldNotes.reserve (maxHeld);
         prevFlip = false;
+
+        // Table mod source (DSP-NOTES §2a "Table"): same sineLUT trick as
+        // SourceEngine::prepare, built once so the harmonic table rebuild is table
+        // lookups + adds, never a per-entry sin() call.
+        for (size_t i = 0; i < modTableSize; ++i)
+            modSineLut[i] = (float) std::sin (6.283185307179586 * (double) i / (double) modTableSize);
+        modOscMode = -1; // force a rebuild on the first applyParams after prepare
+        modOscWave = -1;
     }
 
     void setSampleData (const float* d, size_t n, double dsr)
@@ -92,12 +102,15 @@ public:
         const bool freeRun = (p.voice.sourceMode == SourceEngine::Input);
         const float comp = p.unison ? 1.0f / std::sqrt ((float) numVoices) : 1.0f;
 
+        rebuildModTableIfNeeded (p.voice);
+
         for (int i = 0; i < numVoices; ++i)
         {
             auto& v = voices[(size_t) i];
             v.applyParams (p.voice);
             v.setSampleData (sampleData, sampleLen, sampleSr);
             v.setTapeData (tape.activeData(), tape.activeLength(), tape.sampleRateOfContent());
+            v.setModTable (modTable.data(), modTableSize);
             v.setFreeRun (freeRun);
             v.setGainComp (comp);
             v.setDetuneSemis (p.unison
@@ -180,6 +193,82 @@ public:
     const TapRing& tunerTapOut() const { return tapOut; }
 
 private:
+    // Table mod source (item 2, DSP-NOTES §2a "Table"): one 4096-entry table per Engine,
+    // NOT SourceEngine::harmTable -- the Osc source and the modulator's Table source read
+    // different memory, so they can sound at once (e.g. OSC as the source, Osc-panel-shape
+    // as the modulator, at different implied rates). Every voice reads this table via its
+    // own phase (Voice::tickTableMod); this class only rebuilds the shared content, at
+    // most once per block (applyParams runs once per processBlock call) and only when the
+    // OSCILLATOR panel actually changed -- dirty-flagged the same way SourceEngine's
+    // harmDirty/drawDirty are, so an unrelated knob move costs one branch, not a rebuild.
+    //
+    // The Harmonic and Draw builds are deliberately NOT band-limited (DSP-NOTES §5 aliasing
+    // policy: this product's documented era grit) and therefore never depend on a note or
+    // mod frequency, unlike SourceEngine::rebuildHarmonicTable's 0.45*sr/f cap -- so, unlike
+    // that table, this one never needs rebuilding when a frequency changes, only when the
+    // shape itself (harmonics/draw points/osc.mode/osc.wave) does.
+    static constexpr size_t modTableSize = 4096;
+    std::array<float, modTableSize> modTable {};
+    std::array<float, modTableSize> modSineLut {};
+    int modOscMode = -1, modOscWave = -1;
+    std::array<float, 64> modHarm {};
+    std::array<float, 128> modDraw {};
+
+    void rebuildModTableIfNeeded (const VoiceParams& vp)
+    {
+        bool changed = false;
+        if (vp.oscMode != modOscMode) { modOscMode = vp.oscMode; changed = true; }
+        if (vp.oscMode == 0 && vp.oscWave != modOscWave) { modOscWave = vp.oscWave; changed = true; }
+        if (vp.oscMode == 1)
+            for (int k = 0; k < 64; ++k)
+                if (std::abs (vp.harmonics[(size_t) k] - modHarm[(size_t) k]) > 1.0e-4f)
+                { modHarm[(size_t) k] = vp.harmonics[(size_t) k]; changed = true; }
+        if (vp.oscMode == 2)
+            for (int k = 0; k < 128; ++k)
+                if (std::abs (vp.drawPts[(size_t) k] - modDraw[(size_t) k]) > 1.0e-5f)
+                { modDraw[(size_t) k] = vp.drawPts[(size_t) k]; changed = true; }
+        if (! changed) return;
+
+        if (vp.oscMode == 1) // Harmonic: all 64 partials, no band-limit (see class comment)
+        {
+            for (auto& v : modTable) v = 0.0f;
+            for (int k = 1; k <= 64; ++k)
+            {
+                const float a = vp.harmonics[(size_t) (k - 1)] * 0.01f;
+                if (a <= 0.0f) continue;
+                size_t idx = 0;
+                for (size_t i = 0; i < modTableSize; ++i)
+                {
+                    modTable[i] += a * modSineLut[idx];
+                    idx += (size_t) k;
+                    if (idx >= modTableSize) idx -= modTableSize;
+                }
+            }
+        }
+        else if (vp.oscMode == 2) // Draw: 128 points, linear-interp (SourceEngine::rebuildDrawTable)
+        {
+            for (size_t i = 0; i < modTableSize; ++i)
+            {
+                const double t  = 128.0 * (double) i / (double) modTableSize;
+                const auto   k0 = (size_t) t;
+                const auto   k1 = (k0 + 1) % 128;
+                const float  fr = (float) (t - (double) k0);
+                modTable[i] = vp.drawPts[k0] + fr * (vp.drawPts[k1] - vp.drawPts[k0]);
+            }
+        }
+        else // Wave: the same analytic set playOsc reads, fixed (non-band-limited) partial
+             // count -- a table built once has no note frequency to band-limit against.
+        {
+            for (size_t i = 0; i < modTableSize; ++i)
+                modTable[i] = waves::byIndex (vp.oscWave, (double) i / (double) modTableSize);
+        }
+
+        float peak = 0.0f;
+        for (auto v : modTable) peak = std::max (peak, std::abs (v));
+        if (peak > 1.0f) // peak-normalised only if > 1 (item 2 spec), same as the Osc source
+            for (auto& v : modTable) v /= peak;
+    }
+
     void handleEvent (const NoteEvent& e)
     {
         if (ep.unison)      handleUnison (e);

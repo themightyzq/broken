@@ -1,6 +1,6 @@
 {
   "name": "00 Init",
-  "comment": "Empty params object = every parameter at its Params.h BROKEN_FX default (source.mode = Input, ws.drive = 0 dB). The owner authors the rest of the Broken FX factory bank separately.",
+  "comment": "Empty params object = every parameter at its Broken FX default (source = Input, drive 0 dB).",
   "params": {
     "chain.mix": 1.0,
     "bypass": 0

@@ -31,18 +31,23 @@ public:
     // 18px side padding, 10px gaps, top row 300|620|1fr, bottom row 3 equal columns +
     // MODULE TRIMS/TIME) — see MangleView/EditView::resized() for the grid math.
 #if BROKEN_FX
-    // Compact FX window: PLAY and TAPE (MangleView) and ENVELOPES/OSCILLATOR (EditView)
-    // are hidden (they never fire in an effect — DESIGN split spec), so the SOURCE
-    // column narrows to just PITCH/FINE/TUNE/IN TRIM/tuner and OUTPUT takes the full
-    // column height in their place; WAVESHAPER takes the full top row of EditView.
-    // sourceArea narrows 300 -> 200 (MangleView::resized), everything else keeps the
-    // instrument's proven widths (mangleArea 620, outputArea 544) so their existing
-    // layout code needs no re-tuning: designW = 1520 - 100. mangleH shrinks 545 -> 460
-    // (layoutMangle's own content needs ~440 at minimum -- see its `extra` calc) since
-    // PLAY/TAPE no longer force the row to the instrument's full height.
-    static constexpr int designW      = 1420;
+    // Compact-but-capable FX window: PLAY (MangleView) and ENVELOPES (EditView) are
+    // hidden (they never fire in an effect -- no notes, ever), but item 4/item 5 give FX
+    // back a sample slot (waveform + WINDOW pos/len knobs in SOURCE) and its TAPE block,
+    // and item 2 gives FX back OSCILLATOR (the Table mod source reads its shape) sharing
+    // EditView's top row with WAVESHAPER two-up instead of three-up.
+    // SOURCE widens back to the instrument's own 300 (MangleView::resized) so the
+    // waveform display has the same room it has in the instrument; designW grows by the
+    // same 100 px so MANGLE (620) and OUTPUT (544) keep their tuned widths unchanged:
+    // designW = 1520 (was 1420 when SOURCE was still narrowed to 200).
+    // mangleH = 500 (was 460): the new SOURCE column's content (waveform 150 + WINDOW row
+    // + PITCH/FINE row + TUNE + IN TRIM + tuner, see MangleView::layoutSourceFX) needs
+    // ~487 px minimum; MANGLE's own content still only needs ~440 (unchanged -- its
+    // `extra` calc absorbs the slack), and TAPE (playTapeRowH=350) + a 10px gap + OUTPUT's
+    // ~101px minimum only needs ~461, both comfortably under 500.
+    static constexpr int designW      = 1520;
     static constexpr int headerH      = 48;
-    static constexpr int mangleH      = 460;
+    static constexpr int mangleH      = 500;
     static constexpr int editH        = 415;
     static constexpr int designH      = headerH + mangleH + editH + 16;
 #else

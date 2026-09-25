@@ -79,7 +79,11 @@ public:
         {
             g.setColour (colour::lcdFaint);
             g.setFont (lnf != nullptr ? lnf->lcdFont (14.0f) : juce::Font (juce::FontOptions (12.0f)));
-            g.drawText (emptyStateText, b, juce::Justification::centred);
+            // drawFittedText (not drawText): the FX empty-state message (item 4) is longer
+            // than the instrument's one-liners and needs to wrap onto a second line rather
+            // than get ellipsis-truncated; short instrument strings still render identically
+            // on one line at this size.
+            g.drawFittedText (emptyStateText, b.reduced (4), juce::Justification::centred, 3, 1.0f);
             return;
         }
 
@@ -102,7 +106,17 @@ public:
         g.setFont (lnf != nullptr ? lnf->lcdFont (11.0f) : juce::Font (juce::FontOptions (10.0f)));
         g.drawText (processor.getDisplayName(), b.reduced (4, 2), juce::Justification::topLeft);
 
-        if (isCycleMode)
+        // item 4: in FX the CYCLE window overlay always draws when a sample is loaded --
+        // it shows what FROM SAMPLE (WAVESHAPER) will read regardless of source.mode
+        // (which is forced to Input in the engine and hidden in the UI), unlike the
+        // instrument where it means "this is the oscillator window" and only applies
+        // in actual Cycle mode.
+#if BROKEN_FX
+        const bool showCycleWindow = true;
+#else
+        const bool showCycleWindow = isCycleMode;
+#endif
+        if (showCycleWindow)
         {
             auto area = b.toFloat();
             float w = area.getWidth();
@@ -154,10 +168,15 @@ public:
         // drag-drop still replaces the sample).
         if (! processor.getSampleBuffer().empty())   // the loader means the SAMPLE
             return;
+#if !BROKEN_FX
         // ...and only in the modes that actually consume a sample. Clicking an oscillator
         // shape or a noise readout must never pop a "Load sample..." dialog (v0.19).
         if (! (sourceMode == 0 || sourceMode == 1))
             return;
+#endif
+        // FX has exactly one always-relevant "mode" for this purpose (item 4: the sample
+        // slot feeds MOD SRC SAMPLE / FROM SAMPLE regardless of source.mode), so click-to-
+        // load is always available there once nothing is loaded yet.
 
         chooser = std::make_unique<juce::FileChooser> ("Load sample...", juce::File(),
                                                         "*.wav;*.aif;*.aiff");
@@ -236,6 +255,14 @@ private:
 
         // empty/won't-sound explainer, only consulted by paint() when nothing to draw
         {
+#if BROKEN_FX
+            // item 4: FX's source is always Input regardless of the hidden source.mode
+            // this switch used to key on, so the instrument's mode-keyed messages (LIVE
+            // INPUT / TAPE EMPTY / PLAY A NOTE) never apply here. FX has its own reason to
+            // want a sample loaded -- MOD SRC SAMPLE and FROM SAMPLE both read it.
+            const char* newText = "DROP A SAMPLE: MOD SRC SAMPLE MODULATES WITH IT, "
+                                   "FROM SAMPLE SHAPES THE CURVE WITH IT";
+#else
             const char* newText = "DROP SAMPLE or CLICK";
             switch (mode)
             {
@@ -248,6 +275,7 @@ private:
                 case 3: newText = "PLAY A NOTE"; break;                // Noise
                 default: break;                                        // Sample / Cycle
             }
+#endif
             if (emptyStateText != newText) { emptyStateText = newText; changed = true; }
         }
         if (auto* posParam = processor.apvts.getRawParameterValue ("source.winpos"))

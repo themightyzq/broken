@@ -43,9 +43,11 @@ public:
                                      "distortion curve. Non-monotonic on purpose \xe2\x80\x94 "
                                      "expect scream, not saturation.");
         fromSampleButton.onClick = [this] { grabCurveFromSample(); };
-#if ! BROKEN_FX
-        addAndMakeVisible (fromSampleButton); // the effect never has a loaded sample
-#endif
+        // item 4: Broken FX now has a sample slot too (MangleView's FX source column
+        // shows the waveform + WINDOW knobs), so FROM SAMPLE works there exactly as in
+        // the instrument -- this used to be instrument-only when the effect had no
+        // loaded-sample concept at all.
+        addAndMakeVisible (fromSampleButton);
         setWantsKeyboardFocus (false);
 
         curveRaw = apvts.getRawParameterValue ("ws.curve");

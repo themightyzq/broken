@@ -92,22 +92,37 @@ private:
         shownMode    = modeRaw    != nullptr ? (int) modeRaw->load()    : 0;
         shownOscMode = oscModeRaw != nullptr ? (int) oscModeRaw->load() : 0;
 
+        // item 4: FX's source is always Input (forced by BrokenProcessor::gatherParams,
+        // hidden in the UI), but it gets its own sample slot for MOD SRC SAMPLE / FROM
+        // SAMPLE, so the pop-out always shows the SampleEditor's region view there --
+        // never the instrument's "LIVE INPUT has no stored waveform" message, which would
+        // be actively wrong once a sample is loaded.
+#if BROKEN_FX
+        const bool isSampleish = true;
+        const bool isOsc       = false;
+#else
         const bool isSampleish = (shownMode == 0 || shownMode == 1 || shownMode == 5);
         const bool isOsc       = (shownMode == 2);
+#endif
 
         sampleEditor.setVisible (isSampleish);
         oscEditor.setVisible (isOsc);
         message.setVisible (! isSampleish && ! isOsc);
 
+#if !BROKEN_FX
         if (shownMode == 3)
             message.setText ("NOISE has no waveform to edit.\nShape it with AMP NZ and PH NZ "
                              "in the SOURCE block.", juce::dontSendNotification);
         else if (shownMode == 4)
             message.setText ("LIVE INPUT has no stored waveform.\nUse IN TRIM and the "
                              "IN tuner in the SOURCE block.", juce::dontSendNotification);
+#endif
 
         if (onTitle)
         {
+#if BROKEN_FX
+            onTitle ("Sample Editor");
+#else
             const char* t = "Sample Editor";
             if (shownMode == 1)      t = "Cycle Window";
             else if (shownMode == 5) t = "Tape Take";
@@ -117,6 +132,7 @@ private:
             else if (shownMode == 3) t = "Noise";
             else if (shownMode == 4) t = "Live Input";
             onTitle (t);
+#endif
         }
 
         if (isSampleish && isShowing())

@@ -886,6 +886,19 @@ public:
             "Smooths the loop seam and the ping-pong turnaround. 0 = the raw era click. "
             "Shown as a shaded wedge on the waveform.", false, true, "ms");
         addAndMakeVisible (xfadeKnob.get());
+#if BROKEN_FX
+        // item 4: LOOP/STYLE/REV/XFADE are Sample/Tape *source*-playback controls (loop
+        // style, reverse direction, loop-seam crossfade) -- FX's source is always Input,
+        // so SourceEngine never reads sample.loopon/loopstyle/rev/xfade there. Only the
+        // region itself (dragged in WaveArea, sample.regstart/regend) and CLEAR/ZOOM SEL/
+        // SNAP/FIT (which operate on the region and the viewport, not on loop settings)
+        // still matter -- verified against SourceEngine::tickModSource/regionBounds,
+        // which the Sample mod source and FROM SAMPLE both read through.
+        loopToggle->setVisible (false);
+        styleCombo->setVisible (false);
+        revToggle->setVisible (false);
+        xfadeKnob->setVisible (false);
+#endif
 
         zoomSelButton.setTooltip ("Frames the current selection for loop-point surgery.");
         zoomSelButton.onClick = [this]
@@ -1012,6 +1025,15 @@ private:
         waveArea->setBounds (area);
         minimap->setBounds (minimapArea);
 
+#if BROKEN_FX
+        // item 4: LOOP/STYLE/REV/XFADE are hidden (see the constructor); re-flow so ZOOM
+        // SEL/SNAP/CLEAR don't leave the freed space as a gap -- same controls, wider.
+        zoomSelButton.setBounds (bottomBar.removeFromLeft (96).withSizeKeepingCentre (90, 24));
+        bottomBar.removeFromLeft (14);
+        snapButton.setBounds (bottomBar.removeFromLeft (72).withSizeKeepingCentre (68, 24));
+        bottomBar.removeFromLeft (14);
+        clearButton.setBounds (bottomBar.removeFromLeft (72).withSizeKeepingCentre (68, 24));
+#else
         loopToggle->setBounds (bottomBar.removeFromLeft (56).withSizeKeepingCentre (52, 24));
         bottomBar.removeFromLeft (10);
         styleCombo->setBounds (bottomBar.removeFromLeft (96).withSizeKeepingCentre (92, 34));
@@ -1025,6 +1047,7 @@ private:
         snapButton.setBounds (bottomBar.removeFromLeft (60).withSizeKeepingCentre (60, 24));
         bottomBar.removeFromLeft (10);
         clearButton.setBounds (bottomBar.removeFromLeft (60).withSizeKeepingCentre (60, 24));
+#endif
     }
 
     void triggerPyramidBuild()

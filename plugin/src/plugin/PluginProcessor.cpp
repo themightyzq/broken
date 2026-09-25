@@ -559,6 +559,17 @@ bool BrokenProcessor::loadSampleFile (const juce::File& file, juce::String& erro
     sampleName = file.getFileName();
     sampleMissing = false;
     engine.setSampleData (sampleBuf.data(), sampleBuf.size(), sampleFileSr);
+#if BROKEN_FX
+    // Bug fix (item 1): a load reaching here outside prepareToPlay (drag-drop, --sample,
+    // state restore) only ever updated the L engine's own sampleData/sampleLen/sampleSr
+    // members. engineR keeps its OWN copy of those (Engine::applyParams re-pushes them to
+    // its voices every block), so without this mirror engineR served whatever buffer it
+    // last had -- null on a fresh instance, or the previous file after a reload -- until
+    // the next prepareToPlay (a host re-opening the stream) called engineR.setSampleData
+    // again. R-channel Sample source and Sample mod-source were silent/stale for the
+    // entire session in between.
+    engineR.setSampleData (sampleBuf.data(), sampleBuf.size(), sampleFileSr);
+#endif
     suspendProcessing (false);
     apvts.state.setProperty ("samplePath", file.getFullPathName(), nullptr);
     return true;
@@ -738,6 +749,10 @@ bool PresetManager::overwriteUser (int index, juce::String& errorOut)
 bool BrokenProcessor::saveTapeToFile (const juce::File& file, juce::String& errorOut)
 {
     std::vector<float> copy;
+#if BROKEN_FX
+    std::vector<float> copyR;
+    bool stereo = false;
+#endif
     double sr = 48000.0;
     {
         // a FLIP on the audio thread would swap the active buffer under us mid-read;
@@ -748,6 +763,22 @@ bool BrokenProcessor::saveTapeToFile (const juce::File& file, juce::String& erro
         if (len == 0) { errorOut = "tape is empty - press REC first"; return false; }
         copy.assign (tape.latestData(), tape.latestData() + len);
         sr = tape.sampleRateOfContent();
+#if BROKEN_FX
+        // item 5: each FX engine records its own channel's output into its own TapeBuffer
+        // (Engine.h), started/stopped by the identical tape.rec param applied to both
+        // engines the same block, so they record in lockstep. Equal latest-take lengths
+        // therefore mean a genuine matched stereo pair; a mismatch (e.g. one channel's
+        // take was overwritten by a REC that started/stopped a block apart from some
+        // future divergent control path) falls back to writing L alone as mono rather than
+        // guessing an alignment between two takes of different length.
+        auto& tapeR = engineR.getTape();
+        const auto lenR = tapeR.latestLength();
+        if (lenR == len)
+        {
+            copyR.assign (tapeR.latestData(), tapeR.latestData() + lenR);
+            stereo = true;
+        }
+#endif
     }
 
     file.getParentDirectory().createDirectory();
@@ -755,10 +786,24 @@ bool BrokenProcessor::saveTapeToFile (const juce::File& file, juce::String& erro
     juce::WavAudioFormat wav;
     auto stream = std::make_unique<juce::FileOutputStream> (file);
     if (! stream->openedOk()) { errorOut = "cannot write " + file.getFullPathName(); return false; }
+#if BROKEN_FX
+    const unsigned int numChans = stereo ? 2u : 1u;
+#else
+    const unsigned int numChans = 1u;
+#endif
     std::unique_ptr<juce::AudioFormatWriter> writer (
-        wav.createWriterFor (stream.release(), sr, 1, 24, {}, 0));
+        wav.createWriterFor (stream.release(), sr, numChans, 24, {}, 0));
     if (writer == nullptr) { errorOut = "cannot create WAV writer"; return false; }
 
+#if BROKEN_FX
+    if (stereo)
+    {
+        const float* chans[] = { copy.data(), copyR.data() };
+        if (! writer->writeFromFloatArrays (chans, 2, (int) copy.size()))
+        { errorOut = "write failed"; return false; }
+        return true;
+    }
+#endif
     const float* chans[] = { copy.data() };
     if (! writer->writeFromFloatArrays (chans, 1, (int) copy.size()))
     { errorOut = "write failed"; return false; }

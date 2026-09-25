@@ -45,7 +45,7 @@ both hands free for the knobs. Turn DRIVE.
 One window, opening at 1520×1024 and scaling as a unit from 55% to 175% (aspect ratio
 locked); the toggle that used to swap MANGLE and EDIT is gone, and the EDIT controls now
 sit in five panes beneath MANGLE (ENVELOPES / OSCILLATOR / WAVESHAPER on one row, MODULE
-TRIMS / TIME below). Goal: the the band sound in three moves — pick a
+TRIMS / TIME below). Goal: an industrial sound in three moves — pick a
 source, pick a curve, turn a big knob. Layout left→right mirrors signal flow.
 
 ### Source block
@@ -79,7 +79,7 @@ source, pick a curve, turn a big knob. Layout left→right mirrors signal flow.
 | MOD | big knob | 0–1 | 0 | Death-vocal machine: multiplies the sound with a low bell tone. Turn up, then tune MOD FREQ. |
 | MOD FREQ | knob | 0.1 Hz–2 kHz log | 65.41 Hz (C2) | Frequency of the modulating tone. Low = growl, high = metallic. Defaults to a C so it agrees with the C3 source root. |
 | MOD MODE / WAVE | 2 selectors | AM/RM/FM · sine/bell/odd | RM · bell | How and with what the sound is modulated. |
-| CURVE | selector (10) | curves 1–8 + Random + Custom | 3 Soft Sat | Click through the shaper curves like the artist did. 1 is clean. Random and Custom are edited in the EDIT view's CURVE block. |
+| CURVE | selector (10) | curves 1–8 + Random + Custom | 3 Soft Sat | Click through the shaper curves one by one. 1 is clean. Random and Custom are edited in the EDIT view's CURVE block. |
 | DRIVE | big knob | 0–40 dB | 12 dB | How hard the sound hits the curve. The main damage control. |
 | MORPH | knob | 0–1 | 1 | Blend between clean and the selected curve. |
 | FILTER | big knob | 500 Hz–20 kHz log (EXT: 20 Hz) | 20 kHz | Low-pass only, by design. POLES sets steepness. The knob's travel stops at the floor (500 Hz, or 20 Hz with FLOOR EXT) so there is no dead zone; switching EXT off with the cutoff below 500 pulls it up to 500. |
@@ -141,7 +141,7 @@ toggles (filter floor, pitch range), per-module hard-bypass buttons, waveshaper 
 
 | Control | Block | Range | Default | Info text |
 |---|---|---|---|---|
-| SRC (mod source) | MANGLE (MOD) | Osc / Self / Sample / Tape | Osc | What modulates: the internal osc, the sound itself, the sample, or the tape — any module as modulator, by design. |
+| SRC (mod source) | MANGLE (MOD) | Osc / Self / Sample / Tape / Table | Osc | What modulates: the internal osc, the sound itself, the sample, the tape, or the OSCILLATOR panel's own shape (Table, v0.35 — drawn, harmonics or wave) — any module as modulator, by design. |
 | MODE (mod) | MANGLE (MOD) | AM / RM / FM / PM | RM | How the sound is modulated. PM is the spec's chorus/vibrato mode. |
 | PITCH MIX | EDIT | 0–1 | 1 | Blend of pitched vs unpitched playback — the original Pitch Shifter's Mix. ~50% with FINE detune = the spec's chorus recipe. |
 | CURVE editor + RND + COPY→CUSTOM + FROM SAMPLE | EDIT (CURVE) | — | — | The waveshaper's transfer curve. **Just drag on it** — that switches to CUSTOM and keeps the shape you were looking at (128 points, pencil not handles). RND rolls a new random curve (seed saved with the preset). **FROM SAMPLE** turns the CYCLE window of the loaded sample into the curve itself. |
@@ -200,7 +200,7 @@ toggles (filter floor, pitch range), per-module hard-bypass buttons, waveshaper 
 > It is a pencil across **128 points**, not handles, and the dots show where those points
 > sit. Sharp corners buzz and alias; that is the era, not a defect — the point count
 > changes how smooth a *curve* can be, never how much grit an edge has. **SINE** resets
-> the shape. **FROM SAMPLE** is the artist's own "convert sample to oscillator": it fills the
+> the shape. **FROM SAMPLE** is the classic "convert sample to oscillator" trick: it fills the
 > 128 points from the current CYCLE window of the loaded sample so you have something real
 > to deform. All of it writes ordinary parameters, so it is saved in presets and
 > automatable.
@@ -261,3 +261,47 @@ be triggered by the **PLAY** button instead — it latches a note at the root (C
 hands stay free for the knobs while the sound runs. With LOOP off the sample still plays
 once and stops on its own, exactly as if you were holding a key. PLAY is dimmed in Input
 mode, which free-runs and needs no note at all.
+
+## Broken FX panel (v0.35 update)
+
+Broken FX's SOURCE is always Input (true from the start of the split), but v0.35 gives
+every visible control something to do — see DSP-NOTES.md §2a/§14a for the mechanisms.
+
+- **SOURCE column widens back to 300 px** (was narrowed to 200 for the old, IN-TRIM-only
+  FX column) and grows the FX window by the same 100 px so MANGLE (620) and OUTPUT (544)
+  keep their tuned widths. It now shows the **waveform display** (drop a sample, or click
+  to browse; EDIT opens the region pop-out, same as the instrument) and the **WINDOW POS /
+  LEN** knobs above the existing PITCH/FINE/TUNE/IN TRIM cluster, with the IN tuner still
+  pinned at the bottom. A loaded sample never plays as the SOURCE (that stays Input) — it
+  feeds **MOD SRC SAMPLE** and the waveshaper's **FROM SAMPLE**, both of which now work in
+  FX. The empty-state message says so: "Drop a sample: MOD SRC SAMPLE modulates with it,
+  FROM SAMPLE shapes the curve with it." Double-clicking or hitting EDIT opens the same
+  region-editing pop-out as the instrument, minus LOOP/STYLE/REV/XFADE (Sample/Tape
+  *source*-playback controls that do nothing once the SOURCE is fixed to Input) — only the
+  region itself and ZOOM SEL/SNAP/CLEAR/FIT matter here, because the Sample mod source and
+  FROM SAMPLE both key off the region, not the loop settings.
+- **OSCILLATOR is back** (row 1 of the EDIT panes becomes OSCILLATOR | WAVESHAPER, two-up
+  instead of the instrument's three-up with ENVELOPES, which stays hidden — no notes ever
+  fire in an effect). It no longer feeds the SOURCE; it exists because **MOD SRC TABLE**
+  (new, see below) plays back whatever shape is showing here. XFADE/PITCH MIX/LOOP XFADE
+  are hidden (Sample/Cycle/Tape-source-only); PITCH EXT stays (it gates PITCH's range, and
+  PITCH is live on Input via tape-head varispeed in both products).
+- **MOD SRC gains a fifth option, Table:** plays back the OSCILLATOR panel's current shape
+  — whichever of Wave/Harmonic/Draw is selected — as a looping wavetable at MOD FREQ. Lets
+  FX carry its own oscillator content into the modulator without needing a note or a
+  sample.
+- **FM INDEX (MODULE TRIMS) now works.** FM on the live input was dead in both products
+  before v0.35; it is now a real varispeed effect on the signal (DSP-NOTES §14a), and since
+  FX's source is always Input, this is the first time FM does anything at all in FX.
+- **TAPE is back**, stacked full-width above OUTPUT in the right column (PLAY stays
+  hidden). REC/FLIP/SAVE/TAKE all work exactly as in the instrument — the tape records the
+  FX chain's own stereo output (each channel into its own take) regardless of what the
+  SOURCE is — but the TAPE lamp ("lit when TAPE is the active SOURCE") is hidden, since FX
+  can never make TAPE the SOURCE. SAVE writes a 2-channel WAV when both channels' takes
+  match in length (they record in lockstep), else falls back to the L channel alone.
+- **TIME retitles to FLATTEN.** STRETCH and its AMOUNT/FREQ/PREDELAY knobs are hidden
+  (sample-playback only); FLATTEN and RESP still work on the live input.
+- **TRIMS drops the NOISE segment.** AMP NZ / PH NZ are Noise-source-only and hidden; FM /
+  DELAY / RESONATOR / INVERT stretch to fill the row.
+- **FROM SAMPLE** (WAVESHAPER) is no longer instrument-only: with a sample loaded, it fills
+  the Custom transfer curve from the CYCLE window exactly as in the instrument.

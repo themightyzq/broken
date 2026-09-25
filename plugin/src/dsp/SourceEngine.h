@@ -1,7 +1,7 @@
 #pragma once
 // Per-voice sound source (docs/DSP-NOTES.md §1): Sample (varispeed within a
 // non-destructive region, five play modes, loop-seam crossfade), Cycle (a tiny window
-// looped as a raw oscillator — the the artist trick), Osc, Noise, Input (FX mode), Tape.
+// looped as a raw oscillator — the classic trick), Osc, Noise, Input (FX mode), Tape.
 // Varispeed IS the original Pitch Shifter: transposing changes duration, on purpose.
 // Region/loop edits are ordinary block-rate settings — live editing is the design
 // (a MIDI key is the preview); bounds are enforced per sample so a region shrinking

@@ -1,22 +1,23 @@
-# CHANGELOG — the prototyping environment TurboSynth
+# CHANGELOG — Broken / Broken FX
 
 ## v0 — 2026-08-26 — Project founding (no ensemble yet)
-- Intake completed (see docs/DESIGN.md header + plan): instrument + FX-in, full the prototyping environment 6,
-  Primary + Core, mono-default/poly/unison, generous CPU, public release intended,
+- Intake completed (see docs/DESIGN.md header + plan): instrument + FX-in, a full modular audio
+  environment, primary and core layers, mono-default/poly/unison, generous CPU, public release intended,
   Diversion + milestone Save-As, Reaper render loop.
-- Research pass on TurboSynth architecture and the band usage → docs/RESEARCH.md (primary
-  sources: SOS Dec 1988, Music Technology Sep 1988, Keyboard 3/94 the artist interview).
-- Design docs written: DESIGN.md (fixed the band-order chain, TAPE resample section, CYCLE
+- Research pass on the original hardware's architecture and its industrial-music usage →
+  docs/RESEARCH.md (primary sources: period magazine reviews and interviews).
+- Design docs written: DESIGN.md (fixed signal-chain order, TAPE resample section, CYCLE
   mode), DSP-NOTES.md (per-module math, conventions tagged believed pending vendor-doc
   verification), PANEL.md (MANGLE/EDIT views, defaults = init snapshot), PITFALLS.md.
 - Contract: CLAUDE.md (ownership boundary, definition of verify/done, suite routing).
 - tests/TEST-PLAN.md v1: fixture set + milestone render matrix M1–M11.
-- Open items: vendor-convention verification in flight; waveshaper curves are reconstructions;
-  release name TBD ("TurboSynth" is an a third party trademark); the prototyping environment version on this machine
-  not yet recorded.
+- Open items: vendor-convention verification in flight; waveshaper curves are
+  reconstructions; release name TBD (the working title was a third-party trademark);
+  modular-environment version on this machine not yet recorded.
 
 ## v0.1 — 2026-08-26 — Verification harness live
-- vendor-doc verification pass (Building in Primary/Core/Diving Deeper PDFs): audio scaling
+- Vendor-doc verification pass (the environment's own Building/Primary/Core/Diving Deeper
+  reference manuals): audio scaling
   ±1.0=0 dB, pitch 69=A3=440 Hz, Order module, DN Cancel/z⁻¹ fbk denormal idiom, Audio
   Table audio-rate R/W, Sample Lookup for CYCLE — believed tags in DSP-NOTES upgraded to
   cited; corrections: module is "Spread", voice count is design-time-only, TAPE treated
@@ -30,13 +31,13 @@
   self-renders (flatness 0.0743 dB).
 - docs/builds/M1.md: first build hand-off (unity pass-through, 4 renders).
 
-Next: user builds M1 shell in the prototyping environment, renders 4 fixtures, analysis gates the loop.
+Next: user builds M1 shell in the modular environment, renders 4 fixtures, analysis gates the loop.
 
 ## v0.2 — 2026-08-26 — Platform pivot to JUCE; full v1 instrument built and verified
 - **Pivot:** .ens cannot be authored programmatically → JUCE/C++ plugin (VST3 + AU +
   Standalone, arm64). Folder flattened/renamed to `Project_TurboSynth/`. Contract flipped:
-  Claude authors/builds everything; user = design authority + ears. the prototyping environment path retired
-  (record kept in `ensemble/`, docs/builds/M1.md).
+  Claude authors/builds everything; user = design authority + ears. The modular-environment
+  path retired (record kept in `ensemble/`, docs/builds/M1.md).
 - **Engine (`plugin/src/dsp/`, JUCE-free):** full chain per DESIGN §2 — SourceEngine
   (Sample/CYCLE/Osc/Noise/Input/Tape, varispeed), Modulator (AM/RM/FM, sine/bell/odd),
   Waveshaper (8 curves + DC blocker), FilterStack (1–4 pole LP), Resonator, Spectral
@@ -67,7 +68,7 @@ Next: user builds M1 shell in the prototyping environment, renders 4 fixtures, a
 - **Presets:** 10 technique-named snapshots (Death Vocal ×2, Power Chunk ×2, Drum Crush
   ×2, Textures ×3, Init) — listening-draft status until the user's ears pass them.
 - **Installed:** AU + VST3 to ~/Library/Audio/Plug-Ins; `auval` PASS (aumf Tbsy Zlqa).
-- Open: user listening pass vs reference the band material (P12); release name; CPU meter
+- Open: user listening pass vs reference industrial-music material (P12); release name; CPU meter
   reading in Reaper; Apple Developer signing for public distribution.
 
 ## v0.3 — 2026-08-27 — TAPE → WAV export
@@ -144,7 +145,7 @@ Next: user builds M1 shell in the prototyping environment, renders 4 fixtures, a
   docs/editor-v05.png (ZOOM SEL view with both PingPong wedges visible).
 
 ## v0.6 — 2026-08-27 — Tuners, FINE/TUNE lock, live-input pitch; THE SPEC found
-- **Research pass 2 found the actual TurboSynth 2.0 manual + SC 2.2 addendum**
+- **Research pass 2 found the actual manual for the hardware's 2.0 revision, plus its SC 2.2 addendum**
   (archive.org, full OCR — docs/RESEARCH.md "Pass 2"). Corrections applied: Delay
   feedback is era-correct (not our extension); Diffuser is SC-2.2-only/card-gated (not
   original); the filter was the "Filter Envelope" (inherently envelope-driven); the
@@ -457,8 +458,8 @@ each one?" — audited all six in code. All were wired and working, but three ga
   `rebuildDrawTable`/`rebuildHarmonicTable` and `dsp/Waves.h`.
 - **New: OSC MODE = DRAW — hand-drawn oscillator waveforms (DSP-NOTES §1.3b).**
   Era-correct, not an invention: RESEARCH.md line 18 records that the original's
-  waveforms "could be hand-drawn/edited", and "convert sample to oscillator" is the artist's
-  own phrase (Keyboard 3/94).
+  waveforms "could be hand-drawn/edited", and "convert sample to oscillator" is the classic
+  phrase for it.
   - 64 parameters `osc.d01…d64`, −1…+1, defaulting to a sine so DRAW opens on a shape to
     deform rather than a blank page.
   - **Literal table (user decision):** the points are linearly interpolated into the same
@@ -751,7 +752,7 @@ and SpectralInverter comments now state what the code does; CMake `VERSION` **0.
 preset-check 17/17, fuzz 300 seeds 0 failures, check_ids OK (58 files), M8 poly tuning
 **1.02 cents** PASS, `auval` PASS, AU/VST3 reinstalled.
 
-**Still open, and the user's:** listening pass vs the band material; looking at the v0.22
+**Still open, and the user's:** listening pass vs industrial-music reference material; looking at the v0.22
 panel; Reaper checks; product name (shortlist in the plan: REZAMPLE recommended, BROKEN,
 DOWNWARD, SELF DESTRUCT; REZynth collides aloud with DFX Rez Synth); identity codes to
 ZQ SFX once the name is chosen; GPLv3 + LICENSE file; signing/notarization; deployment
@@ -776,11 +777,11 @@ target and Intel decision; installer.
   rename still loads. New gate `ts_cli --state-migrate-check` proves it (TEST-PLAN M23):
   legacy tag → probe parameter survives, **PASS**.
 - **Licence: GPLv3.** `LICENSE` is the official GNU text; README carries the copyright
-  (ZQ SFX LLC), JUCE attribution under its GPLv3 option, and the a third party/the band non-affiliation
+  (ZQ SFX LLC), JUCE attribution under its GPLv3 option, and a third-party non-affiliation
   note. Chosen because the plugin is free and ZQ SFX is a sound-design company whose total
   revenue would not fit JUCE's Starter tier.
-- Docs: only the *working-title* lines changed. "TurboSynth" stays wherever it names the
-  original hardware. `createPluginFilter` gained a prototype now that warnings reach every
+- Docs: only the *working-title* lines changed. The old hardware name stays only in the
+  "inspired by" note and the state-migration tag. `createPluginFilter` gained a prototype now that warnings reach every
   target.
 - Gates: build clean, ctest **112/112**, unity null −141.5 dBFS PASS, state-migrate PASS,
   state roundtrip PASS, preset-check 17/17, param-check 320/0, bend-test 4/4, tune-test
@@ -1039,7 +1040,7 @@ plus my own findings on the same shot.
   MessageBoxOptions result indexing is too easy to get backwards).
 - **About overlay**: click the BROKEN logo — version (from CMake via BROKEN_VERSION;
   project version bumped 0.23.0 → 0.34.0, it had gone stale), GPLv3 + source note,
-  Noisehead/OFL credits, a third party/the band non-affiliation. Click/Escape closes.
+  Noisehead/OFL credits, third-party non-affiliation. Click/Escape closes.
 - **Host automation value strings**: 34 float params now show real values with units in
   DAW lanes ("2400 Hz", "-12.0 dB", "80.0 ms", "2 st") via a Pf helper wrapping
   AudioParameterFloatAttributes. Display only — ids/ranges/defaults/skews untouched;
@@ -1151,7 +1152,7 @@ plus my own findings on the same shot.
   block dropped exactly 44 (300 − the 256 cap) and `getDroppedNoteEventCount()` reported
   44.
 - **README.md rewritten**: the "Status" section had said "v0.2 — design docs, verified
-  test harness, JUCE build in progress" since the the prototyping environment-era intake, two platform pivots
+  test harness, JUCE build in progress" since the project's earliest, pre-JUCE intake, two platform pivots
   and 32 versions out of date (docs/DESIGN.md §1 already flagged this staleness). It now
   states v0.34.0, feature-complete, the actual signal chain, gate results, and that
   signing/notarization are not done. Added "Building" and "Testing" sections (CMake
@@ -1284,3 +1285,60 @@ plus my own findings on the same shot.
   source.mode=4` (Input mode) render still produces non-silent stereo output (unchanged
   code path, still exercised). Not run: signing/notarization (none claimed); `dv`/git
   commit (out of scope for this change per the owner's instructions).
+
+## 2026-09-25 - v0.35.0: Broken FX presets, TAPE, OSCILLATOR, Table source, live-input FM; right-channel sample bug fixed
+- **Bug fix: Broken FX Sample modulation was silent on the right channel.** Loading a
+  sample in `BrokenProcessor::loadSampleFile` only reached the left-channel engine
+  (`engine`); the second engine (`engineR`, added with the true-stereo split) never got
+  the sample until the host happened to restart audio. Fixed so both engines receive the
+  loaded sample together. New regression test `broken_fx_check` (h) proves bit-identical
+  L/R output from a mono input and was confirmed to fail without the fix.
+- **New modulator source: Table** (`mod.source` index 4, appended after Tape; both
+  products). It reads the OSCILLATOR panel's current one-cycle shape — Wave, the
+  Harmonic bars, or the 128-point drawing, whichever OSC MODE is active — and plays it
+  back as a looping wavetable at MOD FREQ. One 4096-entry table per engine, rebuilt at
+  most once per block and only when the OSCILLATOR panel actually changes. Not
+  band-limited, matching this project's era-aliasing policy for every other wavetable
+  source.
+- **FM now works on live input, in both products.** FM on the Input source was silently
+  dead before this change, which meant FM did nothing at all in Broken FX (its source is
+  always Input). New `src/dsp/InputVarispeed.h`: a rate-modulated read head on a ~100 ms
+  delay line, with a ~2 Hz pull-back to centre so the head doesn't wander off the buffer.
+  Engaging FM on Input adds a one-time ~50 ms delay step; with FM off the stage is
+  bit-exact bypass.
+- **Broken FX panel** (see docs/PANEL.md "Broken FX panel (v0.35 update)" and
+  DSP-NOTES.md §2a/§14a for the mechanisms): SOURCE gains back a sample slot (drop or
+  click to load, EDIT opens region editing, POS/LEN set the CYCLE window) so
+  `MOD SRC SAMPLE` and the waveshaper's FROM SAMPLE work in the effect — the sample never
+  becomes the playback SOURCE, which stays Input; FROM SAMPLE is visible in both products
+  again; OSCILLATOR is shown in FX (it drives `MOD SRC TABLE`); TAPE (REC/FLIP/SAVE) is
+  back in FX so `MOD SRC TAPE` has something to play, and SAVE writes a stereo WAV in FX
+  when both channels' takes match in length. Controls that cannot act on live input stay
+  hidden in FX: the stretch group, noise AMP NZ/PH NZ, and — in the sample editor —
+  loop/reverse/crossfade and XFADE/PITCH MIX/LOOP XFADE. The TIME block is titled FLATTEN
+  in FX. FX design size is now 1520x979 (was 1420x939), same 0.65x-2x resize range.
+- **Broken FX now ships 15 factory presets (was 1):** 00 Init, 01 Ringing Drive, 02
+  Crushed Resonator, 10 Ring Growl, 11 Varispeed Growl, 12 Self Ring, 13 Drawn Ring, 14
+  Harmonic Ring, 20 Power Chunk, 21 Fold Scream, 22 Chorus Chunk, 30 Stair Crush, 31
+  Crushed Room, 40 Spectral Ghost, 43 Flattened Ghost. Adapted from the instrument bank,
+  keeping only the ones that work on live input; each lists only the parameter ids the
+  effect actually uses (presets apply only the ids they contain). Level-matched: on a 6 s
+  drums+bass signal at -18 dBFS RMS, every preset lands within 0.1 dB of the input except
+  Self Ring (-1.4 dB, peak-limited) and Init (-0.4 dB); all peaks <= -1 dBFS. New check
+  `broken_fx_check` (l) loads every factory preset in a fresh instance and fails if any is
+  non-finite, more than 3 dB from the input, or peaks above -0.9 dBFS.
+- **Control audit.** New console tools `broken_control_audit` and
+  `broken_fx_control_audit` (`src/cli/control_audit.cpp`, not wired into `ctest`) move
+  every parameter from a musical base state and report whether the output changes:
+  0 wiring defects in either build. The FX "visible but does nothing" list is empty apart
+  from one-shot UI actions.
+- Four instrument preset comments reworded to neutral wording (10, 13, 22, 41); the
+  sounds themselves are unchanged.
+- Docs: README.md opening paragraph and Use section, CLAUDE.md's "Two targets" section,
+  and STATUS.md brought current for the sample-slot/TAPE/OSCILLATOR/Table/15-preset
+  state above; this entry.
+- Gates: build 0 errors, 0 warnings. `ctest` **115/115**. `broken_fx_check` (a)-(l) 0
+  failures. `pluginval` strictness 5 SUCCESS on both `Broken.vst3` and `Broken FX.vst3`.
+  `auval -v aufx BrFx ZQSF` and `auval -v aumu Brkn ZQSF` both SUCCEEDED. All four VST3/AU
+  binaries (`Broken.vst3`, `Broken.component`, `Broken FX.vst3`, `Broken FX.component`)
+  universal (`x86_64 arm64`), minos 11.0.

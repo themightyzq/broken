@@ -1,6 +1,6 @@
 {
   "name": "22-chorus-chunk",
-  "comment": "PM chorus at 4.5 Hz over pitch-mix detune - the spec's own recipe, made ugly.",
+  "comment": "PM chorus at 4.5 Hz over pitch-mix detune, made ugly.",
   "params": {
     "source.mode": 0,
     "mod.on": 1,

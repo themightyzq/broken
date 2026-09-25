@@ -116,7 +116,7 @@ analysis); region 0.2–0.3 (sweep content 2.0–3.0 s), note C3 held 0.1–4.5 
 | State | sample path + loop controls survive getState/setState | `broken_cli --state-roundtrip` PASS |
 
 ## Manual-only checklist (user confirms per milestone)
-- [ ] Feel: knob ranges musical, big-knob "three moves" gets a the band-adjacent sound fast
+- [ ] Feel: knob ranges musical, big-knob "three moves" gets an industrial sound fast
 - [x] CPU meter: idle / mono / poly+unison worst case, numbers recorded in CHANGELOG —
       see CHANGELOG v0.12: idle 0.0008×, mono 0.004×, poly-6 all modules 0.025×,
       poly+unison everything 0.040× at block 512 (0.150× at block 64, 0.086× at 96 kHz)

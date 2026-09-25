@@ -4,8 +4,10 @@ Universal ZQ SFX rules (identity, real-time safety, VCS policy, signing, shared 
 
 ## What this is
 A JUCE/C++ audio plugin (VST3 + AU + Standalone, macOS arm64); see README.md for the
-one-line attribution. It does sample mangling via waveshaper, FM/AM modulator, LP stack,
-resonator, spectral inverter, plus an in-plugin TAPE resample workflow. v1 scope = the
+one-line attribution. It does sample mangling via waveshaper, FM/AM/Table modulator, LP
+stack, resonator, spectral inverter, plus an in-plugin TAPE resample workflow and (v0.35)
+`src/dsp/InputVarispeed.h`, the rate-modulated delay-line read head that makes FM work on
+live input. v1 scope = the
 fixed chain in docs/DESIGN.md §2 plus the Stretcher (shipped v0.10 as STRETCH/FLATTEN);
 Diffuser and breakpoint envelopes are out. Two plugins ship from this one codebase: the
 instrument (this section, unchanged) and **Broken FX**, the same engine as a stereo
@@ -17,9 +19,10 @@ Product name: **Broken** (ZQ SFX); the effect build is **Broken FX**.
   `scripts/`, `CHANGELOG.md`, `README.md`.
 - The user is the design authority and the ears: panel review, Reaper integration checks,
   and the final sound judgment against the reference material.
-- Historical note: the project began as a the prototyping environment ensemble; `docs/builds/M1.md` is the
-  retired path's record. The old "the prototyping environment files are user-only" clause is retired;
-  DSP-NOTES.md §0's the prototyping environment conventions remain as documentation of the design's origins.
+- Historical note: the project began as a modular-environment prototype; `docs/builds/M1.md`
+  is the retired path's record. The old "environment files are user-only" clause is retired;
+  DSP-NOTES.md §0's legacy-environment conventions remain as documentation of the design's
+  origins.
 
 ## The spec of record
 `docs/DSP-NOTES.md` (math, ranges, coefficients) and `docs/PANEL.md` (controls, defaults,
@@ -102,9 +105,17 @@ different DEFAULT VALUES only (never different ids/ranges) — `source.mode` def
 Input, `ws.drive` defaults to 0 dB (was 12 dB, the instrument's value and the known
 cause of a fresh FX instance being too loud); `PresetManager` points at
 `~/Library/Audio/Presets/ZQ SFX/Broken FX` and its own `BrokenFXPresets` binary-data
-target (`snapshots/fx/`, currently just "00 Init"); the editor hides PLAY/TAPE
-(MangleView) and ENVELOPES/OSCILLATOR (EditView) and uses its own, narrower
-`designW`/`designH`.
+target (`snapshots/fx/`, 15 factory presets as of v0.35 — each lists only the
+parameter ids the effect uses). The editor hides PLAY (MangleView) and ENVELOPES
+(EditView), plus the source selector (SOURCE is forced to Input) and every control that
+only acts on a stopped/looping playback source: the stretch group, noise AMP NZ/PH NZ,
+loop/reverse/crossfade in the sample editor, and XFADE/PITCH MIX/LOOP XFADE. As of v0.35
+FX no longer hides TAPE or OSCILLATOR or the waveform/sample-drop display: TAPE gives
+`MOD SRC TAPE` something to play and records the FX chain's own stereo output; the
+sample slot feeds `MOD SRC SAMPLE` and the waveshaper's FROM SAMPLE (it never becomes
+the playback source); OSCILLATOR drives the new `MOD SRC TABLE` source. `EditView`'s
+TIME block is titled FLATTEN in FX (STRETCH itself stays hidden). FX uses its own design
+size, 1520x979 (was 1420x939), with the same 0.65x-2x resize range as the instrument.
 
 **True stereo, two engines.** The instrument is mono end to end: one `dsp::Engine`
 averages every input channel into `monoIn` and duplicates `monoOut` to every output

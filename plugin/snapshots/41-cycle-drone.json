@@ -1,6 +1,6 @@
 {
   "name": "41-cycle-drone",
-  "comment": "CYCLE mode at a real low pitch: 'convert sample to oscillator', the insane-sounds quote.",
+  "comment": "CYCLE mode at a real low pitch: a slice of the sample becomes an oscillator.",
   "params": {
     "source.mode": 1,
     "source.pitch": -12.0,

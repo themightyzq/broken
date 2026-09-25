@@ -1,6 +1,6 @@
 # PITFALLS — build-time checklist, tailored to this design
 
-> The the prototyping environment-era version of this project is retired; its conventions (Order modules,
+> The modular-environment-era version of this project is retired; its conventions (Order modules,
 > Core/Primary, DN Cancel, snapshot isolation) survive only as history in DSP-NOTES §0.
 > This checklist tracks the hazards that have actually bitten the C++/JUCE engine. Tick
 > per feature before calling it done.

@@ -38,10 +38,20 @@ public:
         sourceEditor = std::make_unique<SourceEditorPanel> (processor);
         pitchKnob = std::make_unique<Knob> (av, "source.pitch", "PITCH",
             "Transpose. Pitching down also slows \xe2\x80\x94 that's the point.", true);
+#if BROKEN_FX
+        // item 4: in FX these pick the CYCLE window FROM SAMPLE reads (CurveEditor.h),
+        // not an oscillator window (FX never plays CYCLE) -- different tooltip.
+        winPosKnob = std::make_unique<Knob> (av, "source.winpos", "POS",
+            "Where in the sample the CYCLE window starts. FROM SAMPLE (WAVESHAPER) reads "
+            "this window into the distortion curve.", false);
+        winLenKnob = std::make_unique<Knob> (av, "source.winlen", "LEN",
+            "How much of the sample the CYCLE window covers.", false);
+#else
         winPosKnob = std::make_unique<Knob> (av, "source.winpos", "POS",
             "CYCLE only: where in the sample the oscillator window starts.", false);
         winLenKnob = std::make_unique<Knob> (av, "source.winlen", "LEN",
             "CYCLE only: how much of the sample becomes the oscillator.", false);
+#endif
         inTrimKnob = std::make_unique<Knob> (av, "source.intrim", "IN TRIM",
             "Input mode: level into the chain.", false);
         playToggle = std::make_unique<TextToggle> (av, "play.hold", "PLAY",
@@ -106,9 +116,12 @@ public:
             "How the sound is modulated (AM / RM / FM / PM).");
         modWaveCombo = std::make_unique<Combo> (av, "mod.wave", params::modWaves, "WAVE",
             "What waveform modulates the sound (Osc source).");
+        // item 2: describes all five sources now that Table has joined the list
+        // (append-only, index 4 -- see Params.h).
         modSourceCombo = std::make_unique<Combo> (av, "mod.source", params::modSources, "SRC",
-            "What modulates: the internal osc, the sound itself, the sample, or the tape "
-            "- any module as modulator, by design.");
+            "What modulates: Osc (the internal tone), Self (the sound itself), Sample (the "
+            "loaded sample), Tape (the tape take), or Table (the OSCILLATOR panel's shape "
+            "- drawn, harmonics, or wave). Any module as modulator, by design.");
 
         filterKnob = std::make_unique<Knob> (av, "flt.cutoff", "FILTER",
             "Low-pass only, by design. POLES sets steepness.", true);
@@ -350,24 +363,35 @@ public:
         auto local = [] (juce::Rectangle<int> r) { return r.withPosition (0, 0); };
 
 #if BROKEN_FX
-        // PLAY (mono/poly/unison/amp ADSR/retrig/bend) and TAPE (the resample workflow)
-        // never fire in an effect -- no notes, ever (DESIGN split spec item 4). SOURCE
-        // narrows to just the live-input controls; OUTPUT takes the full column height
-        // in place of the PLAY+TAPE row, same proven widths as the instrument otherwise
-        // (mangleArea 620, outputArea 544) so layoutMangle/layoutOutput need no re-tuning.
-        auto sourceArea = area.removeFromLeft (200); area.removeFromLeft (outerGap);
+        // PLAY (mono/poly/unison/amp ADSR/retrig/bend) never fires in an effect -- no
+        // notes, ever. TAPE is back (item 5: REC/FLIP/SAVE/TAKE all work on the master
+        // output tap regardless of source mode), stacked full-width above OUTPUT in the
+        // right column instead of split beside PLAY. SOURCE widens 200->300 (item 4: the
+        // waveform + WINDOW knobs need the instrument's own SOURCE width) and the FX
+        // design width grows by the same 100 px (PluginEditor.{h,cpp}) so MANGLE (620) and
+        // OUTPUT (544) keep their tuned widths unchanged.
+        auto sourceArea = area.removeFromLeft (300); area.removeFromLeft (outerGap);
         auto mangleArea = area.removeFromLeft (620); area.removeFromLeft (outerGap);
-        auto outputArea = area;
+        auto rightArea  = area;
+
+        auto tapeArea = rightArea.removeFromTop (playTapeRowH);
+        rightArea.removeFromTop (outerGap);
+        auto outputArea = rightArea;
 
         playBlock.setVisible (false);
-        tapeBlock.setVisible (false);
+        // "lit when TAPE is the active SOURCE" is the one TAPE control that only means
+        // something for the Tape *source* mode -- FX's source is always Input, so the
+        // lamp alone is hidden; REC/FLIP/SAVE/TAKE all still work (item 5).
+        tapeLight.setVisible (false);
 
         sourceBlock.setBounds (sourceArea);
         mangleBlock.setBounds (mangleArea);
+        tapeBlock.setBounds (tapeArea);
         outputBlock.setBounds (outputArea);
 
         layoutSourceFX (local (sourceArea));
         layoutMangle (local (mangleArea));
+        layoutTape (local (tapeArea));
         layoutOutput (local (outputArea));
 #else
         auto sourceArea = area.removeFromLeft (300); area.removeFromLeft (outerGap);
@@ -509,32 +533,35 @@ private:
     }
 
 #if BROKEN_FX
-    // FX build's SOURCE column: the source is always the live input (never Sample/Cycle/
-    // Osc/Noise/Tape), so only the controls that act on it stay — IN TRIM, PITCH, FINE,
-    // TUNE, and the IN tuner (DESIGN split spec item 4). Everything else that layoutSource
-    // would have placed is force-hidden here (once per resize; cheap and idempotent).
+    // FX build's SOURCE column: the engine's source is always the live input (never
+    // Sample/Cycle/Osc/Noise/Tape), but item 4 gives FX its own sample slot — a loaded
+    // sample feeds MOD SRC SAMPLE (SourceEngine::tickModSource) and the waveshaper's FROM
+    // SAMPLE (CurveEditor::grabCurveFromSample) even though it never plays as the SOURCE
+    // itself. So the waveform display and the CYCLE WINDOW pos/len knobs (which pick the
+    // slice FROM SAMPLE reads) come back too, stacked above the PITCH/FINE/TUNE/IN TRIM
+    // cluster that already worked in FX; the IN tuner stays pinned at the bottom.
+    // sourceMode/PLAY/OSC WAVE/OSC MODE/AMP NZ/PH NZ still never apply (source is forced
+    // to Input) and stay force-hidden here (once per resize; cheap and idempotent).
     void layoutSourceFX (juce::Rectangle<int> r)
     {
         sourceMode->setVisible (false);
-        waveform->setVisible (false);
         playToggle->setVisible (false);
         oscWaveCombo->setVisible (false);
         oscModeCombo->setVisible (false);
         noiseAmpKnob->setVisible (false);
         noisePhaseKnob->setVisible (false);
-        winPosKnob->setVisible (false);
-        winLenKnob->setVisible (false);
 
         r = r.reduced (6);
         r.removeFromTop (headerPad);
 
-        // Centre the (much shorter than the instrument's) control cluster in the space
-        // above the pinned tuner, instead of letting it hug the header and leave one
-        // big void above the tuner (v1 FX screenshot review).
-        constexpr int clusterH = pitchBoxH + 10 + 30 + 16 + sBoxH;
-        constexpr int tunerH = 46;
-        const int topGap = juce::jmax (0, (r.getHeight() - tunerH - clusterH) / 2);
-        r.removeFromTop (topGap);
+        waveform->setBounds (r.removeFromTop (150));
+        r.removeFromTop (8);
+
+        auto winRow = r.removeFromTop (sBoxH);
+        int winColW = winRow.getWidth() / 2;
+        winPosKnob->setBounds (winRow.removeFromLeft (winColW).withSizeKeepingCentre (juce::jmin (winColW, 70), sBoxH));
+        winLenKnob->setBounds (winRow.withSizeKeepingCentre (juce::jmin (winColW, 70), sBoxH));
+        r.removeFromTop (10);
 
         auto pitchRow = r.removeFromTop (pitchBoxH);
         {
@@ -548,7 +575,7 @@ private:
         inTrimKnob->setBounds (r.removeFromTop (sBoxH).withSizeKeepingCentre (geom::knobS, sBoxH));
 
         // IN tuner pinned to the bottom, same as the instrument layout
-        tunerIn->setBounds (r.removeFromBottom (tunerH));
+        tunerIn->setBounds (r.removeFromBottom (46));
     }
 #endif
 
@@ -749,8 +776,16 @@ private:
             bool input = mode == 4; // Input
             bool tape  = mode == 5; // Tape
 
+#if BROKEN_FX
+            // item 4: POS/LEN always matter in FX (FROM SAMPLE reads them regardless of
+            // the hidden, forced-Input source.mode), unlike the instrument where they only
+            // do anything in Cycle mode.
+            winPosKnob->setActive (true);
+            winLenKnob->setActive (true);
+#else
             winPosKnob->setActive (cycle);
             winLenKnob->setActive (cycle);
+#endif
             inTrimKnob->setActive (input);
             playToggle->setEnabled (! input);
             playToggle->setAlpha (input ? 0.4f : 1.0f);
@@ -775,7 +810,7 @@ private:
             noiseAmpKnob->setVisible (noise);
             noisePhaseKnob->setVisible (noise);
 #endif
-            juce::ignoreUnused (osc, noise);
+            juce::ignoreUnused (osc, noise, cycle);
 
             if (tape != tapeLight.on)
             {

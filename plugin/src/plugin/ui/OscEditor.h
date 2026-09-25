@@ -278,7 +278,7 @@ private:
         repaint();
     }
 
-    // "Convert sample to oscillator" (RESEARCH.md quote #2 — the artist's own phrase): fill
+    // "Convert sample to oscillator" (RESEARCH.md quote #2 — the classic phrase for it): fill
     // the 64 points from the current CYCLE window of the loaded sample, peak-normalized.
     void grabCycleFromSample()
     {

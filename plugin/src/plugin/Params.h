@@ -40,7 +40,11 @@ inline const juce::StringArray oscWaves     { "Sine", "Tri", "Saw", "Square", "B
 inline const juce::StringArray oscModes     { "Wave", "Harmonic", "Draw" };
 inline const juce::StringArray modModes     { "AM", "RM", "FM", "PM" };
 inline const juce::StringArray modWaves     { "Sine", "Bell", "Odd" };
-inline const juce::StringArray modSources   { "Osc", "Self", "Sample", "Tape" };
+// index 4 "Table" appended (v0.35): the modulator reads the OSCILLATOR panel's current
+// one-cycle shape (Wave/Harmonic/Draw, whichever osc.mode is selected) as a looping
+// wavetable at mod.freq. Append-only -- never reorder or rename, preset automation
+// keys on index.
+inline const juce::StringArray modSources   { "Osc", "Self", "Sample", "Tape", "Table" };
 inline const juce::StringArray wsCurves     { "Linear", "HardClip", "SoftSat", "Fold",
                                               "Asym", "Stair", "Sine", "InvertS",
                                               "Random", "Custom" };

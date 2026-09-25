@@ -6,6 +6,7 @@
 #include <array>
 #include "SourceEngine.h"
 #include "TapeShift.h"
+#include "InputVarispeed.h"
 #include "Flatten.h"
 #include "Modulator.h"
 #include "Waveshaper.h"
@@ -43,7 +44,7 @@ struct VoiceParams
     float modAmount = 0.0f, modFreq = 55.0f, fmIndex = 2.0f;
     int   modMode = 1;          // 0 AM, 1 RM, 2 FM, 3 PM
     int   modWave = 1;          // Modulator wave index: 0 sine, 1 bell, 2 odd
-    int   modSource = 0;        // 0 Osc, 1 Self, 2 Sample, 3 Tape
+    int   modSource = 0;        // 0 Osc, 1 Self, 2 Sample, 3 Tape, 4 Table (OSCILLATOR shape)
     float pitchMix = 1.0f;
 
     bool  wsOn = true;
@@ -82,8 +83,10 @@ class Voice
 public:
     void prepare (double sampleRate)
     {
+        sr = sampleRate;
         src.prepare (sampleRate);
         liveShift.prepare (sampleRate);
+        inputFM.prepare (sampleRate);
         flat.prepare (sampleRate);
         mod.prepare (sampleRate);
         ws.prepare (sampleRate);
@@ -158,6 +161,11 @@ public:
 
     void setSampleData (const float* d, size_t n, double dsr) { src.setSampleData (d, n, dsr); }
     void setTapeData (const float* d, size_t n, double dsr)   { src.setTapeData (d, n, dsr); }
+    // Table mod source (DSP-NOTES §2a "Table"): the table itself is owned and rebuilt by
+    // Engine (one per Engine, not per voice -- rebuilding 4096 entries per voice per block
+    // would be 6x the work for an identical result); the Voice only holds a const pointer
+    // and its own read phase, exactly like the Sample/Tape mod sources' modPhase.
+    void setModTable (const float* data, size_t len) { modTableData = data; modTableLen = len; }
     void setDetuneSemis (float st) { detuneSemis = st; }
     void setGainComp (float g)     { gainComp = g; }
 
@@ -195,6 +203,7 @@ public:
             case 1:  m = lastSourceSample; break;
             case 2:  m = src.tickModSource (false, vp.modFreq); break;
             case 3:  m = src.tickModSource (true,  vp.modFreq); break;
+            case 4:  m = tickTableMod(); break;
             default: m = mod.tick(); break;
         }
         // every mode's math is defined on a +-1 modulator (DSP-NOTES §2). The Self /
@@ -209,13 +218,25 @@ public:
         mod.setAmount (modAmt);
 
         // FM modulates source rate; the source runs at note pitch + detune (+ aux pitch)
-        src.setRateMod (vp.modOn && vp.modMode == 2 ? vp.fmIndex * modAmt * m : 0.0f);
+        const bool fmActive = vp.modOn && vp.modMode == 2;
+        const float rFM = fmActive ? vp.fmIndex * modAmt * m : 0.0f;
+        src.setRateMod (rFM); // SourceEngine::processSample ignores this for Input (see below)
         if (vp.auxDest == 4)
             src.setTranspose (vp.sourcePitch + detuneSemis + auxRaw * 12.0f);
 
         float x = src.processSample (input);
         if (vp.sourceMode == SourceEngine::Input)
+        {
             x = liveShift.processSample (x);
+            // FM on Input (docs/DSP-NOTES.md §14a): the Input source ignores setRateMod
+            // above (it has no "rate" to modulate -- it is the live signal itself), so FM
+            // was silently dead on Input. InputVarispeed applies the SAME r as every other
+            // source via a rate-modulated read head on a short delay line -- true varispeed
+            // of the live signal. It stays after liveShift so the dry/MIX leg sees the same
+            // source signal the instrument's FM affects (lastSourceSample below is set from
+            // this x, matching the source-then-mangle ordering used everywhere else).
+            x = inputFM.processSample (x, rFM, fmActive);
+        }
         if (vp.flatOn)
             x = flat.processSample (x);
         lastSourceSample = x; // TAP A for the IN tuner: what enters the mangle
@@ -259,8 +280,23 @@ public:
     }
 
 private:
+    // Table mod source (DSP-NOTES §2a "Table"): own phase over the Engine-owned table,
+    // exactly like SourceEngine::tickModSource's modPhase for Sample/Tape.
+    float tickTableMod()
+    {
+        if (modTableData == nullptr || modTableLen < 2) return 0.0f;
+        modTablePhase += (double) vp.modFreq / sr;
+        modTablePhase -= std::floor (modTablePhase);
+        const double t = modTablePhase * (double) modTableLen;
+        const auto i0 = (size_t) t % modTableLen;
+        const auto i1 = (i0 + 1) % modTableLen;
+        const float frac = (float) (t - std::floor (t));
+        return modTableData[i0] + frac * (modTableData[i1] - modTableData[i0]);
+    }
+
     SourceEngine src;
     TapeShift liveShift;
+    InputVarispeed inputFM;
     Flatten flat;
     Modulator mod;
     Waveshaper ws;
@@ -271,6 +307,7 @@ private:
     DelayLine dly;
 
     VoiceParams vp;
+    double sr = 48000.0;
     int note = 48;
     float velocity = 1.0f;
     float detuneSemis = 0.0f;
@@ -278,5 +315,8 @@ private:
     float lastSourceSample = 0.0f;
     float lastDrySample = 0.0f;
     bool freeRun = false;
+    const float* modTableData = nullptr;
+    size_t modTableLen = 0;
+    double modTablePhase = 0.0;
 };
 } // namespace broken::dsp

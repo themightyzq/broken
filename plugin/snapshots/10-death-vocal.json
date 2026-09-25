@@ -1,6 +1,6 @@
 {
   "name": "10-death-vocal",
-  "comment": "the artist's documented modulator trick: RM against a low bell tone. Load a vocal or guitar sample.",
+  "comment": "The classic death-vocal modulator trick: RM against a low bell tone. Load a vocal or guitar sample.",
   "params": {
     "source.mode": 0,
     "mod.on": 1,
