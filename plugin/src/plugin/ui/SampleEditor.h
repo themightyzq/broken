@@ -15,6 +15,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Theme.h"
 #include "Controls.h"
+#include "HitPad.h"
 #include "BrokenLookAndFeel.h"
 #include "../PluginProcessor.h"
 #include "../Params.h"
@@ -875,7 +876,14 @@ public:
 
         styleCombo = std::make_unique<Combo> (processor.apvts, "sample.loopstyle", params::loopStyles,
             "STYLE", "Wrap back to the start, or bounce end-to-end.");
-        addAndMakeVisible (styleCombo.get());
+        // This window applies no scale transform (unlike the main editor), so its floor
+        // is a plain 22px on real screen pixels -- but Combo::resized() still reserves
+        // 13px for the "STYLE" label first, leaving the actual ComboBox only 34-13=21px
+        // tall against the 34px this control is given below, 1px under the floor. Padded
+        // the same way as the main editor's labelled combos (HitPad.h): the combo keeps
+        // its own 92x34 size, centred in a taller invisible pad.
+        styleComboPad = std::make_unique<HitPad> (*styleCombo, [this] { styleCombo->box.showPopup(); });
+        addAndMakeVisible (styleComboPad.get());
 
         revToggle = std::make_unique<TextToggle> (processor.apvts, "sample.rev", "REV",
             "Reverses the source, Soundminer-style. Works with everything "
@@ -895,7 +903,7 @@ public:
         // still matter -- verified against SourceEngine::tickModSource/regionBounds,
         // which the Sample mod source and FROM SAMPLE both read through.
         loopToggle->setVisible (false);
-        styleCombo->setVisible (false);
+        styleComboPad->setVisible (false);
         revToggle->setVisible (false);
         xfadeKnob->setVisible (false);
 #endif
@@ -1036,7 +1044,10 @@ private:
 #else
         loopToggle->setBounds (bottomBar.removeFromLeft (56).withSizeKeepingCentre (52, 24));
         bottomBar.removeFromLeft (10);
-        styleCombo->setBounds (bottomBar.removeFromLeft (96).withSizeKeepingCentre (92, 34));
+        {
+            auto styleArea = bottomBar.removeFromLeft (96);
+            styleComboPad->setPadded (styleArea.withSizeKeepingCentre (92, 40), 92, 34);
+        }
         bottomBar.removeFromLeft (10);
         revToggle->setBounds (bottomBar.removeFromLeft (50).withSizeKeepingCentre (46, 24));
         bottomBar.removeFromLeft (14);
@@ -1154,6 +1165,7 @@ private:
     juce::TextButton zoomSelButton { "ZOOM SEL" };
     std::unique_ptr<TextToggle> loopToggle;
     std::unique_ptr<Combo> styleCombo;
+    std::unique_ptr<HitPad> styleComboPad;
     std::unique_ptr<TextToggle> revToggle;
     std::unique_ptr<Knob> xfadeKnob;
     std::unique_ptr<WaveArea> waveArea;

@@ -1361,3 +1361,83 @@ plus my own findings on the same shot.
   (m) fails (-300 dB). Instrument Input mode via `broken_cli` (PITCH +7, MIX 1.0 vs 0.5 on a
   drums+bass signal): -1.97 dB difference. ctest 115/115; `broken_fx_check` 0 failures;
   `broken_fx_ui_snapshot` read at 1520x979 and 0.65x.
+
+## 2026-09-25 - v0.35.1 follow-up: 22 px hit targets at the 0.65x floor
+- **New gate: `broken_ui_snapshot --hit-audit` / `broken_fx_ui_snapshot --hit-audit`**
+  (`src/cli/ui_snapshot.cpp`). Constructs the editor at the house 0.65x resize floor
+  (`BrokenEditor::designW/designH * 0.65`, exactly what the constrainer clamps to),
+  recursively walks every visible `Button`/`ComboBox`/`Slider` (and every `HitPad`, see
+  below), and prints any whose on-screen bounds — computed via `getLocalArea()` so no
+  real screen peer is needed — are under 22px in width or height (../CLAUDE.md #6). Also
+  builds a standalone `SourceEditorPanel` (the pop-out window's content: SampleEditor and,
+  for the instrument, OscEditor) at a FRESH `BrokenProcessor` and that window's own
+  640x340 minimum, and audits it too — that window applies no scale transform, so its
+  floor is a plain 22px against its hardcoded pixel layout rather than a
+  design-coordinate conversion. The instrument's main-editor pass additionally forces
+  `source.mode` to Osc (pumping `Timer::callPendingTimersSynchronously` after
+  `Thread::sleep`, since this target builds with `JUCE_MODAL_LOOPS_PERMITTED=0`) to reach
+  MangleView's mode-gated `oscWaveCombo`/`oscModeCombo`, which the default Sample-mode
+  pass never walks at all (hidden components are skipped, not measured at 0px). The
+  pop-out audit uses its OWN processor rather than reusing the main editor's: an earlier
+  draft shared one processor across both, and the main-editor pass leaving `source.mode`
+  on Osc silently made the "Sample/Cycle/Tape view" pop-out check default into OscEditor
+  too, hiding a real violation (see below) behind a false "0 violations" — caught by
+  cross-checking the printed counts against what the source implied, not by trusting the
+  first green run.
+- **Before fixing anything, the audit found the CHANGELOG's own "still under 22px" list
+  (2026-09-23 entry above) was an undercount, not just incomplete.** Measuring the actual
+  `ComboBox` inside each labelled `Combo` (not the wrapper's total given bounds) showed
+  `Combo::resized()` reserves 13px for the title label first, so a "33px design height"
+  combo's real clickable box was only 33-13=20 design px — under half the accepted
+  "33px is basically fine" framing. Measured-before totals: instrument 32 violations in
+  the main editor (Sample-mode pass) plus 1 in the pop-out (`STYLE`, `SampleEditor.h`,
+  92x21 real screen px — 1px under the floor, on a window with no scale transform to
+  blame); FX build 23 violations in the main editor, pop-out already clean. Full
+  before/after audit text and PNGs are listed under Verification below.
+- **New `plugin/src/plugin/ui/HitPad.h`**: pads a control's clickable area to a comfortable
+  36 design px (`padFloor`, >=34 needed, +2 margin for rounding) WITHOUT changing how big
+  it looks. `TextToggle`/`TextButton`/`ComboBox` all paint their entire given bounds as the
+  visible control (unlike `LitToggle`'s LED, which already draws at a fixed small size
+  regardless of its bounds — MangleView.h's pre-existing `lightRowH` technique), so
+  `HitPad` instead keeps the control at its own small size, centred inside a larger
+  invisible host; JUCE routes a whole mouseDown/drag/up gesture to whichever component was
+  hit at mouseDown, so a click starting on the control itself is handled by the control
+  directly (no double-firing) and only a click starting in the padding reaches
+  `HitPad::mouseUp`, which fires the same action (`button.triggerClick()` /
+  `combo.showPopup()`) a direct click would.
+- **Fixed with `HitPad`** (padded, unchanged visual size): `MangleView.h` — `sourceMode`,
+  `playToggle`, `oscWaveCombo`, `oscModeCombo`, `tuneButton` (both instrument and FX
+  layouts), `curveCombo`, `modModeCombo`, `modWaveCombo`, `modSourceCombo`, `polesCombo`,
+  `delayInvToggle`, `monoBtn`/`polyBtn` (26px tall — not in the old list; caught only by
+  measuring), `unisonToggle`, `voiceRetrig`, `bypassToggle`. `EditView.h` — `fltExt`,
+  `auxDest`, `oscMode`, `oscWave`, `sawButton`/`squareButton`/`flatShapeButton`,
+  `sourceExt` (both layouts), `rndButton`, `copyButton`, `invType`, `stretchOn`,
+  `flattenOn`. `PresetBar.h` — `prevButton`/`nextButton`/`revealButton` (width only; the
+  bar's own height already cleared the floor). `WaveformDisplay.h` — `editButton` (height
+  only; width was already 34). `SampleEditor.h` — `styleCombo` in the pop-out window (same
+  13px-label cause as the main editor's combos, just against a real 22px floor instead of
+  a design-coordinate one; padded to 40 real px). In every case the row/column that hosts
+  the pad had, or was given, enough slack to fit the larger pad without shrinking or
+  overlapping a neighbour; `MangleView.h`'s `mangleFixedH`/`playFixedH` slack budgets and
+  `EditView.h`'s `topRow`/`stackH` were adjusted where the pad genuinely needed more room
+  than the row had.
+- **Fixed directly** (no HitPad): `CurveEditor.h`'s `fromSampleButton` — its 20px strip
+  sits directly below the curve plot's own drag surface, so padding upward would have
+  stolen click area from curve-dragging; `buttonStripH` grew 20->34 for real instead
+  (`drawScreen`/`plotArea` trimmed by the same amount), trading ~14px of plot height most
+  panel sizes won't miss for a real, unambiguous 34px-tall button.
+- **Verification.** `cmake --build build --config Release --parallel 4`: 0 errors, 0 new
+  warnings. `ctest --test-dir build -C Release`: **115/115**. `pluginval` strictness 5
+  SUCCESS on both `Broken.vst3` and `Broken FX.vst3` (exercises opening the editor, so a
+  crash from the `HitPad` wiring would have shown up here).
+  - `broken_ui_snapshot --hit-audit`: main editor (Sample mode) 0, main editor (Osc mode)
+    0, pop-out (Sample/Cycle/Tape view) 0, pop-out (Osc view) 0 — **0 total**, down from
+    32 (main editor) + 1 (pop-out) = 33 before.
+  - `broken_fx_ui_snapshot --hit-audit`: main editor 0, pop-out 0 — **0 total**, down
+    from 23.
+  - Nothing is left under 22px in either build.
+  - Both builds' PNGs read and compared, before vs after, at default size and at
+    988x666/988x636 (0.65x): nothing overlapping, clipped, or visibly misaligned — the
+    only differences are the deliberately larger hit boxes (invisible except for
+    `fromSampleButton`, which is now visibly taller) and a few px of row reflow absorbed
+    by existing slack.

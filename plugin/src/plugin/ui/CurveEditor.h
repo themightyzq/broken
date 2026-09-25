@@ -98,7 +98,7 @@ public:
         auto b = getLocalBounds().toFloat();
         // glass covers only the plot; the FROM SAMPLE strip below stays panel, so the
         // button no longer sits ON the screen (v0.29 screenshot review)
-        BrokenLookAndFeel::drawScreen (g, b.withTrimmedBottom (20.0f));
+        BrokenLookAndFeel::drawScreen (g, b.withTrimmedBottom ((float) buttonStripH));
 
         // MUST be the same rectangle paintAt() edits, or the curve you see sits offset
         // from the curve you can touch
@@ -159,15 +159,26 @@ public:
 
     void resized() override
     {
-        fromSampleButton.setBounds (buttonStrip().removeFromRight (96).reduced (1));
+        // reduced (1, 0): keep the 1px horizontal margin from the v0.29 review, but not
+        // vertically -- the strip is now exactly buttonStripH (34, the house floor) tall,
+        // and shrinking it further would put the button back under 22px on screen at the
+        // 0.65x resize floor.
+        fromSampleButton.setBounds (buttonStrip().removeFromRight (96).reduced (1, 0));
     }
 
     // The button lives BELOW the plot, never on top of it: it used to sit inside the
     // drawable area, so the bottom-right corner of the curve could not be drawn.
-    juce::Rectangle<int> buttonStrip() const { return getLocalBounds().removeFromBottom (20); }
+    // buttonStripH grew 20->34 (the house accessibility floor, ../../CLAUDE.md #6 /
+    // PluginEditor.cpp's resize-floor comment) so FROM SAMPLE's own bounds clear 22px on
+    // screen at the 0.65x resize floor; HitPad-style padding isn't usable here without
+    // stealing hit area from the plot's own drag surface right above it, so this instead
+    // grows the strip for real, trimming the same amount off the plot below it (which
+    // stays generously large at every practical panel width).
+    static constexpr int buttonStripH = 34;
+    juce::Rectangle<int> buttonStrip() const { return getLocalBounds().removeFromBottom (buttonStripH); }
     juce::Rectangle<float> plotArea() const
     {
-        return getLocalBounds().withTrimmedBottom (20).toFloat().reduced (3.0f);
+        return getLocalBounds().withTrimmedBottom (buttonStripH).toFloat().reduced (3.0f);
     }
 
     void mouseDown (const juce::MouseEvent& e) override

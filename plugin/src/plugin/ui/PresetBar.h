@@ -5,6 +5,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "Theme.h"
+#include "HitPad.h"
 #include "../PluginProcessor.h"
 
 namespace broken::ui
@@ -16,19 +17,32 @@ class PresetBar : public juce::Component,
 public:
     explicit PresetBar (BrokenProcessor& p) : processor (p)
     {
-        auto style = [this] (juce::TextButton& b, const juce::String& text,
-                             const juce::String& tip, std::function<void()> action)
+        // `style` sets text/tooltip/onClick and parents `b` directly under the bar --
+        // used for the buttons that are already >=22px on screen at the resize floor.
+        // `styleNoAdd` does the same WITHOUT parenting `b`, for the three that need
+        // padding instead (their own bounds stay too narrow on screen; see the HitPads
+        // below and HitPad.h): the caller adds the pad, and HitPad's own constructor
+        // parents `b` under the pad.
+        auto styleNoAdd = [] (juce::TextButton& b, const juce::String& text,
+                              const juce::String& tip, std::function<void()> action)
         {
             b.setButtonText (text);
             b.setTooltip (tip);
             b.onClick = std::move (action);
+        };
+        auto style = [this, &styleNoAdd] (juce::TextButton& b, const juce::String& text,
+                             const juce::String& tip, std::function<void()> action)
+        {
+            styleNoAdd (b, text, tip, std::move (action));
             addAndMakeVisible (b);
         };
 
-        style (prevButton, "<", "Step to the previous preset.",
+        styleNoAdd (prevButton, "<", "Step to the previous preset.",
                [this] { stepPreset (-1); });
-        style (nextButton, ">", "Step to the next preset.",
+        addAndMakeVisible (prevButtonPad);
+        styleNoAdd (nextButton, ">", "Step to the next preset.",
                [this] { stepPreset (1); });
+        addAndMakeVisible (nextButtonPad);
         style (saveButton, "SAVE",
                "Saves the current sound to your own preset folder.",
                [this] { promptSave(); });
@@ -43,8 +57,9 @@ public:
         // screen-reader names: the panel has a second SAVE (tape) and RND (curve)
         saveButton.setTitle ("SAVE PRESET");
         rndButton.setTitle ("RANDOMIZE");
-        style (revealButton, "...", "Preset actions: reveal folder, overwrite, rename, delete.",
+        styleNoAdd (revealButton, "...", "Preset actions: reveal folder, overwrite, rename, delete.",
                [this] { showOverflowMenu(); });
+        addAndMakeVisible (revealButtonPad);
 
         presetBox.setTooltip ("Factory presets are built into the plugin; your own saved "
                               "ones appear under USER. A * means you've changed something "
@@ -75,12 +90,19 @@ public:
 
     void resized() override
     {
+        // prevButton/nextButton/revealButton pad from their native 22/22/26px width to
+        // the house floor (>=34px on screen at the resize minimum -- the bar's own height
+        // is already a comfortable 34 design px here, so only width was short); see
+        // HitPad.h. Their own drawn size (second setPadded argument) is unchanged.
         auto r = getLocalBounds().reduced (2, 3);
-        prevButton.setBounds (r.removeFromLeft (22));
+        auto prevArea = r.removeFromLeft (34);
+        prevButtonPad.setPadded (prevArea, 22, prevArea.getHeight());
         r.removeFromLeft (2);
-        nextButton.setBounds (r.removeFromLeft (22));
+        auto nextArea = r.removeFromLeft (34);
+        nextButtonPad.setPadded (nextArea, 22, nextArea.getHeight());
         r.removeFromLeft (4);
-        revealButton.setBounds (r.removeFromRight (26));
+        auto revealArea = r.removeFromRight (34);
+        revealButtonPad.setPadded (revealArea, 26, revealArea.getHeight());
         r.removeFromRight (3);
         undoButton.setBounds (r.removeFromRight (52));
         r.removeFromRight (3);
@@ -286,6 +308,9 @@ private:
     BrokenProcessor& processor;
     juce::ComboBox presetBox;
     juce::TextButton prevButton, nextButton, saveButton, revealButton, rndButton, undoButton;
+    HitPad prevButtonPad   { prevButton,   [this] { prevButton.triggerClick(); } };
+    HitPad nextButtonPad   { nextButton,   [this] { nextButton.triggerClick(); } };
+    HitPad revealButtonPad { revealButton, [this] { revealButton.triggerClick(); } };
     std::atomic<bool> dirtyFlag { false }; // parameterChanged can arrive off the message thread
     bool dirty = false;
     bool ignoreBoxChange = false;

@@ -9,6 +9,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "Theme.h"
 #include "Controls.h"
+#include "HitPad.h"
 #include "CurveEditor.h"
 #include "HarmonicEditor.h"
 #include "../PluginProcessor.h"
@@ -62,9 +63,10 @@ public:
         // moved here from the old FILTER block (README: ENVELOPES row FLT)
         fltExt = std::make_unique<TextToggle> (av, "flt.ext", "FLOOR EXT",
             "Extends the filter's low-end floor below the era-correct 500 Hz.");
+        fltExtPad = std::make_unique<HitPad> (fltExt->button, [this] { fltExt->button.triggerClick(); });
         for (auto* c : { (juce::Component*) fenvA.get(), (juce::Component*) fenvD.get(),
                           (juce::Component*) fenvS.get(), (juce::Component*) fenvR.get(),
-                          (juce::Component*) fltEnvAmt.get(), (juce::Component*) fltExt.get() })
+                          (juce::Component*) fltEnvAmt.get(), (juce::Component*) fltExtPad.get() })
             envelopesBlock.addAndMakeVisible (c);
 
         auxA = std::make_unique<Knob> (av, "aux.a", "A", "Aux envelope attack.", false);
@@ -74,8 +76,9 @@ public:
         auxAmount = std::make_unique<Knob> (av, "aux.amount", "AMT", "Aux envelope amount.", false);
         auxDest = std::make_unique<Combo> (av, "aux.dest", params::auxDests, "DEST",
             "Patch the aux envelope onto FilterCut / ResFreq / InvMix / ModAmt / Pitch.");
+        auxDestPad = std::make_unique<HitPad> (*auxDest, [this] { auxDest->box.showPopup(); });
         juce::Component* const auxComps[] = { auxA.get(), auxD.get(), auxS.get(), auxR.get(),
-                                               auxAmount.get(), auxDest.get() };
+                                               auxAmount.get(), auxDestPad.get() };
         for (auto* c : auxComps)
             envelopesBlock.addAndMakeVisible (c);
 
@@ -106,8 +109,10 @@ public:
         oscWave = std::make_unique<Combo> (av, "source.oscwave", params::oscWaves, "OSC WAVE",
             "Waveform used by the OSC source mode.");
 #endif
-        oscillatorBlock.addAndMakeVisible (oscMode.get());
-        oscillatorBlock.addAndMakeVisible (oscWave.get());
+        oscModePad = std::make_unique<HitPad> (*oscMode, [this] { oscMode->box.showPopup(); });
+        oscWavePad = std::make_unique<HitPad> (*oscWave, [this] { oscWave->box.showPopup(); });
+        oscillatorBlock.addAndMakeVisible (oscModePad.get());
+        oscillatorBlock.addAndMakeVisible (oscWavePad.get());
 
         sawButton.setTooltip ("Set all 64 partials to the classic 1/k sawtooth recipe.");
         sawButton.onClick = [&av]
@@ -123,7 +128,7 @@ public:
                 }
             }
         };
-        oscillatorBlock.addAndMakeVisible (sawButton);
+        oscillatorBlock.addAndMakeVisible (sawButtonPad);
 
         squareButton.setTooltip ("Set odd partials to 1/k, mute the even partials.");
         squareButton.onClick = [&av]
@@ -139,7 +144,7 @@ public:
                 }
             }
         };
-        oscillatorBlock.addAndMakeVisible (squareButton);
+        oscillatorBlock.addAndMakeVisible (squareButtonPad);
 
         flatShapeButton.setTooltip ("Set all 64 partials to full amplitude.");
         flatShapeButton.onClick = [&av]
@@ -154,7 +159,7 @@ public:
                 }
             }
         };
-        oscillatorBlock.addAndMakeVisible (flatShapeButton);
+        oscillatorBlock.addAndMakeVisible (flatShapeButtonPad);
 
         cycleXfade = std::make_unique<Knob> (av, "source.xfade", "XFADE",
             "CYCLE seam crossfade, 0\xe2\x80\x93" "16 samples.", false);
@@ -163,6 +168,7 @@ public:
             "About 50% with FINE detune gives a chorus.", false);
         sourceExt = std::make_unique<TextToggle> (av, "source.ext", "PITCH EXT",
             "Extends PITCH range to \xc2\xb1" "48 semitones.");
+        sourceExtPad = std::make_unique<HitPad> (sourceExt->button, [this] { sourceExt->button.triggerClick(); });
         // moved here from the old COLOUR/NOISE block, relabelled "LOOP XFADE" (README:
         // OSCILLATOR panel) — same id (sample.xfadeshape)
         xfadeShape = std::make_unique<Combo> (av, "sample.xfadeshape", params::xfadeShapes, "LOOP XFADE",
@@ -173,7 +179,7 @@ public:
         // hidden under BROKEN_FX. PITCH MIX and PITCH EXT stay: PITCH is live on Input via
         // TapeShift (DSP-NOTES §14) and PITCH MIX blends it with the live signal (§2a).
         juce::Component* const cycleOscComps[] = { cycleXfade.get(), pitchMix.get(),
-                                                    sourceExt.get(), xfadeShape.get() };
+                                                    sourceExtPad.get(), xfadeShape.get() };
         for (auto* c : cycleOscComps)
             oscillatorBlock.addAndMakeVisible (c);
 #if BROKEN_FX
@@ -206,7 +212,7 @@ public:
                 seedParam->endChangeGesture();
             }
         };
-        waveshaperBlock.addAndMakeVisible (rndButton);
+        waveshaperBlock.addAndMakeVisible (rndButtonPad);
 
         copyButton.setTooltip ("Copy the selected curve into the editable points as a starting shape.");
         copyButton.onClick = [this, &av]
@@ -224,7 +230,7 @@ public:
                 }
             }
         };
-        waveshaperBlock.addAndMakeVisible (copyButton);
+        waveshaperBlock.addAndMakeVisible (copyButtonPad);
 
         // ---------------- MODULE TRIMS: FM / DELAY / RESONATOR / INVERT / NOISE ----------------
         fmIndex = std::make_unique<Knob> (av, "mod.fmindex", "FM INDEX", "FM modulation index.", false);
@@ -242,7 +248,8 @@ public:
 
         invType = std::make_unique<Combo> (av, "inv.type", params::invTypes, "TYPE",
             "Spectral inverter flavour: A mirrors around Nyquist, B makes two quarter-rate images.");
-        trimsBlock.addAndMakeVisible (invType.get());
+        invTypePad = std::make_unique<HitPad> (*invType, [this] { invType->box.showPopup(); });
+        trimsBlock.addAndMakeVisible (invTypePad.get());
 
         noiseAmp = std::make_unique<Knob> (av, "noise.amp", "AMP NZ",
             "Noise source: amplitude randomness. 0 with PH NZ 0 = a plain sine.", false);
@@ -268,6 +275,7 @@ public:
         stretchOn = std::make_unique<TextToggle> (av, "stretch.on", "STRETCH",
             "Segment-repeat time stretch, by design Stretcher. Tune FREQ to the "
             "material or enjoy the artifacts.");
+        stretchOnPad = std::make_unique<HitPad> (stretchOn->button, [this] { stretchOn->button.triggerClick(); });
         stretchAmount = std::make_unique<Knob> (av, "stretch.amount", "AMOUNT",
             "Positive stretches, negative compresses.", false);
         stretchFreq = std::make_unique<Knob> (av, "stretch.freq", "FREQ",
@@ -276,14 +284,15 @@ public:
             "Leaves the attack untouched before stretching starts.", false);
         flattenOn = std::make_unique<TextToggle> (av, "flat.on", "FLATTEN",
             "Envelope Removal: levels out the sound's own dynamics, like heavy compression.");
+        flattenOnPad = std::make_unique<HitPad> (flattenOn->button, [this] { flattenOn->button.triggerClick(); });
         flatResp = std::make_unique<Knob> (av, "flat.response", "RESP",
             "How fast FLATTEN tracks the level.", false);
-        juce::Component* const timeComps[] = { stretchOn.get(), stretchAmount.get(), stretchFreq.get(),
-                                                stretchPredelay.get(), flattenOn.get(), flatResp.get() };
+        juce::Component* const timeComps[] = { stretchOnPad.get(), stretchAmount.get(), stretchFreq.get(),
+                                                stretchPredelay.get(), flattenOnPad.get(), flatResp.get() };
         for (auto* c : timeComps)
             timeBlock.addAndMakeVisible (c);
 #if BROKEN_FX
-        stretchOn->setVisible (false);
+        stretchOnPad->setVisible (false);
         stretchAmount->setVisible (false);
         stretchFreq->setVisible (false);
         stretchPredelay->setVisible (false);
@@ -347,6 +356,13 @@ private:
     static constexpr int row1H = 245; // ENVELOPES / OSCILLATOR / WAVESHAPER
     static constexpr int row2H = 140; // MODULE TRIMS / TIME
 
+    // HitPad target (ui/HitPad.h, same convention as MangleView.h's padFloor): the
+    // accessibility floor is 34 design px (ceil(22 / 0.65) = 33.85), but a labelled Combo
+    // only gives its actual ComboBox height-minus-13 of whatever total it's given
+    // (Combo::resized() reserves 13px for the title first), so pads wrap the WHOLE
+    // control and target this instead, comfortably clear of the floor after rounding.
+    static constexpr int padFloor = 36;
+
     // Knob box heights, same convention as MangleView: label(11) + dial + textbox(0 here —
     // none of EditView's knobs carry a readout).
     static constexpr int mBoxH = 13 + geom::knobM; // 57: ENVELOPES/OSCILLATOR/WAVESHAPER/TRIMS knobs
@@ -371,7 +387,7 @@ private:
         int w = fltRow.getWidth() / 5;
         for (auto* k : { fenvA.get(), fenvD.get(), fenvS.get(), fenvR.get(), fltEnvAmt.get() })
             k->setBounds (fltRow.removeFromLeft (w).withSizeKeepingCentre (juce::jmin (70, mBoxH + 40), mBoxH));
-        fltExt->setBounds (floorExtCol.withSizeKeepingCentre (100, 24));
+        fltExtPad->setPadded (floorExtCol.withSizeKeepingCentre (100, padFloor), 100, 24);
 
         r.removeFromTop (10);
         envHairline.setBounds (r.removeFromTop (2));
@@ -384,7 +400,7 @@ private:
         w = auxRow.getWidth() / 5;
         for (auto* k : { auxA.get(), auxD.get(), auxS.get(), auxR.get(), auxAmount.get() })
             k->setBounds (auxRow.removeFromLeft (w).withSizeKeepingCentre (juce::jmin (70, mBoxH + 40), mBoxH));
-        auxDest->setBounds (destCol.withSizeKeepingCentre (100, 33));
+        auxDestPad->setPadded (destCol.withSizeKeepingCentre (100, padFloor), 100, 33);
     }
 
     // Consolidates the old HARMONICS + CYCLE/OSC blocks: the 64-bar editor and its mode
@@ -394,22 +410,39 @@ private:
         r = r.reduced (6);
         r.removeFromTop (headerPad);
 
-        auto topRow = r.removeFromTop (96);
+        // topRow grew 96->120 (oscMode/oscWave/the SAW-SQR-FLAT row each now claim a
+        // padFloor-tall (36px) slice instead of 33/33/22, so their real click area clears
+        // the house floor -- see padFloor's comment above); layoutOscillator's overall `r`
+        // has ample slack (row1H(245) leaves ~26px spare after this + bottomRow), so
+        // nothing downstream needs to shrink.
+        auto topRow = r.removeFromTop (120);
         auto right = topRow.removeFromRight (132);
         topRow.removeFromRight (12);
         harmonicEditor->setBounds (topRow);
 
-        oscMode->setBounds (right.removeFromTop (33));
+        {
+            auto area = right.removeFromTop (padFloor);
+            oscModePad->setPadded (area, area.getWidth(), 33);
+        }
         right.removeFromTop (6);
-        oscWave->setBounds (right.removeFromTop (33));
+        {
+            auto area = right.removeFromTop (padFloor);
+            oscWavePad->setPadded (area, area.getWidth(), 33);
+        }
         right.removeFromTop (6);
-        auto btnRow = right.removeFromTop (22);
+        auto btnRow = right.removeFromTop (padFloor);
         const int bw = (btnRow.getWidth() - 8) / 3;
-        sawButton.setBounds (btnRow.removeFromLeft (bw));
+        {
+            auto area = btnRow.removeFromLeft (bw);
+            sawButtonPad.setPadded (area, bw, 22);
+        }
         btnRow.removeFromLeft (4);
-        squareButton.setBounds (btnRow.removeFromLeft (bw));
+        {
+            auto area = btnRow.removeFromLeft (bw);
+            squareButtonPad.setPadded (area, bw, 22);
+        }
         btnRow.removeFromLeft (4);
-        flatShapeButton.setBounds (btnRow);
+        flatShapeButtonPad.setPadded (btnRow, btnRow.getWidth(), 22);
 
         r.removeFromTop (10);
         auto bottomRow = r.removeFromTop (mBoxH);
@@ -419,14 +452,21 @@ private:
         // rather than sitting stranded in quarter-width cells sized for four controls.
         const int half = bottomRow.getWidth() / 2;
         pitchMix->setBounds (bottomRow.removeFromLeft (half).withSizeKeepingCentre (70, mBoxH));
-        sourceExt->setBounds (bottomRow.withSizeKeepingCentre (juce::jmin (bottomRow.getWidth() - 8, 120), 26));
+        {
+            const int w = juce::jmin (bottomRow.getWidth() - 8, 120);
+            sourceExtPad->setPadded (bottomRow.withSizeKeepingCentre (juce::jmax (w, padFloor), padFloor), w, 26);
+        }
 #else
         // four even cells across the width — the old row crowded left and left a hole
         // under SAW/SQR/FLAT (v0.30 screenshot review)
         const int cell = bottomRow.getWidth() / 4;
         cycleXfade->setBounds (bottomRow.removeFromLeft (cell).withSizeKeepingCentre (70, mBoxH));
         pitchMix->setBounds (bottomRow.removeFromLeft (cell).withSizeKeepingCentre (70, mBoxH));
-        sourceExt->setBounds (bottomRow.removeFromLeft (cell).withSizeKeepingCentre (juce::jmin (cell - 8, 96), 26));
+        {
+            auto area = bottomRow.removeFromLeft (cell);
+            const int w = juce::jmin (cell - 8, 96);
+            sourceExtPad->setPadded (area.withSizeKeepingCentre (juce::jmax (w, padFloor), padFloor), w, 26);
+        }
         xfadeShape->setBounds (bottomRow.withSizeKeepingCentre (juce::jmin (bottomRow.getWidth() - 8, 150), 46));
 #endif
     }
@@ -449,9 +489,15 @@ private:
         const int rowH = (r.getHeight() - 2 * rowGap) / 3;
         wsTrim->setBounds (r.removeFromTop (rowH).withSizeKeepingCentre (70, juce::jmin (rowH, mBoxH)));
         r.removeFromTop (rowGap);
-        rndButton.setBounds (r.removeFromTop (rowH).withSizeKeepingCentre (r.getWidth(), 26));
+        {
+            auto area = r.removeFromTop (rowH);
+            rndButtonPad.setPadded (area.withSizeKeepingCentre (area.getWidth(), juce::jmax (rowH, padFloor)), area.getWidth(), 26);
+        }
         r.removeFromTop (rowGap);
-        copyButton.setBounds (r.removeFromTop (rowH).withSizeKeepingCentre (r.getWidth(), 26));
+        {
+            auto area = r.removeFromTop (rowH);
+            copyButtonPad.setPadded (area.withSizeKeepingCentre (area.getWidth(), juce::jmax (rowH, padFloor)), area.getWidth(), 26);
+        }
     }
 
     // MODULE TRIMS: five segments separated by 1px dividers (README).
@@ -510,7 +556,10 @@ private:
         { resDamp->setBounds (c.withSizeKeepingCentre (juce::jmin (70, mBoxH + 40), mBoxH)); });
 
         layoutTrimSegment (invSeg, trimCaptionInv, [this] (juce::Rectangle<int> c)
-        { invType->setBounds (c.withSizeKeepingCentre (juce::jmin (c.getWidth(), 90), 33)); });
+        {
+            const int w = juce::jmin (c.getWidth(), 90);
+            invTypePad->setPadded (c.withSizeKeepingCentre (w, padFloor), w, 33);
+        });
 
 #if !BROKEN_FX
         layoutTrimSegment (nzSeg, trimCaptionNz, [this] (juce::Rectangle<int> c)
@@ -540,21 +589,26 @@ private:
         r.removeFromRight (6); // RESP was hugging the panel border (v0.32)
         r.removeFromTop (headerPad);
 
-        auto row = r.withSizeKeepingCentre (r.getWidth(), juce::jmax (sBoxH, 56));
+        // STRETCH+FLATTEN's stacked column needs padFloor*2+8 to give each toggle a
+        // >=34px-design hit box (see padFloor's comment above); row grows to fit that
+        // where it's taller than the knob row (sBoxH/56) -- r has slack to spare (~108
+        // available vs 80 needed here).
+        const int stackH = padFloor * 2 + 8;
+        auto row = r.withSizeKeepingCentre (r.getWidth(), juce::jmax (juce::jmax (sBoxH, 56), stackH));
 
 #if BROKEN_FX
         // item 5: STRETCH + AMOUNT/FREQ/PREDELAY are hidden (sample-playback only); only
         // FLATTEN + RESP remain, so FLATTEN centres alone in the left column and RESP
         // takes the whole knob row instead of one quarter of it -- no gap left.
         auto left = row.removeFromLeft (110);
-        flattenOn->setBounds (left.withSizeKeepingCentre (110, 24));
+        flattenOnPad->setPadded (left.withSizeKeepingCentre (110, padFloor), 110, 24);
         row.removeFromLeft (14);
         flatResp->setBounds (row.withSizeKeepingCentre (juce::jmin (70, sBoxH + 40), sBoxH));
 #else
         auto left = row.removeFromLeft (110);
-        stretchOn->setBounds (left.removeFromTop (24).withSizeKeepingCentre (110, 24));
+        stretchOnPad->setPadded (left.removeFromTop (padFloor), 110, 24);
         left.removeFromTop (8);
-        flattenOn->setBounds (left.removeFromTop (24).withSizeKeepingCentre (110, 24));
+        flattenOnPad->setPadded (left.removeFromTop (padFloor), 110, 24);
 
         row.removeFromLeft (14);
         int w = row.getWidth() / 4;
@@ -587,35 +641,47 @@ private:
     // Envelopes
     std::unique_ptr<Knob> fenvA, fenvD, fenvS, fenvR, fltEnvAmt;
     std::unique_ptr<TextToggle> fltExt; // moved here from the old FILTER block
+    std::unique_ptr<HitPad> fltExtPad;
     std::unique_ptr<Knob> auxA, auxD, auxS, auxR, auxAmount;
     std::unique_ptr<Combo> auxDest;
+    std::unique_ptr<HitPad> auxDestPad;
 
     // Oscillator (HARMONICS + CYCLE/OSC consolidated)
     std::unique_ptr<HarmonicEditor> harmonicEditor;
     std::unique_ptr<Combo> oscMode;
+    std::unique_ptr<HitPad> oscModePad;
     // "SQR" not "SQUARE": three buttons share one ~47 px-wide row (tooltip spells it out)
     juce::TextButton sawButton { "SAW" }, squareButton { "SQR" }, flatShapeButton { "FLAT" };
+    HitPad sawButtonPad   { sawButton,   [this] { sawButton.triggerClick(); } };
+    HitPad squareButtonPad{ squareButton,[this] { squareButton.triggerClick(); } };
+    HitPad flatShapeButtonPad { flatShapeButton, [this] { flatShapeButton.triggerClick(); } };
     std::unique_ptr<Knob> cycleXfade, pitchMix;
     std::unique_ptr<Combo> oscWave;
+    std::unique_ptr<HitPad> oscWavePad;
     std::unique_ptr<TextToggle> sourceExt;
+    std::unique_ptr<HitPad> sourceExtPad;
     std::unique_ptr<Combo> xfadeShape; // moved here from the old COLOUR/NOISE block, "LOOP XFADE"
 
     // Waveshaper (was CURVE)
     std::unique_ptr<Knob> wsTrim;
     std::unique_ptr<CurveEditor> curveEditor;
     juce::TextButton rndButton { "RND" };
+    HitPad rndButtonPad { rndButton, [this] { rndButton.triggerClick(); } };
     // plain ASCII: the raw UTF-8 arrow escape rendered as mojibake in the button
     juce::TextButton copyButton { "COPY TO CUSTOM" };
+    HitPad copyButtonPad { copyButton, [this] { copyButton.triggerClick(); } };
 
     // Module trims
     std::unique_ptr<Knob> fmIndex;
     std::unique_ptr<Knob> dlyFine, dlyFb;
     std::unique_ptr<Knob> resDamp;
     std::unique_ptr<Combo> invType;
+    std::unique_ptr<HitPad> invTypePad;
     std::unique_ptr<Knob> noiseAmp, noisePhase;
 
     // Time
     std::unique_ptr<TextToggle> stretchOn, flattenOn;
+    std::unique_ptr<HitPad> stretchOnPad, flattenOnPad;
     std::unique_ptr<Knob> stretchAmount, stretchFreq, stretchPredelay, flatResp;
 };
 } // namespace broken::ui

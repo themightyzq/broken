@@ -7,6 +7,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "Theme.h"
 #include "Controls.h"
+#include "HitPad.h"
 #include "WaveformDisplay.h"
 #include "SourceEditorPanel.h"
 #include "PeakMeter.h"
@@ -34,6 +35,9 @@ public:
         sourceMode = std::make_unique<Combo> (av, "source.mode", params::sourceModes, juce::String(),
             "What gets mangled. CYCLE loops a tiny slice of your sample as a raw oscillator "
             "\xe2\x80\x94 try a real low note.");
+        // pads sourceMode's hit area to the house floor without changing its drawn size --
+        // see HitPad.h and padFloor above.
+        sourceModePad = std::make_unique<HitPad> (*sourceMode, [this] { sourceMode->box.showPopup(); });
         waveform = std::make_unique<WaveformDisplay> (processor);
         sourceEditor = std::make_unique<SourceEditorPanel> (processor);
         pitchKnob = std::make_unique<Knob> (av, "source.pitch", "PITCH",
@@ -57,11 +61,14 @@ public:
         playToggle = std::make_unique<TextToggle> (av, "play.hold", "PLAY",
             "Plays the sound without a MIDI keyboard, and leaves both hands free for the "
             "knobs. Click again to stop. Pitch comes from PITCH/FINE.", false, "STOP");
+        playTogglePad = std::make_unique<HitPad> (playToggle->button, [this] { playToggle->button.triggerClick(); });
         oscWaveCombo = std::make_unique<Combo> (av, "source.oscwave", params::oscWaves, "OSC WAVE",
             "Waveform for the OSC source. The 64-partial Harmonic mode lives in the EDIT view.");
+        oscWaveComboPad = std::make_unique<HitPad> (*oscWaveCombo, [this] { oscWaveCombo->box.showPopup(); });
         oscModeCombo = std::make_unique<Combo> (av, "osc.mode", params::oscModes, "OSC MODE",
             "Wave = a preset shape. Harmonic = 64 partials. Draw = draw it by hand \xe2\x80\x94 "
             "open the source window and just start drawing.");
+        oscModeComboPad = std::make_unique<HitPad> (*oscModeCombo, [this] { oscModeCombo->box.showPopup(); });
         noiseAmpKnob = std::make_unique<Knob> (av, "noise.amp", "AMP NZ",
             "Noise source: amplitude randomness. 0 with PH NZ 0 = a plain tunable sine.", false);
         noisePhaseKnob = std::make_unique<Knob> (av, "noise.phase", "PH NZ",
@@ -73,7 +80,7 @@ public:
         tuneButton.setTooltip ("One press: locks the source to the nearest note using the "
                                "IN tuner. Dimmed when no confident pitch.");
         tuneButton.onClick = [this] { processor.applyTuneLock(); };
-        sourceBlock.addAndMakeVisible (tuneButton);
+        sourceBlock.addAndMakeVisible (tuneButtonPad);
         tunerIn = std::make_unique<TunerDisplay> (processor, false, "IN",
             "What's coming in - sample, osc, or live input - before the mangle.");
         tunerOut = std::make_unique<TunerDisplay> (processor, true, "OUT",
@@ -82,11 +89,11 @@ public:
         sourceBlock.addAndMakeVisible (tunerIn.get());
         outputBlock.addAndMakeVisible (tunerOut.get());
 
-        juce::Component* const sourceComps[] = { sourceMode.get(), waveform.get(), pitchKnob.get(),
+        juce::Component* const sourceComps[] = { sourceModePad.get(), waveform.get(), pitchKnob.get(),
                                                   winPosKnob.get(), winLenKnob.get(), inTrimKnob.get(),
-                                                  oscWaveCombo.get(), oscModeCombo.get(),
+                                                  oscWaveComboPad.get(), oscModeComboPad.get(),
                                                   noiseAmpKnob.get(), noisePhaseKnob.get(),
-                                                  fineKnob.get(), playToggle.get() };
+                                                  fineKnob.get(), playTogglePad.get() };
         for (auto* c : sourceComps)
             sourceBlock.addAndMakeVisible (c);
 
@@ -102,6 +109,7 @@ public:
             "How hard the sound hits the curve. The main damage control.", true);
         curveCombo = std::make_unique<Combo> (av, "ws.curve", params::wsCurves, "CURVE",
             "Click through the shaper curves like the artist did. 1 is clean.");
+        curveComboPad = std::make_unique<HitPad> (*curveCombo, [this] { curveCombo->box.showPopup(); });
         morphKnob = std::make_unique<Knob> (av, "ws.morph", "MORPH",
             "Blend between clean and the selected curve.", false, true, "%",
             [] (double v) { return juce::String (juce::roundToInt (v * 100.0)) + " %"; });
@@ -114,14 +122,17 @@ public:
             [] (double v) { return (v < 100.0 ? juce::String (v, 1) : juce::String (v, 0)) + " Hz"; });
         modModeCombo = std::make_unique<Combo> (av, "mod.mode", params::modModes, "MODE",
             "How the sound is modulated (AM / RM / FM / PM).");
+        modModeComboPad = std::make_unique<HitPad> (*modModeCombo, [this] { modModeCombo->box.showPopup(); });
         modWaveCombo = std::make_unique<Combo> (av, "mod.wave", params::modWaves, "WAVE",
             "What waveform modulates the sound (Osc source).");
+        modWaveComboPad = std::make_unique<HitPad> (*modWaveCombo, [this] { modWaveCombo->box.showPopup(); });
         // item 2: describes all five sources now that Table has joined the list
         // (append-only, index 4 -- see Params.h).
         modSourceCombo = std::make_unique<Combo> (av, "mod.source", params::modSources, "SRC",
             "What modulates: Osc (the internal tone), Self (the sound itself), Sample (the "
             "loaded sample), Tape (the tape take), or Table (the OSCILLATOR panel's shape "
             "- drawn, harmonics, or wave). Any module as modulator, by design.");
+        modSourceComboPad = std::make_unique<HitPad> (*modSourceCombo, [this] { modSourceCombo->box.showPopup(); });
 
         filterKnob = std::make_unique<Knob> (av, "flt.cutoff", "FILTER",
             "Low-pass only, by design. POLES sets steepness.", true);
@@ -139,6 +150,7 @@ public:
             applyFilterFloorToKnob (ext->load() > 0.5f);
         polesCombo = std::make_unique<Combo> (av, "flt.poles", juce::StringArray { "1", "2", "3", "4" },
             "POLES", "6/12/18/24 dB per octave.");
+        polesComboPad = std::make_unique<HitPad> (*polesCombo, [this] { polesCombo->box.showPopup(); });
 
         resKnob = std::make_unique<Knob> (av, "res.freq", "RES",
             "Ringing comb resonator pitch.", true);
@@ -158,14 +170,15 @@ public:
             [] (double v) { return juce::String (juce::roundToInt (v * 100.0)) + " %"; });
         delayInvToggle = std::make_unique<TextToggle> (av, "dly.inv", "INV",
             "Flip delay-tap polarity.");
+        delayInvTogglePad = std::make_unique<HitPad> (delayInvToggle->button, [this] { delayInvToggle->button.triggerClick(); });
 
         juce::Component* const mangleComps[] = {
             wsLight.get(), modLight.get(), fltLight.get(), resLight.get(),
-            invLight.get(), dlyLight.get(), driveKnob.get(), curveCombo.get(), morphKnob.get(),
-            modKnob.get(), modFreqKnob.get(), modModeCombo.get(), modWaveCombo.get(),
-            modSourceCombo.get(),
-            filterKnob.get(), polesCombo.get(), resKnob.get(), resFbKnob.get(),
-            invertKnob.get(), delayTimeKnob.get(), delayMixKnob.get(), delayInvToggle.get()
+            invLight.get(), dlyLight.get(), driveKnob.get(), curveComboPad.get(), morphKnob.get(),
+            modKnob.get(), modFreqKnob.get(), modModeComboPad.get(), modWaveComboPad.get(),
+            modSourceComboPad.get(),
+            filterKnob.get(), polesComboPad.get(), resKnob.get(), resFbKnob.get(),
+            invertKnob.get(), delayTimeKnob.get(), delayMixKnob.get(), delayInvTogglePad.get()
         };
         for (auto* c : mangleComps)
             mangleBlock.addAndMakeVisible (c);
@@ -191,6 +204,7 @@ public:
         polyBtn.onClick = [setVoiceMode] { setVoiceMode (1.0f); };
         unisonToggle = std::make_unique<TextToggle> (av, "voice.unison", "UNISON",
             "Stacks all 6 voices detuned on one note.");
+        unisonTogglePad = std::make_unique<HitPad> (unisonToggle->button, [this] { unisonToggle->button.triggerClick(); });
         spreadKnob = std::make_unique<Knob> (av, "voice.spread", "SPREAD",
             "Unison detune spread.", false);
         ampA = std::make_unique<Knob> (av, "amp.a", "A", "Amp envelope attack.", false);
@@ -203,13 +217,14 @@ public:
         // controls instead of across the window in EDIT. Same parameter ids, same tooltips.
         voiceRetrig = std::make_unique<TextToggle> (av, "voice.retrig", "RETRIG",
             "Retrigger the amp envelope on legato notes.");
+        voiceRetrigPad = std::make_unique<HitPad> (voiceRetrig->button, [this] { voiceRetrig->button.triggerClick(); });
         bendRange = std::make_unique<Knob> (av, "midi.bendrange", "BEND",
             "How far the pitch wheel bends, in semitones. 2 is the usual, 12 is an octave "
             "dive. Set it to 0 to switch the wheel off entirely.", false, true, "st");
 
-        juce::Component* const playComps[] = { &monoBtn, &polyBtn, unisonToggle.get(), spreadKnob.get(),
+        juce::Component* const playComps[] = { &monoBtnPad, &polyBtnPad, unisonTogglePad.get(), spreadKnob.get(),
                                                 ampA.get(), ampD.get(), ampS.get(), ampR.get(),
-                                                voiceRetrig.get(), bendRange.get() };
+                                                voiceRetrigPad.get(), bendRange.get() };
         for (auto* c : playComps)
             playBlock.addAndMakeVisible (c);
         playBlock.addAndMakeVisible (playHairline);
@@ -306,10 +321,11 @@ public:
         bypassToggle = std::make_unique<TextToggle> (av, "bypass", "BYPASS",
             "True bypass: the track passes through untouched (~25 ms fade, no clicks). "
             "Your host's bypass control drives this too.", false, "BYPASSED");
+        bypassTogglePad = std::make_unique<HitPad> (bypassToggle->button, [this] { bypassToggle->button.triggerClick(); });
         meter = std::make_unique<PeakMeter> (processor);
 
         juce::Component* const outputComps[] = { mixKnob.get(), colourCombo.get(), rateKnob.get(),
-                                                 outKnob.get(), bypassToggle.get(), meter.get() };
+                                                 outKnob.get(), bypassTogglePad.get(), meter.get() };
         for (auto* c : outputComps)
             outputBlock.addAndMakeVisible (c);
 
@@ -330,8 +346,8 @@ public:
         // match the first timer tick so the row never flashes both sets on open
         {
             const int m0 = (int) av.getRawParameterValue ("source.mode")->load();
-            oscWaveCombo->setVisible (m0 == 2);
-            oscModeCombo->setVisible (m0 == 2);
+            oscWaveComboPad->setVisible (m0 == 2);
+            oscModeComboPad->setVisible (m0 == 2);
             noiseAmpKnob->setVisible (m0 == 3);
             noisePhaseKnob->setVisible (m0 == 3);
         }
@@ -437,6 +453,14 @@ private:
     // (mixCol/invBtnCol) so the four columns in rows 1 and 4 stay grid-aligned.
     static constexpr int lightRowH = 34;
 
+    // HitPad target (ui/HitPad.h): the accessibility floor itself is 34 design px
+    // (ceil(22 / 0.65) = 33.85), but combo boxes with a title label only give the actual
+    // ComboBox 34-13=21 of whatever total height they're given (Combo::resized() reserves
+    // 13px for the label first) -- so every pad below wraps the WHOLE labelled Combo (or
+    // the whole TextToggle/TextButton) rather than trying to hit 34 exactly, and pads to
+    // this instead for a comfortable, rounding-safe margin above the floor.
+    static constexpr int padFloor = 36;
+
     // Right column split: PLAY (wider — MONO/POLY, ADSR row, RETRIG+BEND) sits left of
     // the narrower TAPE column; OUTPUT spans the full 544-ish width below both.
     static constexpr int playW = 310;
@@ -483,11 +507,15 @@ private:
         r = r.reduced (6);
         r.removeFromTop (headerPad);
 
-        sourceMode->setBounds (r.removeFromTop (26));
+        // sourceMode/playToggle: HitPad-padded to padFloor (36) design px tall so their
+        // real click area clears the house 22px-on-screen floor at the 0.65x resize
+        // minimum, while the combo/button itself keeps painting at its original size,
+        // centred (see HitPad.h and padFloor's comment above).
+        sourceModePad->setPadded (r.removeFromTop (padFloor), r.getWidth(), 26);
         r.removeFromTop (8);
         waveform->setBounds (r.removeFromTop (150)); // taller than the README's 118: it is SOURCE's centrepiece and the panel had the void to spend (v0.30)
         r.removeFromTop (8);
-        playToggle->setBounds (r.removeFromTop (30)); // README: PLAY button 30
+        playTogglePad->setPadded (r.removeFromTop (padFloor), r.getWidth(), 30); // README: PLAY button 30
         r.removeFromTop (10);
 
         // PITCH + FINE + TUNE in three even columns on ONE baseline. The old cluster had
@@ -498,7 +526,8 @@ private:
             const int col = pitchRow.getWidth() / 3;
             pitchKnob->setBounds (pitchRow.removeFromLeft (col).withSizeKeepingCentre (juce::jmin (col, 66), pitchBoxH));
             fineKnob->setBounds (pitchRow.removeFromLeft (col).withSizeKeepingCentre (juce::jmin (col, 64), pitchBoxH));
-            tuneButton.setBounds (pitchRow.withSizeKeepingCentre (juce::jmin (pitchRow.getWidth() - 8, 90), 30));
+            const int tuneW = juce::jmin (pitchRow.getWidth() - 8, 90);
+            tuneButtonPad.setPadded (pitchRow.withSizeKeepingCentre (juce::jmax (tuneW, padFloor), padFloor), tuneW, 30);
         }
         r.removeFromTop (14);
 
@@ -518,8 +547,9 @@ private:
         {   // OSC: WAVE | MODE
             auto row = modeRow;
             auto a = row.removeFromLeft (row.getWidth() / 2);
-            oscWaveCombo->setBounds (a.withSizeKeepingCentre (a.getWidth() - 6, 33));
-            oscModeCombo->setBounds (row.withSizeKeepingCentre (row.getWidth() - 6, 33));
+            const int aw = a.getWidth() - 6, rw = row.getWidth() - 6;
+            oscWaveComboPad->setPadded (a.withSizeKeepingCentre (aw, padFloor), aw, 33);
+            oscModeComboPad->setPadded (row.withSizeKeepingCentre (rw, padFloor), rw, 33);
         }
         {   // NOISE: AMP NZ | PH NZ — same rectangle; only one set is ever visible
             auto row = modeRow;
@@ -544,10 +574,10 @@ private:
     // to Input) and stay force-hidden here (once per resize; cheap and idempotent).
     void layoutSourceFX (juce::Rectangle<int> r)
     {
-        sourceMode->setVisible (false);
-        playToggle->setVisible (false);
-        oscWaveCombo->setVisible (false);
-        oscModeCombo->setVisible (false);
+        sourceModePad->setVisible (false);
+        playTogglePad->setVisible (false);
+        oscWaveComboPad->setVisible (false);
+        oscModeComboPad->setVisible (false);
         noiseAmpKnob->setVisible (false);
         noisePhaseKnob->setVisible (false);
 
@@ -570,7 +600,11 @@ private:
             fineKnob->setBounds (pitchRow.withSizeKeepingCentre (juce::jmin (pitchRow.getWidth(), 64), pitchBoxH));
         }
         r.removeFromTop (10);
-        tuneButton.setBounds (r.removeFromTop (30).withSizeKeepingCentre (juce::jmin (r.getWidth() - 8, 110), 30));
+        {
+            auto tuneRow = r.removeFromTop (padFloor);
+            const int tuneW = juce::jmin (tuneRow.getWidth() - 8, 110);
+            tuneButtonPad.setPadded (tuneRow.withSizeKeepingCentre (juce::jmax (tuneW, padFloor), padFloor), tuneW, 30);
+        }
         r.removeFromTop (16);
         inTrimKnob->setBounds (r.removeFromTop (sBoxH).withSizeKeepingCentre (geom::knobS, sBoxH));
 
@@ -584,7 +618,7 @@ private:
         r = r.reduced (6);
         // v0.31: the rows used to top-pack and pool ~150px of void under row 4. Spread
         // the spare height into the three inter-row gaps (capped so rows stay grouped).
-        const int mangleFixedH = headerPad + (lightRowH + xlBoxH) + 16 + 33
+        const int mangleFixedH = headerPad + (lightRowH + xlBoxH) + 16 + padFloor
                                + (14 + 2 + 14) + lBoxH + 16 + (lightRowH + lBoxH);
         const int extra = juce::jlimit (0, 40, (r.getHeight() - mangleFixedH) / 3);
         r.removeFromTop (headerPad);
@@ -616,16 +650,19 @@ private:
         // belonging to its module: CURVE under DRIVE, the MODE/WAVE/SRC trio starting
         // under MOD, POLES right-aligned under FILTER. RES has no dropdown; its column
         // staying empty is honest. (v0.32 \xe2\x80\x94 the row used to left-pack.)
-        auto ddRow = r.removeFromTop (33);
+        auto ddRow = r.removeFromTop (padFloor);
         const int ddColW = ddRow.getWidth() / 4;
-        curveCombo->setBounds (ddRow.getX(), ddRow.getY(), juce::jmin (ddColW - 8, 144), 33);
-        int tx = ddRow.getX() + ddColW;
-        for (auto* c : { modModeCombo.get(), modWaveCombo.get(), modSourceCombo.get() })
         {
-            c->setBounds (tx, ddRow.getY(), 64, 33);
+            const int w = juce::jmin (ddColW - 8, 144);
+            curveComboPad->setPadded ({ ddRow.getX(), ddRow.getY(), w, padFloor }, w, 33);
+        }
+        int tx = ddRow.getX() + ddColW;
+        for (auto* pad : { modModeComboPad.get(), modWaveComboPad.get(), modSourceComboPad.get() })
+        {
+            pad->setPadded ({ tx, ddRow.getY(), 64, padFloor }, 64, 33);
             tx += 64 + 6;
         }
-        polesCombo->setBounds (ddRow.getX() + ddColW * 3 - 100, ddRow.getY(), 96, 33);
+        polesComboPad->setPadded ({ ddRow.getX() + ddColW * 3 - 100, ddRow.getY(), 96, padFloor }, 96, 33);
 
         r.removeFromTop (14 + extra / 2);
         mangleHairline.setBounds (r.removeFromTop (2));
@@ -656,7 +693,10 @@ private:
         mixCol.removeFromTop (lightRowH); // blank spacer matching the LED row above, for alignment
         delayMixKnob->setBounds (mixCol.withSizeKeepingCentre (geom::knobL, lBoxH));
         invBtnCol.removeFromTop (lightRowH);
-        delayInvToggle->setBounds (invBtnCol.withSizeKeepingCentre (juce::jmin (invBtnCol.getWidth(), 60), 24));
+        {
+            const int w = juce::jmin (invBtnCol.getWidth(), 60);
+            delayInvTogglePad->setPadded (invBtnCol.withSizeKeepingCentre (juce::jmax (w, padFloor), padFloor), w, 24);
+        }
     }
 
     // Draws the on/off light above a module's controls, then hands the remaining rect to `layoutFn`.
@@ -678,21 +718,25 @@ private:
         r = r.reduced (6);
         // v0.31: distribute the spare height into the inter-row gaps (was pooling under
         // RETRIG/BEND), same treatment as MANGLE.
-        const int playFixedH = headerPad + 26 + 10 + sBoxH + 14 + sBoxH
+        const int playFixedH = headerPad + padFloor + 10 + sBoxH + 14 + sBoxH
                              + (8 + 2 + 8) + sBoxH + 16; // +16: BEND readout (v0.32)
         const int extra = juce::jlimit (0, 28, (r.getHeight() - playFixedH) / 3);
         r.removeFromTop (headerPad);
 
         {   // segmented MONO | POLY: two equal halves, 2 px apart
-            auto seg = r.removeFromTop (26);
-            monoBtn.setBounds (seg.removeFromLeft (seg.getWidth() / 2 - 1));
+            auto seg = r.removeFromTop (padFloor);
+            auto monoArea = seg.removeFromLeft (seg.getWidth() / 2 - 1);
+            monoBtnPad.setPadded (monoArea, monoArea.getWidth(), 26);
             seg.removeFromLeft (2);
-            polyBtn.setBounds (seg);
+            polyBtnPad.setPadded (seg, seg.getWidth(), 26);
         }
         r.removeFromTop (10 + extra);
 
         auto unisonRow = r.removeFromTop (sBoxH);
-        unisonToggle->setBounds (unisonRow.removeFromLeft (70).withSizeKeepingCentre (70, 24));
+        {
+            auto unisonArea = unisonRow.removeFromLeft (70);
+            unisonTogglePad->setPadded (unisonArea.withSizeKeepingCentre (70, padFloor), 70, 24);
+        }
         unisonRow.removeFromLeft (14);
         spreadKnob->setBounds (unisonRow.removeFromLeft (50).withSizeKeepingCentre (geom::knobS, sBoxH));
         r.removeFromTop (14 + extra);
@@ -711,7 +755,10 @@ private:
 
         // RETRIG + BEND (moved from EDIT view)
         auto retrigRow = r.removeFromTop (sBoxH + 16); // taller: BEND has an LCD readout
-        voiceRetrig->setBounds (retrigRow.removeFromLeft (110).withSizeKeepingCentre (110, 24));
+        {
+            auto retrigArea = retrigRow.removeFromLeft (110);
+            voiceRetrigPad->setPadded (retrigArea.withSizeKeepingCentre (110, padFloor), 110, 24);
+        }
         retrigRow.removeFromLeft (14);
         bendRange->setBounds (retrigRow.removeFromLeft (56).withSizeKeepingCentre (56, sBoxH + 16));
     }
@@ -759,7 +806,10 @@ private:
         row.removeFromLeft (8);
         outKnob->setBounds (row.removeFromLeft (56).withSizeKeepingCentre (56, 69));
         row.removeFromLeft (12);
-        bypassToggle->setBounds (row.removeFromLeft (86).withSizeKeepingCentre (86, 26));
+        {
+            auto bypassArea = row.removeFromLeft (86);
+            bypassTogglePad->setPadded (bypassArea.withSizeKeepingCentre (86, padFloor), 86, 26);
+        }
         row.removeFromLeft (12);
         tunerOut->setBounds (row.withSizeKeepingCentre (row.getWidth(), 53));
     }
@@ -805,8 +855,8 @@ private:
             // the same time, so greying would leave two dead controls on top of two live
             // ones (docs/PANEL.md).
 #if !BROKEN_FX
-            oscWaveCombo->setVisible (osc);
-            oscModeCombo->setVisible (osc);
+            oscWaveComboPad->setVisible (osc);
+            oscModeComboPad->setVisible (osc);
             noiseAmpKnob->setVisible (noise);
             noisePhaseKnob->setVisible (noise);
 #endif
@@ -929,6 +979,7 @@ private:
 
     // Source
     std::unique_ptr<Combo> sourceMode;
+    std::unique_ptr<HitPad> sourceModePad; // pads sourceMode's hit area -- see HitPad.h
     std::unique_ptr<WaveformDisplay> waveform;
     // Creates the window lazily on first open, then just re-shows and fronts it, so the
     // user's zoom/scroll/selection survive closing it. A detached window does not
@@ -955,10 +1006,14 @@ private:
     std::unique_ptr<Knob> pitchKnob, winPosKnob, winLenKnob, inTrimKnob, fineKnob;
     std::unique_ptr<Knob> mixKnob;
     std::unique_ptr<TextToggle> bypassToggle;
+    std::unique_ptr<HitPad> bypassTogglePad;
     std::unique_ptr<Combo> oscWaveCombo;
+    std::unique_ptr<HitPad> oscWaveComboPad;
     std::unique_ptr<Combo> oscModeCombo;
+    std::unique_ptr<HitPad> oscModeComboPad;
     std::unique_ptr<Knob> noiseAmpKnob, noisePhaseKnob;
     juce::TextButton tuneButton;
+    HitPad tuneButtonPad { tuneButton, [this] { tuneButton.triggerClick(); } };
     std::unique_ptr<TunerDisplay> tunerIn, tunerOut;
 
     // Mangle
@@ -966,15 +1021,22 @@ private:
     std::unique_ptr<Knob> driveKnob, morphKnob, modKnob, modFreqKnob, filterKnob, resKnob, resFbKnob,
                            invertKnob, delayTimeKnob, delayMixKnob;
     std::unique_ptr<Combo> curveCombo, modModeCombo, modWaveCombo, modSourceCombo, polesCombo;
+    std::unique_ptr<HitPad> curveComboPad, modModeComboPad, modWaveComboPad, modSourceComboPad, polesComboPad;
     std::unique_ptr<TextToggle> delayInvToggle;
+    std::unique_ptr<HitPad> delayInvTogglePad;
 
     // Play
     std::unique_ptr<TextToggle> playToggle;
+    std::unique_ptr<HitPad> playTogglePad;
     juce::TextButton monoBtn, polyBtn;
+    HitPad monoBtnPad { monoBtn, [this] { monoBtn.triggerClick(); } };
+    HitPad polyBtnPad { polyBtn, [this] { polyBtn.triggerClick(); } };
     std::unique_ptr<TextToggle> unisonToggle;
+    std::unique_ptr<HitPad> unisonTogglePad;
     std::unique_ptr<Knob> spreadKnob, ampA, ampD, ampS, ampR;
     // moved from EditView (was: VOICE block) — same ids, same tooltips
     std::unique_ptr<TextToggle> voiceRetrig;
+    std::unique_ptr<HitPad> voiceRetrigPad;
     std::unique_ptr<Knob> bendRange;
 
     // Tape

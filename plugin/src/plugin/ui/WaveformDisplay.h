@@ -8,6 +8,7 @@
 #include "OscCurve.h"
 #include "Theme.h"
 #include "BrokenLookAndFeel.h"
+#include "HitPad.h"
 #include "../PluginProcessor.h"
 
 namespace broken::ui
@@ -30,7 +31,7 @@ public:
                                 "\xe2\x80\x94 no destructive editing. Play a MIDI key to hear it live "
                                 "while you drag.");
         editButton.onClick = [this] { if (onOpenEditor) onOpenEditor(); };
-        addAndMakeVisible (editButton);
+        addAndMakeVisible (editButtonPad);
     }
 
     ~WaveformDisplay() override { stopTimer(); }
@@ -130,8 +131,12 @@ public:
 
     void resized() override
     {
+        // editButton's own hit area was 34x14 design px (under the 34px floor in its
+        // short dimension) -- HitPad pads the height to 34 while EDIT keeps painting at
+        // its original 34x14, see HitPad.h.
         auto b = getLocalBounds();
-        editButton.setBounds (b.removeFromBottom (16).removeFromRight (36).reduced (1));
+        auto padArea = b.removeFromBottom (34).removeFromRight (36);
+        editButtonPad.setPadded (padArea, 34, 14);
     }
 
     bool isInterestedInFileDrag (const juce::StringArray& files) override
@@ -343,6 +348,7 @@ private:
     BrokenProcessor& processor;
     std::unique_ptr<juce::FileChooser> chooser;
     juce::TextButton editButton;
+    HitPad editButtonPad { editButton, [this] { editButton.triggerClick(); } };
     int sourceMode = 0;
     bool isCycleMode = false;
     bool isOscMode = false;
