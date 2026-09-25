@@ -227,7 +227,15 @@ public:
         float x = src.processSample (input);
         if (vp.sourceMode == SourceEngine::Input)
         {
+            const float liveDry = x;
             x = liveShift.processSample (x);
+            // Pitch MIX on Input (DSP-NOTES §2a): blend the shifted signal with the live
+            // one, the Input counterpart of SourceEngine's root-rate dry head. The dry leg
+            // is not delayed to match TapeShift's read taps, so ~50% with FINE detune
+            // gives a chorus with some comb colour. Skipped while TapeShift is in its
+            // exact-bypass range (|PITCH| < 0.01 st) so the unity null stays bit-true.
+            if (vp.pitchMix < 0.999f && std::abs (vp.sourcePitch) >= 0.01f)
+                x = vp.pitchMix * x + (1.0f - vp.pitchMix) * liveDry;
             // FM on Input (docs/DSP-NOTES.md §14a): the Input source ignores setRateMod
             // above (it has no "rate" to modulate -- it is the live signal itself), so FM
             // was silently dead on Input. InputVarispeed applies the SAME r as every other

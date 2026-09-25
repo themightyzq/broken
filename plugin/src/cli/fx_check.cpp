@@ -674,6 +674,45 @@ int main()
         check (factoryCount >= 15, "(l) factory bank has all " + juce::String (factoryCount) + " presets");
     }
 
+    // ---- (m) PITCH MIX acts on the live input -------------------------------------
+    // Pitch MIX blends TapeShift's output with the live signal (Voice::render). With a
+    // pitch set it must change the output; at PITCH 0 TapeShift is an exact bypass and
+    // the blend is skipped, so MIX must leave the output bit-identical.
+    {
+        const double sr = 48000.0;
+        const int blockSize = 512;
+        const int total = 2 * (int) sr;
+        juce::AudioBuffer<float> input (2, total);
+        makeTestBuffer (input, sr, total, 70, false);
+
+        auto renderWith = [&] (float pitch, float mix, juce::AudioBuffer<float>& out)
+        {
+            broken::BrokenProcessor proc;
+            proc.setPlayConfigDetails (2, 2, sr, blockSize);
+            proc.prepareToPlay (sr, blockSize);
+            setParam (proc, "source.pitch", pitch);
+            setParam (proc, "source.pitchmix", mix);
+            out.setSize (2, total);
+            render (proc, input, out, blockSize);
+        };
+
+        juce::AudioBuffer<float> full, half;
+        renderWith (7.0f, 1.0f, full);
+        renderWith (7.0f, 0.5f, half);
+        const double d = diffDbBetween (full, half, 0, 0, total);
+        std::cout << "  (m) PITCH +7 st: mix 1.0 vs 0.5, diff " << d << " dB\n";
+        check (d > -40.0, "(m) PITCH MIX changes the output when PITCH is set");
+
+        juce::AudioBuffer<float> unityFull, unityHalf;
+        renderWith (0.0f, 1.0f, unityFull);
+        renderWith (0.0f, 0.5f, unityHalf);
+        bool same = true;
+        for (int ch = 0; ch < 2 && same; ++ch)
+            same = std::memcmp (unityFull.getReadPointer (ch), unityHalf.getReadPointer (ch),
+                                sizeof (float) * (size_t) total) == 0;
+        check (same, "(m) PITCH 0: PITCH MIX leaves the output bit-identical");
+    }
+
     std::cout << "broken_fx_check: " << failures << " failures\n";
     return failures == 0 ? 0 : 1;
 }

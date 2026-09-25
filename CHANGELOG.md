@@ -1342,3 +1342,22 @@ plus my own findings on the same shot.
   `auval -v aufx BrFx ZQSF` and `auval -v aumu Brkn ZQSF` both SUCCEEDED. All four VST3/AU
   binaries (`Broken.vst3`, `Broken.component`, `Broken FX.vst3`, `Broken FX.component`)
   universal (`x86_64 arm64`), minos 11.0.
+
+## 2026-09-25 - v0.35.1: PITCH MIX works on live input
+- `source.pitchmix` (PITCH MIX) never acted on the Input source: `docs/DSP-NOTES.md` §2a
+  said "Input mode blends TapeShift wet/dry", but only `SourceEngine::playRegioned()`
+  (Sample/Tape) read `pitchMix`, and the Input path in `Voice::render` never did. The
+  knob was dead in the instrument's Input mode and hidden in Broken FX for that reason.
+- Fix (`Voice::render`): on Input, the TapeShift output is blended with the live signal by
+  PITCH MIX. The dry leg is not delayed to match TapeShift's read taps, so about 50% with
+  FINE detune gives a chorus with some comb colour. The blend is skipped while
+  |PITCH| < 0.01 st (TapeShift's exact-bypass range), so the unity null stays bit-true;
+  PITCH MIX at 1.0 (the default) is unchanged behaviour. No preset uses Input with
+  PITCH MIX below 1, so no factory sound changes.
+- Broken FX shows PITCH MIX again (OSCILLATOR row, beside PITCH EXT). Tooltip reworded in
+  both builds; DSP-NOTES §2a corrected to describe what is built.
+- Gates: new `broken_fx_check` (m): PITCH +7 st, MIX 1.0 vs 0.5 differ by -1.19 dB RMS;
+  PITCH 0, MIX 0.5 is bit-identical to MIX 1.0. Mutation-checked: with the blend removed,
+  (m) fails (-300 dB). Instrument Input mode via `broken_cli` (PITCH +7, MIX 1.0 vs 0.5 on a
+  drums+bass signal): -1.97 dB difference. ctest 115/115; `broken_fx_check` 0 failures;
+  `broken_fx_ui_snapshot` read at 1520x979 and 0.65x.

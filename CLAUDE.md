@@ -109,7 +109,8 @@ target (`snapshots/fx/`, 15 factory presets as of v0.35 — each lists only the
 parameter ids the effect uses). The editor hides PLAY (MangleView) and ENVELOPES
 (EditView), plus the source selector (SOURCE is forced to Input) and every control that
 only acts on a stopped/looping playback source: the stretch group, noise AMP NZ/PH NZ,
-loop/reverse/crossfade in the sample editor, and XFADE/PITCH MIX/LOOP XFADE. As of v0.35
+loop/reverse/crossfade in the sample editor, and XFADE/LOOP XFADE (PITCH MIX stays: it
+blends PITCH's shifted signal with the live input, v0.35.1). As of v0.35
 FX no longer hides TAPE or OSCILLATOR or the waveform/sample-drop display: TAPE gives
 `MOD SRC TAPE` something to play and records the FX chain's own stereo output; the
 sample slot feeds `MOD SRC SAMPLE` and the waveshaper's FROM SAMPLE (it never becomes

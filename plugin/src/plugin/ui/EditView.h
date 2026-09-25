@@ -159,27 +159,25 @@ public:
         cycleXfade = std::make_unique<Knob> (av, "source.xfade", "XFADE",
             "CYCLE seam crossfade, 0\xe2\x80\x93" "16 samples.", false);
         pitchMix = std::make_unique<Knob> (av, "source.pitchmix", "PITCH MIX",
-            "Blend of pitched vs unpitched playback - the original Pitch Shifter's Mix. "
-            "~50% with FINE detune = the spec's chorus recipe.", false);
+            "Blend of pitched and unpitched signal (Sample, Tape and live Input). "
+            "About 50% with FINE detune gives a chorus.", false);
         sourceExt = std::make_unique<TextToggle> (av, "source.ext", "PITCH EXT",
             "Extends PITCH range to \xc2\xb1" "48 semitones.");
         // moved here from the old COLOUR/NOISE block, relabelled "LOOP XFADE" (README:
         // OSCILLATOR panel) — same id (sample.xfadeshape)
         xfadeShape = std::make_unique<Combo> (av, "sample.xfadeshape", params::xfadeShapes, "LOOP XFADE",
             "Loop crossfade shape. Equal-power holds the level through the seam.");
-        // item 2 FX check: XFADE (CYCLE-only), PITCH MIX (Sample/Tape-only) and LOOP XFADE
-        // (Sample/Tape loop-seam shape) all read parameters SourceEngine only consults for
-        // Sample/Cycle/Tape source modes, and the FX source is forced to Input -- they do
-        // nothing there, so they are hidden under BROKEN_FX. PITCH EXT stays: it gates
-        // PITCH's range, and PITCH is live on Input via TapeShift (varispeed on the live
-        // signal, DSP-NOTES §14) in both builds.
+        // item 2 FX check: XFADE (CYCLE-only) and LOOP XFADE (Sample/Tape loop-seam shape)
+        // read parameters SourceEngine only consults for Sample/Cycle/Tape source modes,
+        // and the FX source is forced to Input -- they do nothing there, so they are
+        // hidden under BROKEN_FX. PITCH MIX and PITCH EXT stay: PITCH is live on Input via
+        // TapeShift (DSP-NOTES §14) and PITCH MIX blends it with the live signal (§2a).
         juce::Component* const cycleOscComps[] = { cycleXfade.get(), pitchMix.get(),
                                                     sourceExt.get(), xfadeShape.get() };
         for (auto* c : cycleOscComps)
             oscillatorBlock.addAndMakeVisible (c);
 #if BROKEN_FX
         cycleXfade->setVisible (false);
-        pitchMix->setVisible (false);
         xfadeShape->setVisible (false);
 #endif
 
@@ -416,9 +414,11 @@ private:
         r.removeFromTop (10);
         auto bottomRow = r.removeFromTop (mBoxH);
 #if BROKEN_FX
-        // item 2: CYCLE XFADE / PITCH MIX / LOOP XFADE are hidden (Sample/Cycle/Tape-only,
-        // FX source is always Input) -- only PITCH EXT remains, centred in the full row
-        // rather than left stranded in a quarter-width cell sized for four controls.
+        // item 2: CYCLE XFADE / LOOP XFADE are hidden (Sample/Cycle/Tape-only, FX source
+        // is always Input) -- PITCH MIX and PITCH EXT split the row in two even cells
+        // rather than sitting stranded in quarter-width cells sized for four controls.
+        const int half = bottomRow.getWidth() / 2;
+        pitchMix->setBounds (bottomRow.removeFromLeft (half).withSizeKeepingCentre (70, mBoxH));
         sourceExt->setBounds (bottomRow.withSizeKeepingCentre (juce::jmin (bottomRow.getWidth() - 8, 120), 26));
 #else
         // four even cells across the width — the old row crowded left and left a hole
