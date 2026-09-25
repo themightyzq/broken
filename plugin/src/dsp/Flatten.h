@@ -1,7 +1,7 @@
 #pragma once
-// Envelope Removal, realtime take (docs/DSP-NOTES.md §17). The original was a
+// Envelope Removal, realtime take (docs/DSP-NOTES.md §17). The classic version was a
 // destructive Sample-module utility; ours runs live so the sample path stays a path.
-// "Similar to heavy compression" per the spec: divide by the tracked envelope.
+// "Similar to heavy compression" by design: divide by the tracked envelope.
 
 #include <algorithm>
 #include <cmath>

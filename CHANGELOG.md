@@ -4,7 +4,7 @@
 - Intake completed (see docs/DESIGN.md header + plan): instrument + FX-in, a full modular audio
   environment, primary and core layers, mono-default/poly/unison, generous CPU, public release intended,
   Diversion + milestone Save-As, Reaper render loop.
-- Research pass on the original hardware's architecture and its industrial-music usage →
+- Research pass on period hardware architecture and its industrial-music usage →
   docs/RESEARCH.md (primary sources: period magazine reviews and interviews).
 - Design docs written: DESIGN.md (fixed signal-chain order, TAPE resample section, CYCLE
   mode), DSP-NOTES.md (per-module math, conventions tagged believed pending vendor-doc
@@ -144,14 +144,14 @@ Next: user builds M1 shell in the modular environment, renders 4 fixtures, analy
   roundtrip PASS with new IDs; auval PASS; AU/VST3 reinstalled. Screenshot:
   docs/editor-v05.png (ZOOM SEL view with both PingPong wedges visible).
 
-## v0.6 — 2026-08-27 — Tuners, FINE/TUNE lock, live-input pitch; THE SPEC found
-- **Research pass 2 found the actual manual for the hardware's 2.0 revision, plus its SC 2.2 addendum**
+## v0.6 — 2026-08-27 — Tuners, FINE/TUNE lock, live-input pitch; reference documentation found
+- **Research pass 2 found the actual documentation for the 2.0 hardware revision, plus its SC 2.2 addendum**
   (archive.org, full OCR — docs/RESEARCH.md "Pass 2"). Corrections applied: Delay
   feedback is era-correct (not our extension); Diffuser is SC-2.2-only/card-gated (not
   original); the filter was the "Filter Envelope" (inherently envelope-driven); the
   original Noise was a randomized sine; Pitch Envelope + Time Compressor existed; our
-  SpecInv = the spec's Type A. Era-gap backlog added to DESIGN.md §6 (11 items).
-- **FINE** (`source.finecents`, ±50¢ in 1¢ steps — the original Pitch Shifter's own
+  SpecInv = the design spec's Type A. Era-gap backlog added to DESIGN.md §6 (11 items).
+- **FINE** (`source.finecents`, ±50¢ in 1¢ steps — a pitch-shifter's own
   fine range) folds into the pitch everywhere via gatherParams.
 - **Live-input pitch:** PITCH (+FINE) now works on the Input source via TapeShift
   (dsp/TapeShift.h): varispeed read heads on a 1.6 s live tape loop, dual-tap
@@ -160,7 +160,7 @@ Next: user builds M1 shell in the modular environment, renders 4 fixtures, analy
   Render: input +2 st → 1120.0 Hz dominant (−3.8¢ of ideal 1122.5).
 - **Tuners:** IN (post-source, pre-mangle — the monitor voice tap) and OUT (post-chain
   master tap) via lock-free TapRings + dsp/PitchDetector.h (NSDF, 4096 window,
-  parabolic interp, clarity gate; note naming C4=60 per the spec's Appendix D).
+  parabolic interp, clarity gate; note naming C4=60 per the design spec).
   Displays: note, ±50¢ needle, Hz; dim on low clarity.
 - **TUNE lock:** one press sets FINE to land the source on the nearest note (rolls
   whole semitones into PITCH if a live FINE pushed past ±50). Headless proof:
@@ -170,11 +170,11 @@ Next: user builds M1 shell in the modular environment, renders 4 fixtures, analy
   ±48 st); auval PASS; AU/VST3 reinstalled. Screenshot: docs/panel-v06.png.
 
 ## v0.7 — 2026-08-27 — Phase A: Modulator completed (PM, Self/Sample/Tape sources, Pitch MIX)
-- PM as a first-class 4th mode (10 ms modulated delay — the spec's chorus recipe).
+- PM as a first-class 4th mode (10 ms modulated delay — the classic chorus recipe).
 - `mod.source` { Osc, Self, Sample, Tape }: self-modulation and any-sample-as-modulator
-  per the original's architecture; FM composes with all sources.
+  by design; FM composes with all sources.
 - `source.pitchmix`: second root-rate read head (identical region/loop logic) blends the
-  unpitched stream — the original Pitch Shifter's Mix; PITCH MIX knob in EDIT view,
+  unpitched stream — a pitch-shifter mix control; PITCH MIX knob in EDIT view,
   SRC combo in the MOD block.
 - Verified: 67/67 tests (PM Bessel sidebands, sine self-RM → 2f with fundamental −10×,
   sample-as-wavetable at 55 Hz, mix=1 bit-identical to single-head); renders — PM 5 Hz
@@ -183,7 +183,7 @@ Next: user builds M1 shell in the modular environment, renders 4 fixtures, analy
   for saw; the sine unit test is the clean squaring proof.)
 
 ## v0.8 — 2026-08-27 — Phase B: era Noise, SpecInv Type B, equal-power crossfade
-- Noise source is now the spec's randomized sine (`noise.amp`/`noise.phase` %,
+- Noise source is now a randomized sine (`noise.amp`/`noise.phase` %,
   defaults 25/25): 0/0 = tunable sine (verified 220.0 Hz at A3), 100/100 = broadband
   (clarity below detector gate). Old white noise = max settings.
 - `inv.type` A/B: Type B ring-mods by sr/4 → both quarter-rate images (verified 11 k +
@@ -206,7 +206,7 @@ Next: user builds M1 shell in the modular environment, renders 4 fixtures, analy
 - STRETCH/COMPRESS (`stretch.*`): segment-repeat time scaling tuned to the material's
   fundamental, with predelay and raised-cosine segment seams; composes with region,
   loop and REV because it acts on the read-position advance. Mismatched FREQ still
-  produces the original's AM artifacts — kept as the creative tool the spec describes.
+  produces classic AM artifacts — kept as a creative tool.
 - FLATTEN (`flat.*`): realtime Envelope Removal. Deviation from the destructive original
   documented in DSP-NOTES §17 (realtime keeps sample-path persistence honest).
 - Two real bugs caught by the new tests: a compressed one-shot never ended (position was
@@ -457,7 +457,7 @@ each one?" — audited all six in code. All were wired and working, but three ga
   display and the pop-out so the two can never drift apart. It mirrors SourceEngine's
   `rebuildDrawTable`/`rebuildHarmonicTable` and `dsp/Waves.h`.
 - **New: OSC MODE = DRAW — hand-drawn oscillator waveforms (DSP-NOTES §1.3b).**
-  Era-correct, not an invention: RESEARCH.md line 18 records that the original's
+  Era-correct, not an invention: RESEARCH.md line 18 records that period
   waveforms "could be hand-drawn/edited", and "convert sample to oscillator" is the classic
   phrase for it.
   - 64 parameters `osc.d01…d64`, −1…+1, defaulting to a sine so DRAW opens on a shape to
@@ -552,7 +552,7 @@ each one?" — audited all six in code. All were wired and working, but three ga
   re-selecting the old curve restores it.
 - Measured (sine source, drive 0, morph 1, rest of the chain bypassed):
   - Custom at its **untouched identity diagonal: THD −74.2 dB** — selecting it changes
-    essentially nothing until you draw, as the spec's editor did.
+    essentially nothing until you draw, as a hand-drawn curve editor would.
   - Custom **FROM SAMPLE (a guitar cycle): THD −0.3 dB** — the harmonics are as loud as
     the fundamental. An audio slice is a **non-monotonic** transfer function, so this is
     broadband scream, not saturation. Deliberate and documented; not a defect report.
@@ -743,7 +743,7 @@ loaded: **−12.4 / −13.9 dBFS RMS, peaks 0.32 / 0.37**. Bank is 17 presets, p
 **Docs:** PANEL.md no longer describes two switchable views; PITFALLS.md rewritten for the
 C++/JUCE engine from the hazards that actually bit (v0.12–v0.23); TEST-PLAN gained M18–M22
 for fuzz, param-check, bend-test, tune-test and check_ids; Diffuser reclassified as
-"not in the original"; stale `ensemble/` pointers and `[BELIEVED]` tags cleared; Flatten
+"a house-only addition, not era-accurate"; stale `ensemble/` pointers and `[BELIEVED]` tags cleared; Flatten
 and SpectralInverter comments now state what the code does; CMake `VERSION` **0.1.0 →
 0.23.0** (bundle reports 0.23.0).
 
@@ -1129,11 +1129,11 @@ plus my own findings on the same shot.
   bigger than the `samplesPerBlock` declared to `prepareToPlay`** (offline bounces do this
   routinely). `monoIn`/`monoOut` were being `resize()`d inline in `processBlock`
   (`PluginProcessor.cpp:217`, old code) — a heap allocation on the real-time thread,
-  forbidden by `../CLAUDE.md` §4. They are now sized once in `prepareToPlay` and never
+  forbidden by the house real-time-safety rules. They are now sized once in `prepareToPlay` and never
   grown; an oversized block is instead split into chunks no larger than that pre-allocated
   capacity and rendered one chunk at a time, with `events` re-sliced per chunk (sample
   positions shifted to be chunk-relative) — the same pattern already in production in
-  Worldizer's `processChunk` and Reality Reborn's `renderChunk`/`MidiBuffer::addEvents`.
+  another ZQ SFX product's chunked `processBlock` pattern.
   For a normal (non-oversized) block the chunk loop runs exactly once at offset 0 with the
   full buffer, so the change is a no-op in the common case.
 - **Fixed: unbounded growth of the MIDI note-event list on the audio thread.** `events`
@@ -1172,7 +1172,7 @@ plus my own findings on the same shot.
   CLAUDE.md). Signing/notarization not run (none claimed).
 - **Universal binary restored**: `plugin/CMakeLists.txt` had `set(CMAKE_OSX_ARCHITECTURES
   arm64)`, so every local build was Apple Silicon only. The workspace rule
-  (`../CLAUDE.md` section 5) makes universal mandatory because Soundminer will not load
+  makes universal mandatory because Soundminer will not load
   anything else, and the earlier README said "Apple Silicon" because that was true. Now
   `"arm64;x86_64"`. Verified at the artefact, not in CMake text: `lipo -info` on the built
   VST3 reports `x86_64 arm64`; 0 errors; ctest **114/114**. README "Building" updated.
@@ -1368,7 +1368,7 @@ plus my own findings on the same shot.
   (`BrokenEditor::designW/designH * 0.65`, exactly what the constrainer clamps to),
   recursively walks every visible `Button`/`ComboBox`/`Slider` (and every `HitPad`, see
   below), and prints any whose on-screen bounds — computed via `getLocalArea()` so no
-  real screen peer is needed — are under 22px in width or height (../CLAUDE.md #6). Also
+  real screen peer is needed — are under 22px in width or height (the house accessibility floor). Also
   builds a standalone `SourceEditorPanel` (the pop-out window's content: SampleEditor and,
   for the instrument, OscEditor) at a FRESH `BrokenProcessor` and that window's own
   640x340 minimum, and audits it too — that window applies no scale transform, so its

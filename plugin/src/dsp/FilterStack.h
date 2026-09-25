@@ -78,7 +78,7 @@ private:
     {
         const double fcMod = static_cast<double> (cutoffHz) * std::pow (2.0, static_cast<double> (modSemitones) / 12.0);
         // floor arrives from the plugin layer: 500 Hz era-authentic unless EXT --
-        // modulation must not cross a floor the original could not (DSP-NOTES §4, v0.23)
+        // modulation must not cross a floor lower than the design allows (DSP-NOTES §4, v0.23)
         const double fcClamped = std::clamp (fcMod, static_cast<double> (floorHz), 0.45 * sr);
         a = static_cast<float> (1.0 - std::exp (-2.0 * kPi * fcClamped / sr));
         dirty = false;

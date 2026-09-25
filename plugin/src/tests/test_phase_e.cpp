@@ -11,7 +11,7 @@
 // the check: this is still ==, not a tolerance.
 static bool exactlyEqual (float a, float b) { return std::equal_to<float>{} (a, b); }
 
-// Phase E (v0.11): Oscillator Harmonic Mode — 64 additive partials (manual's Harmonic
+// Phase E (v0.11): Oscillator Harmonic Mode — 64 additive partials (Harmonic
 // Mode, minus the deferred waveform timeline).
 
 using broken::dsp::SourceEngine;

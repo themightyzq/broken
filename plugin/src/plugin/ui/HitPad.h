@@ -1,7 +1,7 @@
 #pragma once
 // Enlarges a small control's CLICKABLE area to the house accessibility floor -- >=22 px on
 // screen at the editor's 0.65x resize floor, i.e. >=34 px in DESIGN coordinates
-// (ceil(22 / 0.65) = 33.85; see ../../CLAUDE.md #6 and PluginEditor.cpp's resize-floor
+// (ceil(22 / 0.65) = 33.85; see the house accessibility floor and PluginEditor.cpp's resize-floor
 // comment) -- WITHOUT changing how big the control looks.
 //
 // `hitTest()` cannot do this: overriding it only reshapes what counts as "inside" THIS

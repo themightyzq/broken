@@ -185,7 +185,7 @@ inline APVTS::ParameterLayout createLayout()
     for (int i = 1; i <= curvePointCount; ++i)
     {
         // Custom curve breakpoints: y at 16 fixed x positions across [-1,1];
-        // defaults trace the identity diagonal (= no effect, per the spec's editor)
+        // defaults trace the identity diagonal (= no effect, by design)
         const float defY = -1.0f + 2.0f * (float) (i - 1) / (float) (curvePointCount - 1);
         layout.add (std::make_unique<P> (curvePointId (i),
                                          juce::String::formatted ("Curve P%03d", i),
@@ -214,7 +214,7 @@ inline APVTS::ParameterLayout createLayout()
     layout.add (std::make_unique<P>  ("inv.mix",  "Invert Mix",  Rng (0.f, 1.f), 0.f));
     layout.add (std::make_unique<Pc> ("inv.type", "Invert Type", invTypes, 0));
 
-    // era Noise model (manual: randomized sine; 25/25 defaults per the spec screenshot)
+    // era Noise model (randomized sine; 25/25 defaults specified)
     layout.add (Pf ("noise.amp",   "Amp Noise",   Rng (0.f, 100.f, 1.f), 25.f, "%", 0));
     layout.add (Pf ("noise.phase", "Phase Noise", Rng (0.f, 100.f, 1.f), 25.f, "%", 0));
 

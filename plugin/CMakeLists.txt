@@ -8,7 +8,7 @@ project(Broken VERSION 0.35.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64") # universal is mandatory: Soundminer will not load anything else (../CLAUDE.md section 5)
+set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64") # universal is mandatory: Soundminer will not load anything else (house policy)
 
 include(FetchContent)
 
@@ -88,8 +88,8 @@ target_link_libraries(Broken
 
 # --- Broken FX: the same codebase (${BROKEN_PLUGIN_SOURCES}) built as an insert effect,
 # gated by BROKEN_FX=1 (see plugin/CLAUDE.md). True stereo, two dsp::Engine instances,
-# no MIDI, its own state-type tag, its own preset folder. Identity per ../CLAUDE.md
-# section 2's registry: PLUGIN_CODE BrFx is reserved there for this product.
+# no MIDI, its own state-type tag, its own preset folder. Identity per the house
+# manufacturer-code registry: PLUGIN_CODE BrFx is reserved there for this product.
 # COPY_PLUGIN_AFTER_BUILD stays FALSE, same as Broken -- this project does not
 # auto-install either target.
 juce_add_plugin(BrokenFX

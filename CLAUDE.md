@@ -32,7 +32,7 @@ is the evidence base for era claims. For the panel's visual design, the spec of 
 remains `ClaudeDesign/design_handoff_broken_ui/README.md` (with its `BEHAVIOR.md`); that
 does not change with the note below.
 
-Broken is the baseline for the house visual style (`../docs/ZQSFX_UI_STYLE_GUIDE.md`), and
+Broken is the baseline for the house visual style (the house UI style guide), and
 its UI core now lives in the shared `zqsfx_ui` module (`../zqsfx_ui/`, fetched by tag in
 `plugin/CMakeLists.txt`). `plugin/src/plugin/ui/Theme.h`, `BrokenLookAndFeel.h`, and `Controls.h`
 are thin adapters. To change a token or a shared control: change it in `zqsfx_ui`, keep its
@@ -49,7 +49,7 @@ licensed knob strips) stays in this project. The design spec of record above sti
 - Renders: `tests/renders/<fixture>__<snapshot>__vNN.wav`, produced by `broken_cli` at
   48 kHz/24-bit (parity runs at 44.1 k).
 - Versioning: git, local only, no remote (first repository created 2026-09-21, branch
-  `main`) — see ../CLAUDE.md section 3. A **milestone** = a
+  `main`) — see the house version-control policy. A **milestone** = a
   P-step passing its gates; tag/note milestones in CHANGELOG.
 - No oversampling in the signal chain by default — aliasing is era-correct and deliberate.
 - Python scripts (`scripts/make_fixtures.py`, `scripts/analyze.py`) run in a `.venv` that is

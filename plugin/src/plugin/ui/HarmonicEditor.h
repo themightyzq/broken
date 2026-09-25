@@ -1,5 +1,5 @@
 #pragma once
-// 64-bar harmonic editor for osc.mode == Harmonic: the spec's Harmonic Mode, where the
+// 64-bar harmonic editor for osc.mode == Harmonic, where the
 // oscillator is built from 64 partials (osc.h01..osc.h64, each 0..100%) instead of a
 // preset waveform. Same shape as CurveEditor.h: live param writes on drag, a 15 Hz Timer
 // poll for the display cache (so host automation / preset loads stay reflected), and
@@ -9,7 +9,7 @@
 //  - plain drag: paints the bar(s) under the cursor as it moves, using the on-screen
 //    y value at each bar's x (interpolated between successive mouse events so a fast
 //    drag doesn't skip bars).
-//  - SHIFT+drag: RAKE, the spec's tool. A straight line is drawn from the drag's start
+//  - SHIFT+drag: RAKE. A straight line is drawn from the drag's start
 //    point to the current point, and every bar between those two x positions is set to
 //    that line's y at the bar's x - recomputed on every mouseDrag call as the line pivots.
 //
@@ -34,7 +34,7 @@ public:
     explicit HarmonicEditor (juce::AudioProcessorValueTreeState& apvtsIn) : apvts (apvtsIn)
     {
         setWantsKeyboardFocus (false);
-        setTooltip ("The 64 partials, by design's Harmonic Mode. Drag bars to draw; "
+        setTooltip ("The 64 partials of Harmonic Mode. Drag bars to draw; "
                     "hold Shift to rake a straight line across them.");
 
         for (int i = 0; i < kPartials; ++i)

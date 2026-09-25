@@ -78,8 +78,8 @@ public:
         return out;
     }
 
-    // nearest equal-tempered note (A4=440, middle C = C4 = midi 60 per the spec's
-    // Appendix D convention) and the cents offset from it
+    // nearest equal-tempered note (A4=440, middle C = C4 = midi 60 by convention) and the
+    // cents offset from it
     static void centsFromHz (float hz, int& midiNote, float& centsOffset)
     {
         const float noteF = 69.0f + 12.0f * std::log2 (hz / 440.0f);

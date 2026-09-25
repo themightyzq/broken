@@ -74,7 +74,7 @@ public:
         noisePhaseKnob = std::make_unique<Knob> (av, "noise.phase", "PH NZ",
             "Noise source: phase randomness. Both at 100 = white noise.", false);
         fineKnob = std::make_unique<Knob> (av, "source.finecents", "FINE",
-            "Fine tune, same range as the original's Pitch Shifter fine. TUNE sets it for you.",
+            "Fine tune, same range as a pitch-shifter's fine control. TUNE sets it for you.",
             false, true, "c");
         tuneButton.setButtonText ("TUNE");
         tuneButton.setTooltip ("One press: locks the source to the nearest note using the "
@@ -108,7 +108,7 @@ public:
         driveKnob = std::make_unique<Knob> (av, "ws.drive", "DRIVE",
             "How hard the sound hits the curve. The main damage control.", true);
         curveCombo = std::make_unique<Combo> (av, "ws.curve", params::wsCurves, "CURVE",
-            "Click through the shaper curves like the artist did. 1 is clean.");
+            "Click through the shaper curves one by one. 1 is clean.");
         curveComboPad = std::make_unique<HitPad> (*curveCombo, [this] { curveCombo->box.showPopup(); });
         morphKnob = std::make_unique<Knob> (av, "ws.morph", "MORPH",
             "Blend between clean and the selected curve.", false, true, "%",

@@ -2,7 +2,7 @@
 // Per-voice sound source (docs/DSP-NOTES.md §1): Sample (varispeed within a
 // non-destructive region, five play modes, loop-seam crossfade), Cycle (a tiny window
 // looped as a raw oscillator — the classic trick), Osc, Noise, Input (FX mode), Tape.
-// Varispeed IS the original Pitch Shifter: transposing changes duration, on purpose.
+// Varispeed is the whole pitch-shifting mechanism: transposing changes duration, on purpose.
 // Region/loop edits are ordinary block-rate settings — live editing is the design
 // (a MIDI key is the preview); bounds are enforced per sample so a region shrinking
 // under a playing note can never read out of range.
@@ -253,7 +253,7 @@ private:
             return main;
 
         // Pitch MIX (docs/DSP-NOTES.md §2a): a second, root-rate head renders the "dry"
-        // stream — the original Pitch Shifter's Mix, for detune/chorus at ~50%.
+        // stream — a pitch-shifter mix control, for detune/chorus at ~50%.
         // Truly dry: no transpose, no FM rate-mod.
         const double dryRate = activeSr() / sr;
         const float d = advanceHead (dry.pos, dry.dir, dry.finished, dryRate, false, drySeg);
@@ -293,7 +293,7 @@ private:
                 // including regions touching the file head/tail.
                 auto blend = [this] (float a, float b, float t)
                 {
-                    if (xfadeShape == 1) // EqPower (manual's Crossfade Looping option)
+                    if (xfadeShape == 1) // EqPower (equal-power crossfade looping)
                     {
                         const float g2 = std::sin (1.5707963f * t);
                         const float g1 = std::cos (1.5707963f * t);
@@ -559,7 +559,7 @@ private:
         harmBuiltFreq = f > 0.0 ? f : 1.0;
     }
 
-    // era Noise (manual-verified): a randomized SINE at the note frequency — Amp Noise %
+    // era Noise (specified): a randomized SINE at the note frequency — Amp Noise %
     // re-rolls the cycle's amplitude at each wrap, Phase Noise % jitters the phase per
     // sample. 0/0 = plain sine, 100/100 ≈ white. (Pre-v0.8 plain white = max settings.)
     float nextNoise()

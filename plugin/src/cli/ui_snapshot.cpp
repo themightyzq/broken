@@ -12,7 +12,7 @@
 //   visible Button/ComboBox/Slider (and every HitPad -- see ui/HitPad.h) in the tree, and
 //   prints any whose ON-SCREEN bounds (i.e. after the content scale transform, computed
 //   via getLocalArea() so no real screen peer is needed) are under 22 px in width or
-//   height (../../CLAUDE.md #6's accessibility floor). Also audits the pop-out source
+//   height (the house accessibility floor). Also audits the pop-out source
 //   editor window's content (SourceEditorPanel: SampleEditor and, for the instrument,
 //   OscEditor) at that window's own minimum size (SampleEditorWindow's setResizeLimits,
 //   640x340) -- that window is NOT scaled by the main editor's transform, so its floor is
@@ -32,7 +32,7 @@
 
 namespace
 {
-constexpr int kMinHitPx = 22; // ../../CLAUDE.md #6
+constexpr int kMinHitPx = 22; // house accessibility floor
 
 struct HitViolation
 {

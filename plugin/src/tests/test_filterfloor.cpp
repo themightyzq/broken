@@ -37,7 +37,7 @@ float steadyStatePeak (broken::dsp::FilterStack& f, double sr, double freq, int 
 // "clamped to the same floor as the static cutoff: 500 Hz unless EXT, then 20 Hz". Before
 // v0.23 the floor was only applied to the static knob value in the plugin layer, and the
 // DSP's own clamp used a hardcoded 20 Hz -- so with EXT off, a big negative envelope swing
-// could pull fc_eff down through the 500 Hz floor the original hardware could never cross.
+// could pull fc_eff down through the 500 Hz floor period hardware could never cross.
 
 TEST_CASE ("floor holds the cutoff up when envelope modulation pulls it down (EXT off)", "[filter]")
 {

@@ -5,10 +5,10 @@
 namespace broken::dsp
 {
 
-// the spec's two inverter flavors, FFT-free:
+// Two inverter flavors, FFT-free:
 //  Type A: ring-mod by Nyquist (+1/-1 sequence) mirrors the spectrum (f -> sr/2 - f).
 //  Type B: ring-mod by sr/4 (the 1,0,-1,0 cosine sequence) makes TWO combined images —
-//          f + sr/4 and sr/4 - f ("more upper midrange frequencies" per the spec).
+//          f + sr/4 and sr/4 - f ("more upper midrange frequencies").
 class SpectralInverter
 {
 public:
@@ -34,7 +34,7 @@ public:
         {
             static constexpr float seq[4] = { 1.0f, 0.0f, -1.0f, 0.0f };
             // x2 makes Type B +3 dB hotter than Type A (mean-square 2 vs 1; x√2 would
-            // equalize). Kept deliberately: the spec describes Type B as "more upper
+            // equalize). Kept deliberately: Type B reads as "more upper
             // midrange", and changing it is a listening decision (v0.23).
             carrier = 2.0f * seq[phase_ & 3];
         }

@@ -53,7 +53,7 @@ public:
         return x * ((1.0f - amount_) + amount_ * m);
     }
 
-    // PM: modulated short delay (docs/DSP-NOTES.md §2a) — the spec's chorus/vibrato
+    // PM: modulated short delay (docs/DSP-NOTES.md §2a) — the classic chorus/vibrato
     // recipe. Delay swings 0..10 ms with the modulator; amount scales the swing.
     float applyPM (float x, float m)
     {

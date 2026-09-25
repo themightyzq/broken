@@ -26,7 +26,7 @@ public:
         blockerYPrev_ = 0.0f;
     }
 
-    // manual-verified extras: 8 = Random (seeded breakpoint curve — the original's
+    // specified extras: 8 = Random (seeded breakpoint curve — the classic
     // randomizer preset), 9 = Custom (the pencil-drawn curve, customPointCount breakpoints)
     void setRandomSeed (int seed)
     {

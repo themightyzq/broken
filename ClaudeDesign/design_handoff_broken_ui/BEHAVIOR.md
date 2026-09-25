@@ -17,7 +17,7 @@
 - Waveform display — shows the loaded sample with the selected region tinted, or the oscillator's shape in Osc mode. Drop a file on it to load; click to browse when empty; double-click to open the source window. In Cycle mode it also outlines the oscillator window.
 - EDIT — opens the source window.
 - PLAY / STOP — plays the sound at the root note with no MIDI keyboard; click again to stop. Not available in Input mode.
-- PITCH — transpose. On a sample this also changes speed, by design hardware. ±24 semitones, ±48 with PITCH EXT on.
+- PITCH — transpose. On a sample this also changes speed, by design. ±24 semitones, ±48 with PITCH EXT on.
 - FINE — fine tune, ±50 cents.
 - TUNE — one press locks the source to the nearest note, using the IN tuner. Only lights when the tuner has a confident pitch.
 - POS — where in the sample the Cycle oscillator window starts. Cycle mode only.
@@ -70,15 +70,15 @@
 ## EDIT blocks
 - FILTER ENV: A / D / S / R — the filter envelope. ENV AMT — how far it moves the cutoff, up to ±60 semitones.
 - AUX ENV: A / D / S / R — a third envelope. DEST — what it modulates: filter cutoff, resonator pitch, invert mix, mod amount, or pitch. AMT — how much, positive or negative.
-- CYCLE / OSC: XFADE — smooths the seam of the Cycle loop. PITCH MIX — blends pitched playback with the unpitched original (the original's chorus trick). OSC WAVE — same control as in the SOURCE block. PITCH EXT — extends PITCH from ±24 to ±48 semitones.
+- CYCLE / OSC: XFADE — smooths the seam of the Cycle loop. PITCH MIX — blends pitched playback with the unpitched original (the classic chorus trick). OSC WAVE — same control as in the SOURCE block. PITCH EXT — extends PITCH from ±24 to ±48 semitones.
 - FM: FM INDEX — how deep the FM goes when MODE is FM.
 - DELAY: FINE — fine trim of the delay time. FEEDBACK — how many repeats.
 - RESONATOR: DAMP — rolls off the resonator's high frequencies.
 - CURVE: the waveshaper's transfer curve, drawn live. Drag on it to draw your own — that switches CURVE to Custom automatically and keeps the shape you were looking at. TRIM — output level after the shaper. RND — rolls a new random curve. COPY TO CUSTOM — copies the selected curve into the drawable one. FROM SAMPLE — uses a slice of the loaded sample as the curve itself.
 - VOICE: RETRIGGER — restart the amp envelope on legato notes. BEND — pitch-wheel range in semitones; 0 switches the wheel off.
-- FILTER: FLOOR EXT — lets the filter go below the original's 500 Hz floor.
+- FILTER: FLOOR EXT — lets the filter go below the default 500 Hz floor.
 - HARMONICS: 64 draggable bars, one per partial, for Harmonic mode; Shift-drag draws a straight line across them. OSC MODE — same control as in the SOURCE block. SAW / SQR / FLAT — preset partial recipes.
-- TIME: STRETCH — time-stretch by repeating segments, by design Stretcher. AMOUNT — positive stretches, negative compresses. FREQ — segment size; match it to the sound's fundamental. PREDELAY — leaves the attack untouched before stretching starts. FLATTEN — levels out the sound's own dynamics, like heavy compression. RESP — how fast FLATTEN reacts.
+- TIME: STRETCH — time-stretch by repeating segments. AMOUNT — positive stretches, negative compresses. FREQ — segment size; match it to the sound's fundamental. PREDELAY — leaves the attack untouched before stretching starts. FLATTEN — levels out the sound's own dynamics, like heavy compression. RESP — how fast FLATTEN reacts.
 - COLOUR / NOISE: AMP NZ / PH NZ — same as the SOURCE-block pair. INV TYPE — which spectral-inversion flavour, A or B. XFADE SHAPE — linear or equal-power loop crossfade.
 
 ## Source window (pop-out)

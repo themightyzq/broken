@@ -159,7 +159,7 @@ private:
     // Capped at maxNoteEventsPerBlock and never allowed to grow past that in processBlock,
     // so a MIDI storm cannot trigger a reallocation on the audio thread. `chunkEvents` is
     // the per-chunk re-slice used when a host hands us a block bigger than samplesPerBlock
-    // (see processBlock's chunk loop, same pattern as Worldizer/Reality Reborn).
+    // (see processBlock's chunk loop, the same pattern used in other ZQ SFX products).
     static constexpr size_t maxNoteEventsPerBlock = 256;
     std::vector<dsp::NoteEvent> events;
     std::vector<dsp::NoteEvent> chunkEvents;

@@ -237,9 +237,9 @@ public:
         trimsBlock.addAndMakeVisible (fmIndex.get());
 
         dlyFine = std::make_unique<Knob> (av, "dly.fine", "FINE",
-            "Delay fine time trim (not on the original unit).", false);
+            "Delay fine time trim (a Broken-only addition).", false);
         dlyFb = std::make_unique<Knob> (av, "dly.fb", "FEEDBACK",
-            "Delay feedback (not on the original unit).", false);
+            "Delay feedback (a Broken-only addition).", false);
         for (auto* c : { dlyFine.get(), dlyFb.get() })
             trimsBlock.addAndMakeVisible (c);
 
@@ -273,7 +273,7 @@ public:
         // on Input), so it and its three knobs are hidden in FX and the block is retitled
         // "FLATTEN" there -- FLATTEN and RESP are the only two that still do anything.
         stretchOn = std::make_unique<TextToggle> (av, "stretch.on", "STRETCH",
-            "Segment-repeat time stretch, by design Stretcher. Tune FREQ to the "
+            "Segment-repeat time stretch. Tune FREQ to the "
             "material or enjoy the artifacts.");
         stretchOnPad = std::make_unique<HitPad> (stretchOn->button, [this] { stretchOn->button.triggerClick(); });
         stretchAmount = std::make_unique<Knob> (av, "stretch.amount", "AMOUNT",

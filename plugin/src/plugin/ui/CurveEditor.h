@@ -168,7 +168,7 @@ public:
 
     // The button lives BELOW the plot, never on top of it: it used to sit inside the
     // drawable area, so the bottom-right corner of the curve could not be drawn.
-    // buttonStripH grew 20->34 (the house accessibility floor, ../../CLAUDE.md #6 /
+    // buttonStripH grew 20->34 (the house accessibility floor /
     // PluginEditor.cpp's resize-floor comment) so FROM SAMPLE's own bounds clear 22px on
     // screen at the 0.65x resize floor; HitPad-style padding isn't usable here without
     // stealing hit area from the plot's own drag surface right above it, so this instead

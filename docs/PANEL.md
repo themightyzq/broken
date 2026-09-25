@@ -66,7 +66,7 @@ source, pick a curve, turn a big knob. Layout left→right mirrors signal flow.
 | SNAP | toggle (editor) | on/off | on | Snaps selection edges to zero crossings on release. |
 | PLAY | button (latch) | — | off | Plays the sound without a MIDI keyboard, and leaves both hands free for the knobs. Click again to stop. Pitch comes from PITCH/FINE. |
 | PITCH | knob | ±24 st (EXT: ±48) | 0 | Transpose. Pitching down also slows — that's the point. In Input mode this pitches the live signal (tape-head varispeed — warble included). |
-| FINE | knob + ¢ readout | ±50 cents, 1¢ steps | 0 | Fine tune, same range as the original's Pitch Shifter fine. TUNE sets it for you. |
+| FINE | knob + ¢ readout | ±50 cents, 1¢ steps | 0 | Fine tune, same range as a pitch-shifter's fine control. TUNE sets it for you. |
 | TUNE | button | — | — | One press: locks the source to the nearest note using the IN tuner. Dimmed when no confident pitch. |
 | IN tuner | display | note ±50¢ + Hz | — | What's coming in — sample, osc, or live input — before the mangle. |
 | OUT tuner (Output block) | display | note ±50¢ + Hz | — | What's coming out after everything. Chase it with FINE if you want the wreckage in tune. |
@@ -142,11 +142,11 @@ toggles (filter floor, pitch range), per-module hard-bypass buttons, waveshaper 
 | Control | Block | Range | Default | Info text |
 |---|---|---|---|---|
 | SRC (mod source) | MANGLE (MOD) | Osc / Self / Sample / Tape / Table | Osc | What modulates: the internal osc, the sound itself, the sample, the tape, or the OSCILLATOR panel's own shape (Table, v0.35 — drawn, harmonics or wave) — any module as modulator, by design. |
-| MODE (mod) | MANGLE (MOD) | AM / RM / FM / PM | RM | How the sound is modulated. PM is the spec's chorus/vibrato mode. |
-| PITCH MIX | EDIT | 0–1 | 1 | Blend of pitched vs unpitched playback — the original Pitch Shifter's Mix. ~50% with FINE detune = the spec's chorus recipe. |
+| MODE (mod) | MANGLE (MOD) | AM / RM / FM / PM | RM | How the sound is modulated. PM is the classic chorus/vibrato mode. |
+| PITCH MIX | EDIT | 0–1 | 1 | Blend of pitched vs unpitched playback — a pitch-shifter mix control. ~50% with FINE detune = the classic chorus recipe. |
 | CURVE editor + RND + COPY→CUSTOM + FROM SAMPLE | EDIT (CURVE) | — | — | The waveshaper's transfer curve. **Just drag on it** — that switches to CUSTOM and keeps the shape you were looking at (128 points, pencil not handles). RND rolls a new random curve (seed saved with the preset). **FROM SAMPLE** turns the CYCLE window of the loaded sample into the curve itself. |
-| HARMONICS editor + MODE + SAW/SQUARE/FLAT | EDIT (HARMONICS) | 64 partials, 0–100% | saw (100/k) | The 64 partials, by design's Harmonic Mode. Drag bars to draw; hold Shift to rake a straight line across them. |
-| STRETCH + AMOUNT/FREQ/PREDELAY | EDIT (TIME) | on/off, ±100, 20–2000 Hz, 0–1000 ms | off, 0, 130.81 Hz (C3), 0 | Segment-repeat time stretch, by design Stretcher. Positive stretches, negative compresses. Tune FREQ to the material or enjoy the artifacts. |
+| HARMONICS editor + MODE + SAW/SQUARE/FLAT | EDIT (HARMONICS) | 64 partials, 0–100% | saw (100/k) | The 64 partials of Harmonic Mode. Drag bars to draw; hold Shift to rake a straight line across them. |
+| STRETCH + AMOUNT/FREQ/PREDELAY | EDIT (TIME) | on/off, ±100, 20–2000 Hz, 0–1000 ms | off, 0, 130.81 Hz (C3), 0 | Segment-repeat time stretch. Positive stretches, negative compresses. Tune FREQ to the material or enjoy the artifacts. |
 | FLATTEN + RESP | EDIT (TIME) | on/off, 1–500 ms | off, 50 ms | Envelope Removal: levels out the sound's own dynamics, like heavy compression. |
 | BEND | EDIT (VOICE) | 0–24 semitones | 2 | How far the pitch wheel bends. 2 is the usual, 12 is an octave dive. **0 switches the wheel off entirely.** On a sample the bend changes speed as well as pitch, exactly like the PITCH knob. |
 | AMP NZ / PH NZ | EDIT (COLOUR/NOISE) | 0–100% | 25 / 25 | Noise source randomness. Both 0 = a plain sine; both 100 = white noise. |
@@ -174,7 +174,7 @@ toggles (filter floor, pitch range), per-module hard-bypass buttons, waveshaper 
 > **Expect scream, not saturation.** An audio slice is a *non-monotonic* transfer curve,
 > so a clean sine goes in and broadband noise comes out: measured **THD −0.3 dB**, i.e.
 > the harmonics are as loud as the note. That is the era-correct answer to "what if I draw
-> something insane", and it is what the original's hand-drawn curve editor invited. It is
+> something insane", and it is what a hand-drawn curve editor invites. It is
 > not a defect when it sounds harsh. For reference, CUSTOM at its untouched default
 > diagonal measures **THD −74.2 dB** — selecting it changes nothing until you draw.
 >

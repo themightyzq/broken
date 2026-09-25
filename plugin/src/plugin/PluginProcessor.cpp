@@ -308,12 +308,12 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     }
 
     // monoIn/monoOut are sized ONCE in prepareToPlay and never grown here: growing them on
-    // this thread would allocate, which is forbidden on the audio thread (../CLAUDE.md
-    // section 4). A host that hands us a block bigger than the samplesPerBlock it declared
+    // this thread would allocate, which is forbidden on the audio thread (house
+    // real-time-safety rules). A host that hands us a block bigger than the samplesPerBlock it declared
     // to prepareToPlay -- offline bounces do this routinely -- is instead split into chunks
     // no larger than that pre-allocated capacity and rendered one chunk at a time, so no
-    // buffer ever has to grow regardless of host behaviour (same pattern as Worldizer's
-    // processChunk / Reality Reborn's renderChunk). `events` is re-sliced per chunk with
+    // buffer ever has to grow regardless of host behaviour (the same chunking pattern used
+    // in other ZQ SFX products). `events` is re-sliced per chunk with
     // sample positions shifted to be chunk-relative, mirroring
     // juce::MidiBuffer::addEvents(midi, offset, chunkLen, -offset) for our plain vector.
     const int capacity = (int) monoIn.size();
