@@ -1,3 +1,4 @@
+#include <memory>
 // broken_cli — headless render tool: plays a fixture through the real BrokenProcessor
 // and writes the result, so scripts/analyze.py can gate every milestone without a DAW.
 //
@@ -113,7 +114,8 @@ bool loadMidi (const juce::File& f, std::vector<TimedMsg>& out, double& lengthSe
 static int stateRoundtrip (const juce::String& samplePath)
 {
     juce::String err;
-    broken::BrokenProcessor a;
+    auto aOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+    auto& a = *aOwner;
     if (! a.loadSampleFile (juce::File::getCurrentWorkingDirectory().getChildFile (samplePath), err))
     { std::cerr << "roundtrip: load failed: " << err << "\n"; return 1; }
     for (auto [id, v] : std::initializer_list<std::pair<const char*, float>> {
@@ -127,7 +129,8 @@ static int stateRoundtrip (const juce::String& samplePath)
     juce::MemoryBlock state;
     a.getStateInformation (state);
 
-    broken::BrokenProcessor b;
+    auto bOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+    auto& b = *bOwner;
     b.setStateInformation (state.getData(), (int) state.getSize());
 
     bool ok = b.getSampleName() == a.getSampleName() && ! b.isSampleMissing()
@@ -266,7 +269,8 @@ static int runFuzz (int iterations, int seed)
         const int caseSeed = seed * 100000 + it;
         Rng rng ((uint32_t) caseSeed);
 
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         juce::String loadErr;
         proc.loadSampleFile (materialFile, loadErr);
         randomiseAll (proc, rng);
@@ -303,7 +307,8 @@ static int fuzzDiagnose (int caseSeed)
     auto runCase = [&] (const char* bypassId) -> RenderStats
     {
         Rng rng ((uint32_t) caseSeed);
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         juce::String loadErr;
         proc.loadSampleFile (materialFile, loadErr);
         randomiseAll (proc, rng);
@@ -321,7 +326,8 @@ static int fuzzDiagnose (int caseSeed)
     // print the state that triggered it
     {
         Rng rng ((uint32_t) caseSeed);
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         juce::String loadErr;
         proc.loadSampleFile (materialFile, loadErr);
         randomiseAll (proc, rng);
@@ -364,7 +370,8 @@ static int runBench()
 
     for (const auto& c : cfgs)
     {
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         juce::String loadErr;
         proc.loadSampleFile (materialFile, loadErr);
         auto set = [&proc] (const char* id, float v)
@@ -416,7 +423,8 @@ int main (int argc, char* argv[])
     // so this verifies what users get, not what happens to be on disk
     if (raw.size() == 1 && raw[0] == "--list-presets")
     {
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         for (const auto& e : proc.presets.getEntries())
             std::cout << (e.isUser ? "user   " : "factory") << "  " << e.name << "\n";
         std::cout << proc.presets.getEntries().size() << " presets\n";
@@ -425,7 +433,8 @@ int main (int argc, char* argv[])
 
     if (raw.size() == 2 && raw[0] == "--preset-check")
     {
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         juce::String err;
         if (! proc.loadSampleFile (resolve (raw[1]), err))
         { std::cerr << "preset-check: " << err << "\n"; return 2; }
@@ -476,7 +485,8 @@ int main (int argc, char* argv[])
     {
         auto soundingHz = [] (int wheel, float range)
         {
-            broken::BrokenProcessor proc;
+            auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+            auto& proc = *procOwner;
             for (const char* spec : { "mod.on=0", "ws.on=0", "flt.on=0", "res.on=0",
                                       "inv.on=0", "dly.on=0", "col.mode=0",
                                       "source.mode=2", "source.oscwave=0", "amp.s=1" })
@@ -531,13 +541,15 @@ int main (int argc, char* argv[])
     // title ("TurboSynth" tag) must still load, or every earlier session/preset is lost.
     if (raw.size() == 1 && raw[0] == "--state-migrate-check")
     {
-        broken::BrokenProcessor src;
+        auto srcOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& src = *srcOwner;
         juce::String e;
         applySet (src, "ws.drive=33", e);
         auto xml = src.apvts.copyState().createXml();
         xml->setTagName ("TurboSynth");                  // pretend it was saved pre-rename
 
-        broken::BrokenProcessor dst;
+        auto dstOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& dst = *dstOwner;
         dst.restoreFromXml (*xml);
         const float got = dst.apvts.getRawParameterValue ("ws.drive")->load();
         const bool ok = std::abs (got - 33.0f) < 1.0e-3f;
@@ -554,7 +566,8 @@ int main (int argc, char* argv[])
     // them, and every id gatherParams reads, resolves to a real parameter.
     if (raw.size() == 1 && raw[0] == "--param-check")
     {
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         int missing = 0;
         auto check = [&proc, &missing] (const juce::String& id)
         {
@@ -577,7 +590,8 @@ int main (int argc, char* argv[])
     // and UNDO must restore the exact prior state (DSP-NOTES 12b).
     if (raw.size() == 1 && raw[0] == "--rnd-check")
     {
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         auto real = [&] (const char* id)
         {
             auto* rp = dynamic_cast<juce::RangedAudioParameter*> (proc.apvts.getParameter (id));
@@ -633,7 +647,8 @@ int main (int argc, char* argv[])
     // 25 ms crossfade has completed, on both channels of a stereo pair (DSP-NOTES 12b).
     if (raw.size() == 1 && raw[0] == "--bypass-check")
     {
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         {
             juce::String e;
             applySet (proc, "bypass=1", e);
@@ -674,7 +689,8 @@ int main (int argc, char* argv[])
 
     if (raw.size() == 1 && raw[0] == "--tune-test")
     {
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         for (const char* offSpec : { "mod.on=0", "ws.on=0", "flt.on=0", "res.on=0",
                                      "inv.on=0", "dly.on=0", "col.mode=0",
                                      "source.mode=2", "source.oscwave=0", "amp.s=1" })
@@ -713,7 +729,8 @@ int main (int argc, char* argv[])
     if (raw.size() >= 2 && raw[0] == "--dump-state-b64")
     {
         juce::String err;
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         if (raw[1] != "-"
             && ! proc.loadSampleFile (juce::File::getCurrentWorkingDirectory().getChildFile (raw[1]), err))
         { std::cerr << "broken_cli error: " << err << "\n"; return 2; }
@@ -780,7 +797,8 @@ int main (int argc, char* argv[])
                                   : (juce::int64) std::llround ((midiLen + 0.5) * sr);
     const juce::int64 totalFrames = numInFrames + (juce::int64) std::llround (args.tailSeconds * sr);
 
-    broken::BrokenProcessor proc;
+    auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+    auto& proc = *procOwner;
 
     if (args.snapshotPath.isNotEmpty())
     {

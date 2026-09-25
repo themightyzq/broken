@@ -18,6 +18,7 @@
 // without re-running under a debugger.
 
 #include <cmath>
+#include <memory>
 #include <cstring>
 #include <functional>
 #include <iostream>
@@ -274,7 +275,8 @@ int main()
 
     // ---- (a) + (b): default instance, -14 dBFS tone, identical L/R -----------------
     {
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         const double sr = 48000.0;
         const int blockSize = 512;
         proc.setPlayConfigDetails (2, 2, sr, blockSize);
@@ -317,7 +319,8 @@ int main()
 
     // ---- (d): tone in L only, silence in R -> R stays silent-ish -------------------
     {
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         const double sr = 48000.0;
         const int blockSize = 512;
         proc.setPlayConfigDetails (2, 2, sr, blockSize);
@@ -349,7 +352,8 @@ int main()
         {
             for (int bs : blockSizes)
             {
-                broken::BrokenProcessor proc;
+                auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+                auto& proc = *procOwner;
                 proc.setPlayConfigDetails (2, 2, sr, bs);
                 proc.prepareToPlay (sr, bs);
 
@@ -375,7 +379,8 @@ int main()
 
     // ---- (g): bypass returns the input unchanged after the fade --------------------
     {
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         setParam (proc, "bypass", 1.0f);
         const double sr = 48000.0;
         const int blockSize = 512;
@@ -414,7 +419,8 @@ int main()
         const int blockSize = 512;
         auto sampleFile = makeToneSample (sr);
 
-        broken::BrokenProcessor procSample;
+        auto procSampleOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& procSample = *procSampleOwner;
         procSample.setPlayConfigDetails (2, 2, sr, blockSize);
         procSample.prepareToPlay (sr, blockSize);
         juce::String loadErr;
@@ -425,7 +431,8 @@ int main()
         setParam (procSample, "mod.amount", 0.8f);
         setParam (procSample, "mod.source", 2.0f); // Sample
 
-        broken::BrokenProcessor procOsc;
+        auto procOscOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& procOsc = *procOscOwner;
         procOsc.setPlayConfigDetails (2, 2, sr, blockSize);
         procOsc.prepareToPlay (sr, blockSize);
         juce::String loadErr2;
@@ -465,7 +472,8 @@ int main()
         auto renderWithOscMode = [&] (int oscModeIdx,
                                       const std::function<void (broken::BrokenProcessor&)>& setBank)
         {
-            broken::BrokenProcessor proc;
+            auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+            auto& proc = *procOwner;
             proc.setPlayConfigDetails (2, 2, sr, blockSize);
             proc.prepareToPlay (sr, blockSize);
             setParam (proc, "mod.on", 1.0f);
@@ -516,7 +524,8 @@ int main()
 
         auto renderFm = [&] (float fmIndex)
         {
-            broken::BrokenProcessor proc;
+            auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+            auto& proc = *procOwner;
             proc.setPlayConfigDetails (2, 2, sr, blockSize);
             proc.prepareToPlay (sr, blockSize);
             setParam (proc, "mod.on", 1.0f);
@@ -542,7 +551,8 @@ int main()
         bool allFinite = true, allBounded = true;
         for (int modSource = 0; modSource <= 4; ++modSource)
         {
-            broken::BrokenProcessor proc;
+            auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+            auto& proc = *procOwner;
             proc.setPlayConfigDetails (2, 2, sr, blockSize);
             proc.prepareToPlay (sr, blockSize);
             juce::String err;
@@ -581,7 +591,8 @@ int main()
         // exact condition its bypass contract requires, without needing a stored reference.
         auto renderAmFmIndex = [&] (float fmIndex)
         {
-            broken::BrokenProcessor proc;
+            auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+            auto& proc = *procOwner;
             proc.setPlayConfigDetails (2, 2, sr, blockSize);
             proc.prepareToPlay (sr, blockSize);
             setParam (proc, "mod.on", 1.0f);
@@ -609,7 +620,8 @@ int main()
     {
         const double sr = 48000.0;
         const int blockSize = 512;
-        broken::BrokenProcessor proc;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& proc = *procOwner;
         proc.setPlayConfigDetails (2, 2, sr, blockSize);
         proc.prepareToPlay (sr, blockSize);
         setParam (proc, "mod.on", 1.0f);
@@ -643,7 +655,8 @@ int main()
         const double sr = 48000.0;
         const int blockSize = 512;
         int factoryCount = 0;
-        broken::BrokenProcessor probe;
+        auto probeOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& probe = *probeOwner;
         broken::PresetManager probeList (probe);
         for (size_t idx = 0; idx < probeList.getEntries().size(); ++idx)
         {
@@ -651,7 +664,8 @@ int main()
             ++factoryCount;
             const auto name = probeList.getEntries()[idx].name;
 
-            broken::BrokenProcessor proc;
+            auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+            auto& proc = *procOwner;
             proc.setPlayConfigDetails (2, 2, sr, blockSize);
             proc.prepareToPlay (sr, blockSize);
             broken::PresetManager pm (proc);
@@ -687,7 +701,8 @@ int main()
 
         auto renderWith = [&] (float pitch, float mix, juce::AudioBuffer<float>& out)
         {
-            broken::BrokenProcessor proc;
+            auto procOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+            auto& proc = *procOwner;
             proc.setPlayConfigDetails (2, 2, sr, blockSize);
             proc.prepareToPlay (sr, blockSize);
             setParam (proc, "source.pitch", pitch);

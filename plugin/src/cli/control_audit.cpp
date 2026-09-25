@@ -401,7 +401,8 @@ std::vector<float> renderCase (const CtxDef& ctx, const juce::File& sampleFile,
                                const std::function<void (BrokenProcessor&)>& setup,
                                const std::function<void (BrokenProcessor&)>& perturb)
 {
-    BrokenProcessor proc;
+    auto procOwner = std::make_unique<BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+    auto& proc = *procOwner;
     juce::String err;
     proc.loadSampleFile (sampleFile, err);
     applyBaseState (proc);
@@ -466,7 +467,8 @@ std::vector<float> renderCaseFull (const CtxDef& ctx, const juce::File& sampleFi
                                    const std::function<void (BrokenProcessor&)>& setup,
                                    const std::function<void (BrokenProcessor&)>& perturb)
 {
-    BrokenProcessor proc;
+    auto procOwner = std::make_unique<BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+    auto& proc = *procOwner;
     juce::String err;
     proc.loadSampleFile (sampleFile, err);
     applyBaseState (proc);
@@ -689,7 +691,8 @@ TestOutcome testModSourceSample (const juce::File& sampleA, const juce::File& sa
 TestOutcome testFromSampleCurve (const juce::File& sampleFile, const CtxDef& ctx,
                                  const juce::AudioBuffer<float>* fxInput)
 {
-    BrokenProcessor tmp;
+    auto tmpOwner = std::make_unique<BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+    auto& tmp = *tmpOwner;
     juce::String err;
     tmp.loadSampleFile (sampleFile, err);
     const auto& buf = tmp.getSampleBuffer();
@@ -1037,7 +1040,8 @@ void runTargetedPass (std::map<juce::String, ParamVerdict>& verdict,
     {
         auto renderBend = [&] (float norm)
         {
-            BrokenProcessor proc;
+            auto procOwner = std::make_unique<BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+            auto& proc = *procOwner;
             juce::String err;
             proc.loadSampleFile (sampleA, err);
             applyBaseState (proc);
@@ -1089,7 +1093,8 @@ void runTargetedPass (std::map<juce::String, ParamVerdict>& verdict,
     {
         auto renderNoRecord = [&] ()
         {
-            BrokenProcessor proc;
+            auto procOwner = std::make_unique<BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+            auto& proc = *procOwner;
             juce::String err;
             proc.loadSampleFile (sampleA, err);
             applyBaseState (proc);
@@ -1101,7 +1106,8 @@ void runTargetedPass (std::map<juce::String, ParamVerdict>& verdict,
         };
         auto renderWithRecord = [&] ()
         {
-            BrokenProcessor proc;
+            auto procOwner = std::make_unique<BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+            auto& proc = *procOwner;
             juce::String err;
             proc.loadSampleFile (sampleA, err);
             applyBaseState (proc);
@@ -1508,7 +1514,8 @@ int main (int argc, char* argv[])
 
     std::vector<ParamInfo> paramList;
     {
-        BrokenProcessor tmp;
+        auto tmpOwner = std::make_unique<BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& tmp = *tmpOwner;
         for (auto* p : tmp.getParameters())
         {
             auto* rp = dynamic_cast<juce::RangedAudioParameter*> (p);
@@ -1534,7 +1541,8 @@ int main (int argc, char* argv[])
         {
             std::vector<float> candidates;
             {
-                BrokenProcessor tmp;
+                auto tmpOwner = std::make_unique<BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+                auto& tmp = *tmpOwner;
                 candidates = candidatesFor (rangedOf (tmp, pi.id), pi.kind);
             }
 

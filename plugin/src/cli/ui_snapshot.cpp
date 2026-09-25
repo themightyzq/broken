@@ -1,3 +1,4 @@
+#include <memory>
 // broken_ui_snapshot: render the editor headlessly to a PNG, or audit hit-target sizes.
 //
 //   broken_ui_snapshot <out.png> [scale] [width height]
@@ -111,7 +112,8 @@ int runHitAudit()
     juce::ScopedJuceInitialiser_GUI gui;
     int totalViolations = 0;
 
-    broken::BrokenProcessor processor;
+    auto processorOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+    auto& processor = *processorOwner;
 
     // ---- main scaled editor, at the 0.65x resize floor -----------------------------
     {
@@ -172,7 +174,8 @@ int runHitAudit()
     // too instead of SampleEditor's -- caught by hand-verifying the "before" vs "after"
     // pop-out counts didn't match what SampleEditor.h's code implied they should.
     {
-        broken::BrokenProcessor sampleProcessor;
+        auto sampleProcessorOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+        auto& sampleProcessor = *sampleProcessorOwner;
         broken::ui::SourceEditorPanel panel (sampleProcessor);
         panel.setSize (640, 340);
 
@@ -223,7 +226,8 @@ int main (int argc, char** argv)
     const juce::File out = juce::File::getCurrentWorkingDirectory().getChildFile (juce::String (argv[1]));
     const float scale = argc > 2 ? juce::String (argv[2]).getFloatValue() : 1.0f;
 
-    broken::BrokenProcessor processor;
+    auto processorOwner = std::make_unique<broken::BrokenProcessor>(); // heap: ~650 KB, too big for a 1 MB thread stack
+    auto& processor = *processorOwner;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
     if (editor == nullptr)
     {
