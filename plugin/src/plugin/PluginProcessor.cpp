@@ -237,6 +237,16 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     juce::ScopedNoDenormals noDenormals;
     const int n = buffer.getNumSamples();
 
+    // A host that calls processBlock before prepareToPlay leaves monoIn empty (capacity 0);
+    // the chunk loop below would then add 0 to `offset` forever and hang the audio thread.
+    // Output silence and return. MIDI is input-only on this path (never written back), so
+    // it needs no handling.
+    if (monoIn.empty())
+    {
+        buffer.clear();
+        return;
+    }
+
     // `events` is reserve()'d once in prepareToPlay (maxNoteEventsPerBlock) and must never
     // grow past that here -- growth would allocate on the audio thread. A block with more
     // note-ons/offs than the cap is a MIDI storm; the overflow is dropped and counted
@@ -756,7 +766,8 @@ bool BrokenProcessor::saveTapeToFile (const juce::File& file, juce::String& erro
     double sr = 48000.0;
     {
         // a FLIP on the audio thread would swap the active buffer under us mid-read;
-        // copy under the callback lock (~2 MB worst case), write outside it
+        // copy under the callback lock (up to Tape maxSeconds of audio: ~11.5 MB mono at
+        // 48 kHz, ~23 MB for the FX stereo pair), write outside it
         const juce::ScopedLock sl (getCallbackLock());
         auto& tape = engine.getTape();
         const auto len = tape.latestLength(); // latest COMPLETE take; no FLIP required (v0.33)

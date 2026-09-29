@@ -204,13 +204,14 @@ BrokenEditor::BrokenEditor (BrokenProcessor& p)
     // LED itself stays its original small size, centred -- so at this 0.65x floor the
     // switches land at 34*0.65 = 22.1 screen px, back at (just over) the floor. The
     // next-smallest control, geom::knobS (the POS/LEN/IN TRIM/SPREAD/ADSR/BEND dials,
-    // 40px), lands at 40*0.65 = 26px, comfortably clear. Several OTHER controls do drop
-    // below 22px at this floor and were NOT touched (out of the scope handed down for this
-    // pass) -- reported in full in the CHANGELOG entry for this change and to the user:
-    // multiple Combo dropdowns at 33px design height (21.45px at 0.65x), several
-    // TextToggle buttons at 24-26px (15.6-16.9px), the SOURCE panel's SAW/SQUARE/FLAT
-    // curve buttons at 22px design height (14.3px, EditView.h layoutOscillator), and the
-    // preset bar's `<`/`>` step buttons at 22px design width (14.3px, PresetBar.h).
+    // 40px), lands at 40*0.65 = 26px, comfortably clear. The controls that USED to drop
+    // below 22px at this floor (the 33px-design Combo dropdowns, the 24-26px TextToggle
+    // buttons, the SAW/SQUARE/FLAT curve buttons, the preset bar's `<`/`>` step buttons)
+    // were fixed afterwards in 2fcd156 (see the CHANGELOG entry "v0.35.1 follow-up: 22 px
+    // hit targets at the 0.65x floor"): they keep their drawn size but are wrapped in
+    // HitPad (ui/HitPad.h), which pads the clickable area. Every Button/ComboBox/Slider/
+    // HitPad now meets 22px at the 0.65x floor, verified by the
+    // `broken_ui_snapshot --hit-audit` / `broken_fx_ui_snapshot --hit-audit` gates.
     // Maximum = 2x default: growing has no accessibility downside, so this is a generous
     // but otherwise arbitrary ceiling.
     // The 988x666 the comment above walks through is 0.65x of the INSTRUMENT's own

@@ -21,11 +21,15 @@ save, rename, and delete your own. AU, VST3, and Standalone, macOS.
 
 ## Install
 
-There are no packaged releases yet; build from source (below). The built
-plugins are unsigned, so a standalone app's first launch needs
-right-click, Open, and some hosts may refuse the plugins until they are
-signed locally. Install both bundles: `Broken.vst3` / `Broken.component` and
-`Broken FX.vst3` / `Broken FX.component`.
+Binary releases are available for download from the
+[v0.35.1 release](https://github.com/themightyzq/broken/releases/tag/v0.35.1)
+(Broken-macOS-VST3.zip, Broken-macOS-AU-Standalone.zip, BrokenFX-macOS-VST3.zip,
+BrokenFX-macOS-AU-Standalone.zip, plus Linux and Windows VST3). The built plugins are
+unsigned, so a standalone app's first launch needs right-click, Open, and some hosts may
+refuse the plugins until they are signed locally. Install both bundles: `Broken.vst3` /
+`Broken.component` and `Broken FX.vst3` / `Broken FX.component`.
+
+Alternatively, build from source (below).
 
 Requires macOS 11.0 or later.
 
