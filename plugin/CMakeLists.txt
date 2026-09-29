@@ -185,6 +185,19 @@ target_link_libraries(broken_fx_check
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 add_test(NAME broken_fx_check COMMAND broken_fx_check)
 
+# --- broken_source_default_check: console-app gate for the instrument build's context
+# default (fresh VST3/AU/Standalone instance opens on white noise; Undefined wrapper keeps
+# the declared defaults). Same link pattern as broken_cli.
+juce_add_console_app(broken_source_default_check PRODUCT_NAME "broken_source_default_check")
+target_sources(broken_source_default_check PRIVATE src/cli/source_default_check.cpp ${BROKEN_PLUGIN_SOURCES})
+target_include_directories(broken_source_default_check PRIVATE src)
+target_compile_definitions(broken_source_default_check PRIVATE
+  JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=0 BROKEN_FX=0)
+target_link_libraries(broken_source_default_check
+  PRIVATE BrokenPresets zqsfx::ui juce::juce_audio_utils juce::juce_dsp
+  PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+add_test(NAME broken_source_default_check COMMAND broken_source_default_check)
+
 # --- broken_control_audit / broken_fx_control_audit: headless control-wiring audit.
 # Same link pattern as broken_cli/broken_fx_check, built for both BROKEN_FX values so it
 # can exercise each product's own gatherParams()/source forcing. Deliberately NOT

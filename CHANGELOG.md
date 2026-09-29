@@ -1441,3 +1441,20 @@ plus my own findings on the same shot.
     only differences are the deliberately larger hit boxes (invisible except for
     `fromSampleButton`, which is now visibly taller) and a few px of row reflow absorbed
     by existing slack.
+
+## Unreleased — 2026-09-29 — Instrument opens on white noise
+- **Broken (instrument): a fresh VST3, AU or Standalone instance now opens on white noise**
+  (source.mode Noise, noise.amp 100, noise.phase 100). Before this it opened on Input in a
+  DAW, which is silent on an instrument track because hosts feed it no audio, and on Sample
+  in the standalone, which is silent until a file is loaded. The declared parameter defaults
+  in Params.h are unchanged (Noise at 25/25 is a near-pure sine, not noise), so this is a
+  constructor-time context default only. Saved sessions and presets override it.
+- **Broken FX is unchanged:** a fresh instance still opens on Input.
+- The Undefined wrapper (broken_cli and the gate tools) keeps the declared defaults, so every
+  gate baseline holds.
+- New ctest gate `broken_source_default_check`: fresh VST3/AU/Standalone instances open on
+  Noise 100/100, Undefined keeps Sample 25/25, and a held note on a fresh VST3 instance is
+  audible (rms 0.568) and broadband (first-difference energy / energy 1.59; white is 2, a
+  sine is ~0.01). `broken_fx_check` gains check (n): FX opens on Input under every wrapper.
+- **Verification.** ctest **116/116**. pluginval strictness 5 SUCCESS on `Broken.vst3` and
+  `Broken FX.vst3`.

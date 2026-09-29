@@ -35,6 +35,10 @@ Requires macOS 11.0 or later.
 
 ## Use
 
+A new instance of Broken opens on white noise (the Noise source with Amp
+and Phase noise at 100 %), so a note plays without loading anything.
+Saved sessions and presets keep their own source.
+
 Load a sample, or feed Broken live audio, and shape it with the source,
 modulator, waveshaper, filter, resonator, spectral inverter, delay, and
 envelope sections in the signal chain. One-press tune lock and a

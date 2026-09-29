@@ -728,6 +728,28 @@ int main()
         check (same, "(m) PITCH 0: PITCH MIX leaves the output bit-identical");
     }
 
+    // ---- (n) context default: a DAW-created FX instance opens on Input --------------
+    // AudioProcessor::setTypeOfNextNewPlugin is what the real wrappers call before
+    // construction; it is thread-local sticky, so it is reset to Undefined afterwards.
+    {
+        using WT = juce::AudioProcessor::WrapperType;
+        const struct { WT type; const char* name; } cases[] = {
+            { juce::AudioProcessor::wrapperType_VST3,       "VST3" },
+            { juce::AudioProcessor::wrapperType_AudioUnit,  "AU" },
+            { juce::AudioProcessor::wrapperType_Standalone, "Standalone" },
+            { juce::AudioProcessor::wrapperType_Undefined,  "Undefined" },
+        };
+        for (const auto& c : cases)
+        {
+            juce::AudioProcessor::setTypeOfNextNewPlugin (c.type);
+            auto procOwner = std::make_unique<broken::BrokenProcessor>();
+            juce::AudioProcessor::setTypeOfNextNewPlugin (juce::AudioProcessor::wrapperType_Undefined);
+            auto* sm = procOwner->apvts.getParameter ("source.mode");
+            const int idx = (int) std::lround (sm->convertFrom0to1 (sm->getValue()));
+            check (idx == 4, juce::String ("(n) FX fresh ") + c.name + " instance: source.mode == Input (4)");
+        }
+    }
+
     std::cout << "broken_fx_check: " << failures << " failures\n";
     return failures == 0 ? 0 : 1;
 }

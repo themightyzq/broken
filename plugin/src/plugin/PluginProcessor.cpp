@@ -54,13 +54,34 @@ BrokenProcessor::BrokenProcessor()
     bypassParam = dynamic_cast<juce::AudioParameterBool*> (apvts.getParameter ("bypass"));
     jassert (bypassParam != nullptr);
 
-    // Context default (v0.33): a DAW instance is FX-shaped, so it opens listening to the
-    // track (Input); standalone keeps Sample. Explicitly VST3/AU only — broken_cli constructs
-    // with wrapperType_Undefined and every gate baseline assumes the Sample default.
-    // Session restore and preset loads arrive later and override this.
+    // Context default, keyed on the wrapper the host (or standalone app) created us as.
+    // wrapperType_Undefined (broken_cli, the gate tools, unit tests) is deliberately left
+    // alone: every gate baseline assumes the declared Params.h defaults (Sample, 25/25).
+    // Session restore and preset loads arrive later and override whatever is set here.
+    auto setReal = [this] (const char* id, float value)
+    {
+        if (auto* prm = apvts.getParameter (id))
+            prm->setValueNotifyingHost (prm->convertTo0to1 (value));
+    };
+#if BROKEN_FX
+    // Broken FX is the effect: in a DAW it opens listening to the track (Input). Standalone
+    // keeps the declared default (also Input; gatherParams forces Input in this build anyway).
     if (wrapperType == wrapperType_VST3 || wrapperType == wrapperType_AudioUnit)
-        if (auto* sm = apvts.getParameter ("source.mode"))
-            sm->setValueNotifyingHost (sm->convertTo0to1 (4.0f)); // 4 = Input
+        setReal ("source.mode", (float) dsp::SourceEngine::Input);
+#else
+    // Broken is the instrument: hosts do not feed audio to instrument tracks, and the
+    // declared Sample default is silent until a file is loaded, so a fresh VST3/AU/Standalone
+    // instance would answer notes with nothing. It opens on white noise instead (owner
+    // decision): source Noise with Amp Noise and Phase Noise at 100 %, the setting at which
+    // SourceEngine::nextNoise is white (the 25/25 declared defaults are a near-pure sine).
+    if (wrapperType == wrapperType_VST3 || wrapperType == wrapperType_AudioUnit
+        || wrapperType == wrapperType_Standalone)
+    {
+        setReal ("source.mode",  (float) dsp::SourceEngine::Noise);
+        setReal ("noise.amp",    100.0f);
+        setReal ("noise.phase",  100.0f);
+    }
+#endif
 
     // the 64 harmonic bars: ids built (and cached) once, never per block
     for (int k = 0; k < params::harmonicCount; ++k)
