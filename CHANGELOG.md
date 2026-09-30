@@ -1442,7 +1442,7 @@ plus my own findings on the same shot.
     `fromSampleButton`, which is now visibly taller) and a few px of row reflow absorbed
     by existing slack.
 
-## Unreleased — 2026-09-29 — Instrument opens on white noise
+## 2026-09-29 - v0.36.0: Instrument opens on white noise
 - **Broken (instrument): a fresh VST3, AU or Standalone instance now opens on white noise**
   (source.mode Noise, noise.amp 100, noise.phase 100). Before this it opened on Input in a
   DAW, which is silent on an instrument track because hosts feed it no audio, and on Sample
