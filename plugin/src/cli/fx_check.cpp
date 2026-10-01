@@ -1109,6 +1109,24 @@ int main()
     std::cout << "  (s) skipped on this platform\n";
    #endif
 
+    // user-preset folder wiring (2026-10-01, PresetFolder.h): macOS keeps the house folder,
+    // so the legacy-path migration is a no-op there; other OSes use the per-user app-data folder
+    {
+        const auto dir = broken::PresetManager::userDirectory();
+        const auto home = juce::File::getSpecialLocation (juce::File::userHomeDirectory);
+        const auto appData = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory);
+       #if JUCE_MAC
+        check (dir == home.getChildFile ("Library/Audio/Presets/ZQ SFX/Broken FX")
+                   && broken::PresetManager::legacyUserDirectory() == dir,
+               "user presets: macOS folder unchanged (~/Library/Audio/Presets/ZQ SFX/Broken FX), no migration");
+       #else
+        check (dir == appData.getChildFile ("ZQ SFX").getChildFile ("Broken FX")
+                   && broken::PresetManager::legacyUserDirectory() != dir,
+               "user presets: per-user app-data folder (ZQ SFX/Broken FX), migrated from the old path");
+       #endif
+        juce::ignoreUnused (home, appData);
+    }
+
     std::cout << "broken_fx_check: " << failures << " failures\n";
     return failures == 0 ? 0 : 1;
 }

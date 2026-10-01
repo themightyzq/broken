@@ -1549,3 +1549,29 @@ plus my own findings on the same shot.
     because the FX output is now 50 ms later in its measurement window.
   - `broken_ui_snapshot --hit-audit` / `broken_fx_ui_snapshot --hit-audit`: 0 / 0.
   - ctest **122/122** (was 116).
+
+## 2026-10-01 - Unreleased: User preset folder per OS
+- **User presets on Windows and Linux move to the OS's per-user folder.** Every build until
+  now saved user presets to `~/Library/Audio/Presets/ZQ SFX/<product>` on every OS, a
+  macOS-style path that does not belong on Windows or Linux. They now live in
+  `%APPDATA%/ZQ SFX/Broken` on Windows and `~/.config/ZQ SFX/Broken` on Linux (Broken FX: a
+  `Broken FX` folder beside it). macOS is unchanged. Same shape as LFlOw's fix
+  (`plugin/src/plugin/PresetFolder.h`).
+- **One-time migration.** On first launch the old folder's `*.json` presets are copied to the
+  new one: copied, never moved; a preset already in the new folder is never overwritten;
+  a marker file is written only when every copy succeeded, so a partial failure retries
+  and a preset deleted later is not brought back. Nothing happens on macOS (same folder)
+  or when there is no old folder.
+- **Gates.** New Catch2 targets `broken_preset_tests` and `broken_fx_preset_tests` (juce_core
+  only, temp directories only), 12 cases each: per-OS folders for both products, the
+  legacy path, and the migration rules above. `broken_source_default_check` and
+  `broken_fx_check` check the real `PresetManager::userDirectory()`: on macOS it is the old
+  folder and the migration is a no-op. The new tests cannot compile against the old code
+  (it has no `PresetFolder.h`); on Windows and Linux the old code returned the macOS-style
+  path, which the folder cases reject, but that was not run here (macOS only).
+- ctest **146/146** (was 122).
+- PITCH on the live input adds a pitch-dependent delay (about 13 ms at
+  +/-1 semitone, up to about 760 ms at +48) that is not reported to the
+  host, because it sweeps continuously as the shifter runs; README says so.
+  Reporting a fixed worst case would add up to 760 ms of latency at all
+  PITCH settings.

@@ -15,6 +15,7 @@
 #include <type_traits>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "plugin/PluginProcessor.h"
+#include "plugin/PresetManager.h"
 
 namespace
 {
@@ -169,6 +170,24 @@ int main()
         const bool ok1 = idx1 >= 0 && p->presets.load (idx1, err);
         check (ok1 && std::abs (real (*p, "osc.h05") - 77.0f) < 1.0e-3f,
                n + ": a normal preset still applies only the ids it lists");
+    }
+
+    // user-preset folder wiring (2026-10-01, PresetFolder.h): macOS keeps the house folder,
+    // so the legacy-path migration is a no-op there; other OSes use the per-user app-data folder
+    {
+        const auto dir = broken::PresetManager::userDirectory();
+        const auto home = juce::File::getSpecialLocation (juce::File::userHomeDirectory);
+        const auto appData = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory);
+       #if JUCE_MAC
+        check (dir == home.getChildFile ("Library/Audio/Presets/ZQ SFX/Broken")
+                   && broken::PresetManager::legacyUserDirectory() == dir,
+               "user presets: macOS folder unchanged (~/Library/Audio/Presets/ZQ SFX/Broken), no migration");
+       #else
+        check (dir == appData.getChildFile ("ZQ SFX").getChildFile ("Broken")
+                   && broken::PresetManager::legacyUserDirectory() != dir,
+               "user presets: per-user app-data folder (ZQ SFX/Broken), migrated from the old path");
+       #endif
+        juce::ignoreUnused (home, appData);
     }
 
     std::cout << "broken_source_default_check: " << failures << " failures\n";

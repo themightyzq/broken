@@ -161,7 +161,7 @@ toggles (filter floor, pitch range), per-module hard-bypass buttons, waveshaper 
 |---|---|---|
 | `<` / `>` | buttons | Step to the previous / next preset. |
 | PRESET | selector | Factory presets are built into the plugin; your own saved ones appear under USER. A `*` means you've changed something since loading. |
-| SAVE | button | Saves the current sound to your own preset (~/Library/Audio/Presets/ZQ SFX/Broken). |
+| SAVE | button | Saves the current sound to your own preset (macOS ~/Library/Audio/Presets/ZQ SFX/Broken, Windows %APPDATA%/ZQ SFX/Broken, Linux ~/.config/ZQ SFX/Broken; Broken FX uses a "Broken FX" folder). |
 | `...` | button | Preset actions menu (v0.34): reveal folder in Finder; overwrite / rename / delete the selected USER preset (factory rows are disabled; delete moves to Trash). |
 | BROKEN logo | clickable | About overlay (v0.34): version, GPLv3 + source note, knob/font credits, non-affiliation. Click or Escape closes. |
 | RND | button | Rolls the dice: randomizes the sound (v0.32). Leaves alone: your sample, source mode, output level, the tape transport, and hand-drawn curves. Feedback and drive are capped so it can never scream or damage anything; filter and attack are floored so it can never land on silence. |

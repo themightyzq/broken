@@ -172,6 +172,28 @@ include(CTest)
 include(Catch)
 catch_discover_tests(broken_tests)
 
+# --- user-preset folder + legacy migration tests (2026-10-01): juce_core only, temp
+# directories only (never the real per-user folders). Separate targets because broken_tests
+# stays JUCE-free; built once per product so both folder names are checked.
+foreach(_fx 0 1)
+  if(_fx)
+    set(_pt broken_fx_preset_tests)
+  else()
+    set(_pt broken_preset_tests)
+  endif()
+  juce_add_console_app(${_pt} PRODUCT_NAME "${_pt}")
+  target_sources(${_pt} PRIVATE src/presettests/test_preset_folder.cpp)
+  target_include_directories(${_pt} PRIVATE src)
+  target_compile_definitions(${_pt} PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 BROKEN_FX=${_fx})
+  target_link_libraries(${_pt} PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_recommended_config_flags
+    juce::juce_recommended_warning_flags)
+endforeach()
+catch_discover_tests(broken_preset_tests TEST_PREFIX "Broken preset folder: ")
+catch_discover_tests(broken_fx_preset_tests TEST_PREFIX "Broken FX preset folder: ")
+
 # --- broken_fx_check: console-app gate for the BrokenFX processor itself (BROKEN_FX=1),
 # same link pattern as broken_cli. Proves the stereo/no-MIDI/default-level contract in
 # plugin/CLAUDE.md's Broken FX section without needing a host.

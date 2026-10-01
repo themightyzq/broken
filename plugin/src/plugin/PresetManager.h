@@ -1,7 +1,12 @@
 #pragma once
 // Preset browsing (docs/PANEL.md "Preset bar"). Factory presets are compiled into the
-// binary so they travel inside the AU/VST3 bundle; user presets are the same JSON format
-// written to ~/Library/Audio/Presets/ZQ SFX/Broken.
+// binary so they travel inside the AU/VST3 bundle; user presets are the same JSON format,
+// written to userDirectory().
+//
+// User presets live in the OS's per-user folder (PresetFolder.h): ~/Library/Audio/Presets/
+// ZQ SFX/<product> on macOS, %APPDATA%/ZQ SFX/<product> on Windows, ~/.config/ZQ SFX/<product>
+// on Linux (<product> = Broken or Broken FX). Builds before 2026-10-01 used the macOS-style
+// path on every OS; those presets are copied over once (never moved or overwritten).
 //
 // A preset is a SOUND DESIGN, not a sample: loading one only applies the parameter ids
 // present in the file, so it never disturbs the loaded sample or its path — and the
@@ -11,6 +16,7 @@
 #include <vector>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <BinaryData.h>
+#include "PresetFolder.h"
 
 namespace broken
 {
@@ -27,16 +33,29 @@ public:
         juce::File file;        // user: the file on disk
     };
 
-    explicit PresetManager (BrokenProcessor& p) : processor (p) { rescan(); }
+    explicit PresetManager (BrokenProcessor& p) : processor (p)
+    {
+        // One-time copy of presets saved where builds before 2026-10-01 put them on every OS.
+        // A no-op on macOS (same folder), on a fresh install (no old folder) and after the
+        // first run (marker file); it never moves, deletes or overwrites anything.
+        presetfolder::migrateLegacyUserPresets (legacyUserDirectory(), userDirectory());
+        rescan();
+    }
 
     static juce::File userDirectory()
     {
-        return juce::File::getSpecialLocation (juce::File::userHomeDirectory)
-#if BROKEN_FX
-                   .getChildFile ("Library/Audio/Presets/ZQ SFX/Broken FX");
-#else
-                   .getChildFile ("Library/Audio/Presets/ZQ SFX/Broken");
-#endif
+        return presetfolder::userPresetDir (
+            presetfolder::currentPlatform(),
+            juce::File::getSpecialLocation (juce::File::userHomeDirectory),
+            juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory),
+            presetfolder::productFolderName());
+    }
+
+    static juce::File legacyUserDirectory()
+    {
+        return presetfolder::legacyUserPresetDir (
+            juce::File::getSpecialLocation (juce::File::userHomeDirectory),
+            presetfolder::productFolderName());
     }
 
     void rescan()

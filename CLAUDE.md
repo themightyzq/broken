@@ -104,7 +104,9 @@ technically automatable) `source.mode` parameter holds; `Params.h` gives the FX 
 different DEFAULT VALUES only (never different ids/ranges) — `source.mode` defaults to
 Input, `ws.drive` defaults to 0 dB (was 12 dB, the instrument's value and the known
 cause of a fresh FX instance being too loud); `PresetManager` points at
-`~/Library/Audio/Presets/ZQ SFX/Broken FX` and its own `BrokenFXPresets` binary-data
+the "Broken FX" user folder (`plugin/src/plugin/PresetFolder.h`: `~/Library/Audio/Presets/ZQ SFX/
+Broken FX` on macOS, `%APPDATA%/ZQ SFX/Broken FX` on Windows, `~/.config/ZQ SFX/Broken FX`
+on Linux, with a one-time copy from the old macOS-style path) and its own `BrokenFXPresets` binary-data
 target (`snapshots/fx/`, 15 factory presets as of v0.35 — each lists only the
 parameter ids the effect uses). The editor hides PLAY (MangleView) and ENVELOPES
 (EditView), plus the source selector (SOURCE is forced to Input) and every control that

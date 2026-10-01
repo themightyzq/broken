@@ -45,7 +45,9 @@ envelope sections in the signal chain. One-press tune lock and a
 RANDOMIZE button with undo are on the panel for quick exploration. TAPE
 records the current output and feeds it back through the chain for
 further mangling. Presets save, rename, delete, and overwrite from the
-preset bar.
+preset bar. User presets are stored in ~/Library/Audio/Presets/ZQ SFX/Broken
+on macOS, %APPDATA%/ZQ SFX/Broken on Windows and ~/.config/ZQ SFX/Broken on
+Linux (Broken FX: a "Broken FX" folder in the same place).
 
 Broken FX keeps its source fixed to the live input, so it drops the
 source selector and PLAY, but insert it on a track or in Soundminer's DSP
@@ -53,6 +55,12 @@ rack and it mangles whatever comes in, independently on the left and
 right channels. Drop a sample to feed the Sample modulator source and
 FROM SAMPLE; TAPE records the effect's own stereo output and feeds it
 back in for further mangling.
+
+Broken FX reports a fixed latency to the host (about 50 ms) for its input
+stage. PITCH on the live input adds a further delay that the host does not
+compensate: it varies continuously as the pitch shifter runs, averaging about
+13 ms at +/-1 semitone, 35-60 ms at an octave and up to about 760 ms at the
++48 semitone extreme. At PITCH 0 it adds nothing.
 
 ## Building
 
