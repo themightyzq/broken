@@ -161,11 +161,12 @@ public:
 
     void setSampleData (const float* d, size_t n, double dsr) { src.setSampleData (d, n, dsr); }
     void setTapeData (const float* d, size_t n, double dsr)   { src.setTapeData (d, n, dsr); }
-    // Table mod source (DSP-NOTES §2a "Table"): the table itself is owned and rebuilt by
-    // Engine (one per Engine, not per voice -- rebuilding 4096 entries per voice per block
-    // would be 6x the work for an identical result); the Voice only holds a const pointer
-    // and its own read phase, exactly like the Sample/Tape mod sources' modPhase.
+    // Table mod source (DSP-NOTES §2a "Table"): the table is built off the audio thread
+    // (ModTable.h) and shared by every voice; the Voice only holds a const pointer and its
+    // own read phase, exactly like the Sample/Tape mod sources' modPhase.
     void setModTable (const float* data, size_t len) { modTableData = data; modTableLen = len; }
+    // Broken FX: constant-latency Input FM stage (InputVarispeed::setFixedLatency)
+    void setInputFixedLatency (bool fixed) { inputFM.setFixedLatency (fixed); }
     void setDetuneSemis (float st) { detuneSemis = st; }
     void setGainComp (float g)     { gainComp = g; }
 

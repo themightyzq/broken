@@ -36,8 +36,33 @@ using zqsfx::ui::styleControlLabel;
 using Block = zqsfx::ui::Panel;
 
 // Non-interactive status LED (the TAPE lamp). The shared Led with Broken's caption.
+// The caption is drawn here rather than by zqsfx::ui::Led so it keeps the 9 pt on-screen
+// text floor at small window sizes (BrokenLookAndFeel.h); geometry and colours are Led's.
 struct Light : public zqsfx::ui::Led
 {
     Light() { text = "TAPE"; }
+
+    void paint (juce::Graphics& g) override
+    {
+        const auto caption = text;
+        text.clear();          // the lamp only, from the shared Led
+        zqsfx::ui::Led::paint (g);
+        text = caption;
+        if (caption.isEmpty()) return;
+
+        auto b = getLocalBounds().toFloat();
+        const float d = (float) dia;
+        const float unitW = d * 2.0f + 6.0f + 34.0f;
+        const float x0 = centred ? b.getCentreX() - unitW * 0.5f : b.getX();
+        auto f = juce::Font (juce::FontOptions (10.0f, juce::Font::bold)).withExtraKerningFactor (0.16f);
+        const float s = juce::Component::getApproximateScaleFactorForComponent (this);
+        const float minPt = 9.0f; // BrokenLookAndFeel::minScreenPt (Theme.h cannot include it)
+        if (s > 0.01f && f.getHeightInPoints() * s < minPt)
+            f = f.withPointHeight (minPt / s);
+        g.setColour (on ? colour::silkLabel : colour::silkCaption);
+        g.setFont (f);
+        g.drawText (caption, getLocalBounds().withTrimmedLeft ((int) (x0 - b.getX()) + (int) d * 2 + 6),
+                    juce::Justification::centredLeft);
+    }
 };
 } // namespace broken::ui

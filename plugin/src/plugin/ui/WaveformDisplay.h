@@ -69,7 +69,7 @@ public:
             g.setColour (colour::lcdDim); // waveform trace colour per the LCD spec
             g.strokePath (path, juce::PathStrokeType (1.4f));
             g.setColour (colour::lcdFaint);
-            g.setFont (lnf != nullptr ? lnf->lcdFont (11.0f) : juce::Font (juce::FontOptions (10.0f)));
+            g.setFont (lnf != nullptr ? lnf->lcdFont (this, 11.0f) : juce::Font (juce::FontOptions (10.0f)));
             g.drawText (oscLabel, b.reduced (4, 2), juce::Justification::topLeft);
             return;
         }
@@ -79,7 +79,7 @@ public:
         if (buf.empty())
         {
             g.setColour (colour::lcdFaint);
-            g.setFont (lnf != nullptr ? lnf->lcdFont (14.0f) : juce::Font (juce::FontOptions (12.0f)));
+            g.setFont (lnf != nullptr ? lnf->lcdFont (this, 14.0f) : juce::Font (juce::FontOptions (12.0f)));
             // drawFittedText (not drawText): the FX empty-state message (item 4) is longer
             // than the instrument's one-liners and needs to wrap onto a second line rather
             // than get ellipsis-truncated; short instrument strings still render identically
@@ -104,7 +104,7 @@ public:
         }
 
         g.setColour (colour::lcdFaint);
-        g.setFont (lnf != nullptr ? lnf->lcdFont (11.0f) : juce::Font (juce::FontOptions (10.0f)));
+        g.setFont (lnf != nullptr ? lnf->lcdFont (this, 11.0f) : juce::Font (juce::FontOptions (10.0f)));
         g.drawText (processor.getDisplayName(), b.reduced (4, 2), juce::Justification::topLeft);
 
         // item 4: in FX the CYCLE window overlay always draws when a sample is loaded --

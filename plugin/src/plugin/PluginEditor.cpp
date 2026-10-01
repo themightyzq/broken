@@ -51,7 +51,7 @@ void BrokenEditor::AboutOverlay::paint (juce::Graphics& g)
     auto r = panel.reduced (28.0f).toNearestInt();
 
     g.setColour (ui::colour::silkTitle);
-    g.setFont (lnf != nullptr ? lnf->silkFont (22.0f, true).withExtraKerningFactor (0.3f)
+    g.setFont (lnf != nullptr ? lnf->silkFont (this, 22.0f, true).withExtraKerningFactor (0.3f)
                               : juce::Font (juce::FontOptions (20.0f, juce::Font::bold)));
     g.drawText (
 #if BROKEN_FX
@@ -61,7 +61,7 @@ void BrokenEditor::AboutOverlay::paint (juce::Graphics& g)
 #endif
         r.removeFromTop (30), juce::Justification::centredLeft);
 
-    g.setFont (lnf != nullptr ? lnf->silkFont (13.0f, false)
+    g.setFont (lnf != nullptr ? lnf->silkFont (this, 13.0f, false)
                               : juce::Font (juce::FontOptions (12.0f)));
     g.setColour (ui::colour::silkLabel);
     const char* lines[] = {
@@ -193,7 +193,7 @@ BrokenEditor::BrokenEditor (BrokenProcessor& p)
     // Uniform scaling keeps every block's internal layout in design coordinates, so the
     // aspect ratio is locked; the alternative is maintaining a layout per size.
     constrainer.setFixedAspectRatio ((double) designW / (double) designH);
-    // Minimum = 0.65x default (988x666): the workspace rule that editors stay usable on a
+    // Minimum = 0.65x of the design size (988x666): the workspace rule that editors stay usable on a
     // 13-inch laptop (1512x982) needs a real shrink floor, not the 100% (no-shrink) floor
     // this constant briefly held. That 100% floor existed because the six module on/off
     // switches (wsLight/modLight/fltLight/resLight/invLight/dlyLight, MangleView.h) were
@@ -212,8 +212,11 @@ BrokenEditor::BrokenEditor (BrokenProcessor& p)
     // HitPad (ui/HitPad.h), which pads the clickable area. Every Button/ComboBox/Slider/
     // HitPad now meets 22px at the 0.65x floor, verified by the
     // `broken_ui_snapshot --hit-audit` / `broken_fx_ui_snapshot --hit-audit` gates.
-    // Maximum = 2x default: growing has no accessibility downside, so this is a generous
-    // but otherwise arbitrary ceiling.
+    // Maximum = 2x the design size: growing has no accessibility downside, so this is a
+    // generous but otherwise arbitrary ceiling. Text stays >= 9 pt on screen at every size
+    // in this range (BrokenLookAndFeel.h raises any font the scale would draw smaller;
+    // gated by `broken_ui_snapshot --text-audit`), and a fresh instance opens at
+    // defaultWidth(), not at the design size (PluginEditor.h).
     // The 988x666 the comment above walks through is 0.65x of the INSTRUMENT's own
     // 1520x1024 design size; computing it from designW/designH keeps that same floor
     // ratio (and the same reasoning) for the FX build's smaller design size too, instead
@@ -231,7 +234,9 @@ BrokenEditor::BrokenEditor (BrokenProcessor& p)
     // is the real mechanism in effect.
 
     // Restore the user's last window width, clamped to the (now 0.65x-2x) resize range.
-    int w = designW;
+    // A fresh instance opens at defaultWidth() (fits a 13-inch laptop, see PluginEditor.h),
+    // not at the 1520 px design width, which hosts showed at about 1500 px wide.
+    int w = defaultWidth();
     if (auto v = proc.apvts.state.getProperty (kEditorWidth); ! v.isVoid())
         w = juce::jlimit (juce::roundToInt (designW * 0.65), designW * 2, (int) v);
     setSize (w, juce::roundToInt ((double) w * designH / designW));

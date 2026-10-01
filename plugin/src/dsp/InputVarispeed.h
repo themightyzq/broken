@@ -29,6 +29,11 @@
 // dry/delayed paths across the transition) was rejected: it would smear the very first
 // engage/disengage transient rather than being a single clean edge, and D0's audio is
 // always real prior signal (never silence), so there is no click -- only a latency step.
+// That step is the INSTRUMENT's behaviour. Broken FX (source always Input) turns on
+// setFixedLatency(true): while inactive it then reads the same centre tap as an exact
+// integer delay (bit-exact delayed copy), so the stage's delay is a constant
+// latencySamples() whether FM is on or off, and the processor reports it with
+// setLatencySamples (docs/DSP-NOTES.md §14a, 2026-10-01).
 #include <cmath>
 #include <cstddef>
 #include <vector>
@@ -44,15 +49,28 @@ public:
         // ~100 ms, sized from sr in prepare() per house real-time rule -- no audio-thread
         // allocation. Long enough that the +-8 fmindex extreme (see test j) cannot run the
         // read head off either clamp rail before the pull-back catches it.
-        buf.assign ((size_t) std::ceil (0.1 * sampleRate), 0.0f);
+        buf.assign (bufferSize (sampleRate), 0.0f);
         maxDelay = (double) buf.size();
-        d0 = maxDelay * 0.5;
+        // floor: an integer centre tap, so the fixed-latency read is an exact delay (for
+        // the even buffer sizes of 44.1/48/88.2/96 kHz this equals the old maxDelay * 0.5)
+        d0 = std::floor (maxDelay * 0.5);
         // one-pole pull-back toward D0, corner ~2 Hz (the standard 1-e^-2*pi*fc/sr
         // one-pole used throughout this codebase, e.g. FilterStack); computed here, not
         // per sample
         pull = 1.0 - std::exp (-2.0 * 3.14159265358979323846 * 2.0 / sr);
         reset();
     }
+
+    // Delay of the centre tap in samples (the sample written this call is read back
+    // latencySamples() calls later). Constant for a given sample rate, block-size free.
+    static int latencySamples (double sampleRate)
+    {
+        return (int) std::floor ((double) bufferSize (sampleRate) * 0.5) - 1;
+    }
+
+    // true (Broken FX): inactive calls return the input delayed by latencySamples()
+    // instead of the input itself, so engaging FM never changes the overall delay.
+    void setFixedLatency (bool fixed) { fixedLatency = fixed; }
 
     void reset()
     {
@@ -73,7 +91,14 @@ public:
         if (! active)
         {
             delay = d0; // re-centre while idle: engaging later always starts from D0,
-            return x;   // never from wherever a previous FM session left the head
+                        // never from wherever a previous FM session left the head
+            if (! fixedLatency)
+                return x;
+            // exact integer tap at the same centre the active path reads around
+            const int n = (int) buf.size();
+            int pos = w - (int) d0;
+            if (pos < 0) pos += n;
+            return buf[(size_t) pos];
         }
 
         delay -= (double) r;
@@ -92,7 +117,10 @@ public:
     }
 
 private:
+    static size_t bufferSize (double sampleRate) { return (size_t) std::ceil (0.1 * sampleRate); }
+
     double sr = 48000.0;
+    bool fixedLatency = false;
     std::vector<float> buf;
     int w = 0;
     double maxDelay = 4800.0;

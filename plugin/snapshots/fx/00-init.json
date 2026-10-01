@@ -1,6 +1,7 @@
 {
   "name": "00 Init",
-  "comment": "Empty params object = every parameter at its Broken FX default (source = Input, drive 0 dB).",
+  "comment": "\"reset\": true makes loading this preset a full reset: every parameter returns to its Broken FX default (source = Input, drive 0 dB; the sample region markers excepted, they belong to the loaded sample), then the ids below are applied. Other presets apply only the ids they list.",
+  "reset": true,
   "params": {
     "chain.mix": 1.0,
     "bypass": 0

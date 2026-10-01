@@ -356,6 +356,8 @@ void primeTapeTake (BrokenProcessor& proc)
 std::vector<float> measureRender (BrokenProcessor& proc, const CtxDef& ctx,
                                   const juce::AudioBuffer<float>* fxInput)
 {
+    // no message loop here: build the Table-mod table now, as a host's timer would
+    proc.syncModTable();
     const int totalFrames   = (int) std::llround (kSr * kTotalSeconds);
     const int measureFrames = (int) std::llround (kSr * kMeasureSeconds);
     const int measureStart  = totalFrames - measureFrames;
@@ -422,6 +424,8 @@ std::vector<float> measureFullRender (BrokenProcessor& proc, const CtxDef& ctx,
                                       const juce::AudioBuffer<float>* fxInput,
                                       double totalSeconds, bool releaseAt0_5)
 {
+    // no message loop here: build the Table-mod table now, as a host's timer would
+    proc.syncModTable();
     const int totalFrames = (int) std::llround (kSr * totalSeconds);
     const int releaseFrame = (int) std::llround (kSr * 0.5);
     juce::AudioBuffer<float> block (2, kBlock);
@@ -625,7 +629,7 @@ TestOutcome testDrawnOscillator (const juce::File& sampleFile)
 // item 2 (Table mod source): unlike the old expectation ("no path makes the drawn/harmonic
 // table affect the FX build's output" -- true before Table existed, since SourceEngine's
 // Input case never reads drawPts/harmonics), the Table mod source now reads exactly this
-// content via Engine::rebuildModTableIfNeeded regardless of source.mode, so both banks ARE
+// content via the Table-mod builder (dsp/ModTable.h) regardless of source.mode, so both banks ARE
 // wired in FX once mod.source=Table -- verified the same way the instrument verifies them
 // (drawn points into osc.mode=Draw, harmonic amplitudes into osc.mode=Harmonic), just with
 // mod.source=Table + mod.on=1 standing in for the instrument's source.mode=Osc.
@@ -754,7 +758,7 @@ juce::String curatedReason (const juce::String& id, bool fx)
 {
     // item 2 (Table mod source): osc.h*/osc.d* are read by TWO independent mechanisms now
     // -- SourceEngine's Harmonic/Draw osc.mode branches (Sample source's own OSC mode,
-    // instrument only) AND Engine::rebuildModTableIfNeeded (the Table mod source, both
+    // instrument only) AND the Table-mod builder (dsp/ModTable.h, the Table mod source, both
     // builds, keyed on the SAME osc.mode/osc.h*/osc.d* parameters but a separate 4096-entry
     // table). The general sweep's base state leaves BOTH mod.source and osc.mode at their
     // Wave/Osc defaults, so neither mechanism is exercised there; both are verified live by
@@ -764,13 +768,13 @@ juce::String curatedReason (const juce::String& id, bool fx)
         return juce::String ("osc.mode is left at its default (Wave) and mod.source at its "
                "default (Osc) in every general-sweep context, so neither SourceEngine's "
                "Harmonic-mode partial table (playOsc(), oscMode==1) nor the Table mod source's "
-               "own copy (Engine::rebuildModTableIfNeeded) is ever built -- verified live by the "
+               "own copy (dsp::ModTableBuilder) is ever built -- verified live by the "
                "named drawn-oscillator/harmonic test") + (fx ? " (mod.source=Table)." : ".");
     if (id.startsWith ("osc.d"))
         return juce::String ("osc.mode is left at its default (Wave) and mod.source at its "
                "default (Osc) in every general-sweep context, so neither SourceEngine's "
                "Draw-mode table (playOsc(), oscMode==2) nor the Table mod source's own copy "
-               "(Engine::rebuildModTableIfNeeded) is ever built -- verified live by the named "
+               "(dsp::ModTableBuilder) is ever built -- verified live by the named "
                "drawn-oscillator test") + (fx ? " (mod.source=Table)." : ".");
     if (id == "source.ext")
         return "the general sweep's base source.pitch (40% of [-48,48] = -19.2st) already sits "
@@ -1390,7 +1394,7 @@ void runTargetedPass (std::map<juce::String, ParamVerdict>& verdict,
 #endif
 
     // ---- item 2 (Table mod source), FX only: osc.mode and source.oscwave (OSC WAVE) now
-    // have a real path via Engine::rebuildModTableIfNeeded, independent of source.mode --
+    // have a real path via the Table-mod builder (dsp/ModTable.h), independent of source.mode --
     // needs mod.source=Table to move the needle, which the general sweep's Osc-default
     // mod.source never reaches. osc.h*/osc.d* are covered by the named drawn-oscillator
     // test instead (see curatedReason); these two scalar ids get their own targeted test.

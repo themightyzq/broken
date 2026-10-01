@@ -26,7 +26,9 @@
 > which now owns its own tooltip display.
 
 > Defaults below ARE the `00 Init` snapshot — they are chosen deliberately so that loading
-> a sample and turning DRIVE is already "a sound." Every control gets info text (release
+> a sample and turning DRIVE is already "a sound." Loading `00 Init` resets every control
+> to these defaults (since 2026-10-01; the sample and its region markers stay), and a
+> hosted instance then re-applies its fresh-instance source (NOISE, Amp/Phase Noise 100). Every control gets info text (release
 > requirement); the info-text draft is the last column. Ranges/units per DSP-NOTES.md.
 
 ## Make a sound in 30 seconds

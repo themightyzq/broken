@@ -87,8 +87,8 @@ twice-failed delegations pull up to the top tier.
 
 ## Two targets: Broken and Broken FX
 One codebase (`${BROKEN_PLUGIN_SOURCES}` in `plugin/CMakeLists.txt`) builds two CMake
-plugin targets: `Broken` (the instrument, `PLUGIN_CODE Brkn`, `IS_SYNTH FALSE` but
-`NEEDS_MIDI_INPUT TRUE` — MIDI-triggered) and `BrokenFX` (the insert effect,
+plugin targets: `Broken` (the instrument, `PLUGIN_CODE Brkn`, `IS_SYNTH TRUE`,
+`NEEDS_MIDI_INPUT TRUE`, AU type `aumu`) and `BrokenFX` (the insert effect,
 `PLUGIN_CODE BrFx`, no MIDI, `com.zqsfx.brokenfx`). `BrokenFX` is compiled with
 `BROKEN_FX=1`; every other target defines it `0` so `#if BROKEN_FX` is never an
 undefined-macro `-Wundef` risk. Everything specific to the FX build lives behind that
@@ -117,6 +117,20 @@ sample slot feeds `MOD SRC SAMPLE` and the waveshaper's FROM SAMPLE (it never be
 the playback source); OSCILLATOR drives the new `MOD SRC TABLE` source. `EditView`'s
 TIME block is titled FLATTEN in FX (STRETCH itself stays hidden). FX uses its own design
 size, 1520x979 (was 1420x939), with the same 0.65x-2x resize range as the instrument.
+A fresh editor opens at `BrokenEditor::defaultWidth()` (design size scaled to fit 1280x780:
+instrument 1158x780, FX 1211x780) rather than the design size; a saved session restores
+its own width. `ui::BrokenLookAndFeel` is a subclass of the zqsfx_ui LookAndFeel that
+keeps text at >= 9 pt on screen (11 pt for the VT323 LCD face) at any window scale; a new
+direct `g.setFont` in a view must go through its `floorPt`/`floored`/`silkFont (this, ...)`/
+`lcdFont (this, ...)` helpers. Gate: `broken_ui_snapshot --text-audit` and
+`broken_fx_ui_snapshot --text-audit` (both in ctest).
+
+Broken FX reports latency: the Input FM stage (`InputVarispeed`) runs at a constant
+`D0 - 1` samples in the FX build (2399 at 48 kHz) and the bypass path is delayed to
+match (DSP-NOTES §14a). Sample loads, TAPE saves and the Table-mod wavetable reach the
+audio thread through lock-free hand-offs (atomic slot pointer, TapeBuffer seqlock,
+`dsp::ModTableExchange`); the CLI tools call `syncModTable()` after parameter changes
+because they have no message loop.
 
 **True stereo, two engines.** The instrument is mono end to end: one `dsp::Engine`
 averages every input channel into `monoIn` and duplicates `monoOut` to every output

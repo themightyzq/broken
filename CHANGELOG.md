@@ -1458,3 +1458,94 @@ plus my own findings on the same shot.
   sine is ~0.01). `broken_fx_check` gains check (n): FX opens on Input under every wrapper.
 - **Verification.** ctest **116/116**. pluginval strictness 5 SUCCESS on `Broken.vst3` and
   `Broken FX.vst3`.
+
+## 2026-10-01 - Unreleased: Real-time hand-offs, reported FX latency, full Init, readable small windows
+- **Sample loads no longer stall the audio thread.** `loadSampleFile` used to open and
+  decode the file while holding the callback lock with processing suspended, so a large
+  file stalled the audio callback and the host output dropped to silence. It now decodes
+  with no lock held and hands the finished buffer to the audio thread through an atomic
+  pointer, adopted at the top of the next `processBlock` (or `prepareToPlay`); the
+  buffer it replaces is freed later on the message thread, never on the audio thread.
+  With the callback lock held for 1 s by another thread, a load now takes 0.2 ms (it took
+  1005 ms before).
+- **TAPE SAVE no longer copies under the callback lock.** `TapeBuffer` brackets every take
+  change (REC start/stop, FLIP, reset) with a seqlock counter; SAVE copies the latest take
+  without the lock and copies again if a REC or FLIP landed during the copy. With the
+  callback lock held for 1 s, a save now takes under 1 ms (1005 ms before).
+- **The Table mod source's wavetable is built off the audio thread.** It used to be rebuilt
+  inside `Engine::applyParams` (up to 64 x 4096 multiply-adds in one block whenever a
+  harmonic bar moved). `dsp::ModTableBuilder` now builds it on the message thread (a 60 Hz
+  timer in the processor, plus `prepareToPlay`) into a lock-free triple buffer
+  (`dsp::ModTableExchange`); the audio thread only swaps a pointer. Trade-off: an
+  OSCILLATOR-panel change reaches the Table modulator within one timer tick (about 17 ms)
+  instead of on the next block, so an offline bounce that automates the OSCILLATOR panel
+  while Table is the mod source is not sample-deterministic for those parameters.
+  `broken_cli` and the gate tools have no message loop and call `syncModTable()` after
+  changing parameters, so their renders are unchanged.
+- **Broken FX reports its latency.** FM on the live input reads a delay line centred about
+  50 ms behind the input. That delay was reported to nobody and came and went as FM was
+  switched on and off. In Broken FX the stage now runs at a constant delay, FM on or off,
+  and the plugin reports it: 2204 samples at 44.1 kHz, 2399 at 48 kHz, 4799 at 96 kHz,
+  the same at every block size. The chain's MIX dry leg is taken after this stage, so it
+  stays aligned; the bypass path (full bypass and the 25 ms bypass crossfade) is delayed
+  by the same amount so engaging bypass does not jump in time. Hosts with delay
+  compensation keep the track in time; the audible change is that monitoring through
+  Broken FX is about 50 ms late. The instrument is unchanged (its Input source still has
+  no latency while FM is off).
+- **"00 Init" is a full reset.** Both Init presets now carry `"reset": true`: loading one
+  returns every parameter to its declared default, re-applies the fresh-instance default
+  of a hosted instrument (source Noise, Amp Noise 100, Phase Noise 100; Broken FX: Input),
+  then applies the listed values. The sample and its region markers stay, as with every
+  factory preset (`broken_cli --preset-check` still passes). Every other preset still
+  applies only the ids it lists. The presets' comments, which claimed this already, are
+  now true.
+- **A queued sample reload can no longer touch a destroyed plugin.** When a host restores a
+  session off the message thread, the sample reload is queued to the message thread. It
+  captured the processor as a bare pointer, so a host that destroyed the plugin first left
+  it running on freed memory. It now holds a liveness token that the destructor marks dead.
+- **Smaller default window.** A fresh editor opens at 1158 x 780 (instrument) and
+  1211 x 780 (Broken FX) instead of the 1520 px design width, so it fits a 13-inch laptop
+  with room for the host's window chrome. A saved session reopens at its saved size; the
+  resize range is still 0.65x to 2x of the design size.
+- **Readable text at small sizes.** At the 0.65x floor, labels used to render at about
+  5.5 pt (5 px capitals). Broken's LookAndFeel now raises any font the window scale would
+  draw smaller than 9 pt on screen (11 pt for the VT323 LCD face, whose capitals are
+  smaller), and gives a raised label its side padding so it still fits its box; LCD
+  readouts squeeze slightly rather than truncate. At 1x only fonts under 9 pt change (the
+  tuner captions, the TAPE lamp caption, the small EDIT button).
+- **Font licences ship with the source.** The SIL OFL 1.1 texts for Barlow Condensed,
+  VT323 and IBM Plex Mono are in `licenses/fonts/`, and README credits the fonts and the
+  CC0 knob artwork.
+- **Gates.**
+  - `broken_fx_check` (f) and (g) changed on purpose: latency is now 2204/2399/4799 instead
+    of 0, and bypass returns the input delayed by exactly that many samples. New checks:
+    (o) an impulse arrives exactly the reported latency late with FM off and on, at
+    44.1/48/96 kHz x 64/100/1024, and the bypass crossfade is time-aligned (worst error
+    3e-8); (p) Init resets every Broken FX parameter; (q) a draw-point change does not
+    reach the output from `processBlock` alone, and does after the message-thread timer;
+    (r) load and save do not wait for the callback lock; (s) a reload queued before the
+    processor is destroyed does nothing, and a live processor restored off the message
+    thread still gets its sample back ((s) runs on macOS only; it pumps the CFRunLoop).
+  - `broken_source_default_check`: Init resets every parameter, keeps the hosted
+    white-noise source (VST3) or the declared Sample 25/25 (Undefined), leaves the region
+    alone, and a normal preset still only applies its own ids.
+  - New Catch2 cases: ModTableExchange, ModTableBuilder, TapeBuffer seqlock,
+    InputVarispeed fixed latency.
+  - New ctest gates `broken_ui_text_audit` / `broken_fx_ui_text_audit`
+    (`broken_ui_snapshot --text-audit`, registered on macOS only because they build the
+    editor and the Linux CI runner has no display): every label, button and readout at >= 9 pt
+    (11 pt LCD) on screen and fitting its box, at the 0.65x floor and the default size.
+    121 texts (instrument) and 83 (FX), 0 problems; with the floor disabled the same audit
+    finds 151 problems, smallest 5.46 pt.
+  - Run against the previous code (files restored by copy): fx_check fails (f), (g), (o)
+    (the old FM delay measured 2204/2399/4799 samples with 0 reported), (p), (q), (r)
+    (1005 ms for both load and save), and aborts in (s) (exit 134);
+    source_default_check fails its 4 Init checks.
+  - `broken_cli` renders of every factory preset (MIDI and Input), Table-mod, FM, TAPE and
+    block-size scripts are byte-identical to the previous build, except `00-init` with a
+    `--set` before `--preset` (Init now resets it). `--preset-check`, `--state-roundtrip`,
+    `--fuzz 150 3`, `--bend-test`, `--tune-test` and `broken_control_audit` are unchanged;
+    `broken_fx_control_audit` verdicts are identical, its dB figures move by up to 3 dB
+    because the FX output is now 50 ms later in its measurement window.
+  - `broken_ui_snapshot --hit-audit` / `broken_fx_ui_snapshot --hit-audit`: 0 / 0.
+  - ctest **122/122** (was 116).

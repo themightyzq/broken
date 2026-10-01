@@ -1,6 +1,7 @@
 {
   "name": "00 Init",
-  "comment": "Empty params object = every parameter at its Params.h default (the deliberate init state from docs/PANEL.md).",
+  "comment": "\"reset\": true makes loading this preset a full reset: every parameter returns to its Params.h default (the sample region markers excepted, they belong to the loaded sample), then a hosted instance re-applies its fresh-instance default (source Noise, Amp Noise 100, Phase Noise 100), then the ids below are applied. Other presets apply only the ids they list.",
+  "reset": true,
   "params": {
     "chain.mix": 1.0,
     "bypass": 0

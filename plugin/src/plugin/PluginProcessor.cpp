@@ -31,6 +31,23 @@ namespace
         "tape.rec", "tape.flip", "play.hold",
         "col.mode", "col.rate", "chain.mix", "out.level", "bypass"
     };
+
+#if BROKEN_FX
+    // Pushes in[0..n) through a ring of line.size() samples starting at startPos and writes
+    // what comes out (the input delayed by line.size() samples) to out. in == out is fine.
+    void ringDelay (const float* in, float* out, std::vector<float>& line, int startPos, int n) noexcept
+    {
+        const int len = (int) line.size();
+        int pos = startPos;
+        for (int i = 0; i < n; ++i)
+        {
+            const float y = line[(size_t) pos];
+            line[(size_t) pos] = in[i];
+            out[i] = y;
+            if (++pos == len) pos = 0;
+        }
+    }
+#endif
 }
 
 BrokenProcessor::BrokenProcessor()
@@ -55,32 +72,16 @@ BrokenProcessor::BrokenProcessor()
     jassert (bypassParam != nullptr);
 
     // Context default, keyed on the wrapper the host (or standalone app) created us as.
-    // wrapperType_Undefined (broken_cli, the gate tools, unit tests) is deliberately left
-    // alone: every gate baseline assumes the declared Params.h defaults (Sample, 25/25).
     // Session restore and preset loads arrive later and override whatever is set here.
-    auto setReal = [this] (const char* id, float value)
-    {
-        if (auto* prm = apvts.getParameter (id))
-            prm->setValueNotifyingHost (prm->convertTo0to1 (value));
-    };
+    applyContextDefaults();
+
 #if BROKEN_FX
-    // Broken FX is the effect: in a DAW it opens listening to the track (Input). Standalone
-    // keeps the declared default (also Input; gatherParams forces Input in this build anyway).
-    if (wrapperType == wrapperType_VST3 || wrapperType == wrapperType_AudioUnit)
-        setReal ("source.mode", (float) dsp::SourceEngine::Input);
-#else
-    // Broken is the instrument: hosts do not feed audio to instrument tracks, and the
-    // declared Sample default is silent until a file is loaded, so a fresh VST3/AU/Standalone
-    // instance would answer notes with nothing. It opens on white noise instead (owner
-    // decision): source Noise with Amp Noise and Phase Noise at 100 %, the setting at which
-    // SourceEngine::nextNoise is white (the 25/25 declared defaults are a near-pure sine).
-    if (wrapperType == wrapperType_VST3 || wrapperType == wrapperType_AudioUnit
-        || wrapperType == wrapperType_Standalone)
-    {
-        setReal ("source.mode",  (float) dsp::SourceEngine::Noise);
-        setReal ("noise.amp",    100.0f);
-        setReal ("noise.phase",  100.0f);
-    }
+    // InputVarispeed runs at a constant, reported latency in the effect (DSP-NOTES §14a).
+    // prepareToPlay sets the exact value for the real sample rate; until then report the
+    // 48 kHz figure rather than 0, for hosts that read the latency before preparing.
+    engine.setInputFixedLatency (true);
+    engineR.setInputFixedLatency (true);
+    setLatencySamples (dsp::InputVarispeed::latencySamples (48000.0));
 #endif
 
     // the 64 harmonic bars: ids built (and cached) once, never per block
@@ -108,24 +109,147 @@ BrokenProcessor::BrokenProcessor()
         cached[drawIds[(size_t) k]] = raw;
     }
     cached["osc.mode"] = apvts.getRawParameterValue ("osc.mode");
+
+    // Table mod source: built off the audio thread (syncModTable); the timer picks up
+    // OSCILLATOR-panel edits and automation in a host, and frees retired sample buffers.
+    syncModTable();
+    startTimerHz (60);
+}
+
+BrokenProcessor::~BrokenProcessor()
+{
+    stopTimer();
+    // a deferred sample reload queued by restoreFromXml must never touch a dead processor:
+    // wait for one that is running, and make every later one a no-op
+    const juce::ScopedLock sl (liveness->lock);
+    liveness->alive = false;
+}
+
+void BrokenProcessor::applyContextDefaults()
+{
+    // wrapperType_Undefined (broken_cli, the gate tools, unit tests) is deliberately left
+    // alone: every gate baseline assumes the declared Params.h defaults (Sample, 25/25).
+    auto setReal = [this] (const char* id, float value)
+    {
+        if (auto* prm = apvts.getParameter (id))
+            prm->setValueNotifyingHost (prm->convertTo0to1 (value));
+    };
+#if BROKEN_FX
+    // Broken FX is the effect: in a DAW it opens listening to the track (Input). Standalone
+    // keeps the declared default (also Input; gatherParams forces Input in this build anyway).
+    if (wrapperType == wrapperType_VST3 || wrapperType == wrapperType_AudioUnit)
+        setReal ("source.mode", (float) dsp::SourceEngine::Input);
+#else
+    // Broken is the instrument: hosts do not feed audio to instrument tracks, and the
+    // declared Sample default is silent until a file is loaded, so a fresh VST3/AU/Standalone
+    // instance would answer notes with nothing. It opens on white noise instead (owner
+    // decision): source Noise with Amp Noise and Phase Noise at 100 %, the setting at which
+    // SourceEngine::nextNoise is white (the 25/25 declared defaults are a near-pure sine).
+    if (wrapperType == wrapperType_VST3 || wrapperType == wrapperType_AudioUnit
+        || wrapperType == wrapperType_Standalone)
+    {
+        setReal ("source.mode",  (float) dsp::SourceEngine::Noise);
+        setReal ("noise.amp",    100.0f);
+        setReal ("noise.phase",  100.0f);
+    }
+#endif
+}
+
+void BrokenProcessor::timerCallback()
+{
+    syncModTable();
+    collectRetiredSamples();
+}
+
+void BrokenProcessor::syncModTable()
+{
+    dsp::ModTableShape shape;
+    shape.oscMode = (int) p ("osc.mode");
+    shape.oscWave = (int) p ("source.oscwave");
+    for (int k = 0; k < params::harmonicCount; ++k)
+        shape.harmonics[(size_t) k] = cached.at (harmIds[(size_t) k])->load();
+    for (int k = 0; k < params::drawPointCount; ++k)
+        shape.drawPts[(size_t) k] = cached.at (drawIds[(size_t) k])->load();
+
+    const juce::ScopedLock sl (modTableLock);
+    modTableBuilder.update (shape, modTables);
+}
+
+void BrokenProcessor::adoptPendingSample() noexcept
+{
+    if (auto* slot = pendingSample.exchange (nullptr, std::memory_order_acq_rel))
+    {
+        audioSample = slot;
+        engine.setSampleData (slot->data.data(), slot->data.size(), slot->sr);
+#if BROKEN_FX
+        // engineR keeps its OWN sample pointer (Engine::applyParams re-pushes it to its
+        // voices every block), so it must be pointed at the new buffer too, or the
+        // R channel's Sample source / Sample mod source serves the old one.
+        engineR.setSampleData (slot->data.data(), slot->data.size(), slot->sr);
+#endif
+        // published last: from here on the message thread may free older slots
+        audioSampleSeq.store (slot->seq, std::memory_order_release);
+    }
+}
+
+void BrokenProcessor::collectRetiredSamples()
+{
+    // every slot older than the one the audio thread has adopted is unreachable from it
+    // (it only ever moves forward through pendingSample); newer ones are pending or newest
+    const auto inUse = audioSampleSeq.load (std::memory_order_acquire);
+    sampleSlots.erase (std::remove_if (sampleSlots.begin(), sampleSlots.end(),
+                                       [this, inUse] (const std::unique_ptr<SampleSlot>& s)
+                                       { return s->seq < inUse && s.get() != displaySample; }),
+                       sampleSlots.end());
 }
 
 void BrokenProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
     engine.prepare (sampleRate);
-    if (! sampleBuf.empty())
-        engine.setSampleData (sampleBuf.data(), sampleBuf.size(), sampleFileSr);
+#if BROKEN_FX
+    engineR.prepare (sampleRate);
+#endif
+    // prepareToPlay never runs concurrently with processBlock, so it may adopt a sample
+    // loaded before playback started; an already adopted one is re-pushed after prepare
+    adoptPendingSample();
+    if (audioSample != nullptr)
+    {
+        engine.setSampleData (audioSample->data.data(), audioSample->data.size(), audioSample->sr);
+#if BROKEN_FX
+        engineR.setSampleData (audioSample->data.data(), audioSample->data.size(), audioSample->sr);
+#endif
+    }
+    // Table mod: build now from the current parameters (synchronous, not the audio thread)
+    {
+        const juce::ScopedLock sl (modTableLock);
+        modTableBuilder.invalidate();
+    }
+    syncModTable();
+    {
+        const float* table = modTables.acquire();
+        engine.setModTable (table);
+#if BROKEN_FX
+        engineR.setModTable (table);
+#endif
+    }
     monoIn.resize ((size_t) samplesPerBlock);
     monoOut.resize ((size_t) samplesPerBlock);
 #if BROKEN_FX
     // R channel: prepared and sized identically to L so the two engines stay in lockstep
-    engineR.prepare (sampleRate);
-    if (! sampleBuf.empty())
-        engineR.setSampleData (sampleBuf.data(), sampleBuf.size(), sampleFileSr);
     monoInR.resize ((size_t) samplesPerBlock);
     monoOutR.resize ((size_t) samplesPerBlock);
     monoOutMix.resize ((size_t) samplesPerBlock);
+
+    // the Input FM stage's constant delay (DSP-NOTES §14a): reported to the host, and
+    // mirrored on the bypass path. Depends on the sample rate only, never the block size.
+    const int latency = dsp::InputVarispeed::latencySamples (sampleRate);
+    setLatencySamples (latency);
+    bypassLineL.assign ((size_t) latency, 0.0f);
+    bypassLineR.assign ((size_t) latency, 0.0f);
+    bypassOutL.assign ((size_t) samplesPerBlock, 0.0f);
+    bypassOutR.assign ((size_t) samplesPerBlock, 0.0f);
+    bypassLinePos = 0;
 #endif
     playHeld = false; // never strand a held note across a rate/buffer change
     pitchBendNorm = 0.0f; // nor a held wheel: it would leave the instrument detuned
@@ -268,6 +392,18 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         return;
     }
 
+    // lock-free hand-offs from the message thread (no allocation, no locks): a newly
+    // loaded sample (loadSampleFile) and the newest Table-mod table (syncModTable). Both
+    // run before applyParams, which pushes the engines' pointers to their voices.
+    adoptPendingSample();
+    {
+        const float* table = modTables.acquire();
+        engine.setModTable (table);
+#if BROKEN_FX
+        engineR.setModTable (table);
+#endif
+    }
+
     // `events` is reserve()'d once in prepareToPlay (maxNoteEventsPerBlock) and must never
     // grow past that here -- growth would allocate on the audio thread. A block with more
     // note-ons/offs than the cap is a MIDI storm; the overflow is dropped and counted
@@ -319,6 +455,19 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         // chopped and notes arriving now are dropped -- documented trade-off).
         for (int ch = inChans; ch < outChans; ++ch)
             buffer.clear (ch, 0, n); // extra outs would otherwise carry stale data
+#if BROKEN_FX
+        // the bypassed signal carries the same reported latency as the processed one
+        // (DSP-NOTES §14a), so toggling bypass never shifts the track in time
+        if (! bypassLineL.empty())
+        {
+            const int passChans = juce::jmin (inChans, outChans);
+            if (passChans > 0)
+                ringDelay (buffer.getReadPointer (0), buffer.getWritePointer (0), bypassLineL, bypassLinePos, n);
+            if (passChans > 1)
+                ringDelay (buffer.getReadPointer (1), buffer.getWritePointer (1), bypassLineR, bypassLinePos, n);
+            bypassLinePos = (int) (((size_t) bypassLinePos + (size_t) n) % bypassLineL.size());
+        }
+#endif
         playHeld = p ("play.hold") > 0.5f; // track the latch, push no synthetic notes
         float pk = 0.0f;
         for (int ch = 0; ch < juce::jmin (inChans, outChans); ++ch)
@@ -371,6 +520,15 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
             monoInR[(size_t) i] = r;
         }
 
+        // keep the bypass delay lines fed every block (so engaging bypass never reads a
+        // stale line) and get this chunk's delayed input for the bypass crossfade
+        if (! bypassLineL.empty())
+        {
+            ringDelay (monoIn.data(),  bypassOutL.data(), bypassLineL, bypassLinePos, chunkLen);
+            ringDelay (monoInR.data(), bypassOutR.data(), bypassLineR, bypassLinePos, chunkLen);
+            bypassLinePos = (int) (((size_t) bypassLinePos + (size_t) chunkLen) % bypassLineL.size());
+        }
+
         engine.process  (monoIn.data(),  monoOut.data(),  chunkLen,
                          chunkEvents.data(), (int) chunkEvents.size());
         engineR.process (monoInR.data(), monoOutR.data(), chunkLen,
@@ -399,8 +557,9 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         else
         {
             // engaging/releasing bypass: crossfade each output channel's OWN wet signal
-            // against its OWN true input, read in place before each write -- keeps L and
-            // R independent through the fade too, same one fade trajectory as the
+            // against its OWN input, delayed by the reported latency (bypassOutL/R, filled
+            // above) so the two legs of the fade are time-aligned -- keeps L and R
+            // independent through the fade too, same one fade trajectory as the
             // instrument build.
             const float startFade = bypassFade;
             float f = startFade;
@@ -409,11 +568,12 @@ void BrokenProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
                 f = startFade;
                 auto* d = buffer.getWritePointer (ch, offset);
                 const bool hasIn = ch < inChans;
+                const float* delayedIn = ch == 0 ? bypassOutL.data() : bypassOutR.data();
                 for (int i = 0; i < chunkLen; ++i)
                 {
                     f = bypTarget > f ? std::min (bypTarget, f + bypassFadeStep)
                                       : std::max (bypTarget, f - bypassFadeStep);
-                    const float in = hasIn ? d[i] : 0.0f;
+                    const float in = hasIn ? delayedIn[i] : 0.0f;
                     const float w = (outChans == 1)
                                       ? 0.5f * (monoOut[(size_t) i] + monoOutR[(size_t) i])
                                       : (ch == 0 ? monoOut[(size_t) i] : monoOutR[(size_t) i]);
@@ -506,8 +666,8 @@ void BrokenProcessor::restoreFromXml (juce::XmlElement& xml)
             // region params are meaningless without their file: reload the persisted
             // path (path-only by design — field recordings are never embedded).
             // Hosts do NOT guarantee setStateInformation runs on the message thread,
-            // and the editor's timers read sampleBuf — so the reload is marshalled
-            // there rather than racing a repaint. (v0.12 review)
+            // and the editor's timers read the display buffer — so the reload is
+            // marshalled there rather than racing a repaint. (v0.12 review)
             const auto path = apvts.state.getProperty ("samplePath", juce::String()).toString();
             if (path.isNotEmpty())
             {
@@ -526,7 +686,17 @@ void BrokenProcessor::restoreFromXml (juce::XmlElement& xml)
                 if (juce::MessageManager::getInstance()->isThisTheMessageThread())
                     doLoad();
                 else
-                    juce::MessageManager::callAsync (doLoad);
+                {
+                    // The host may destroy this processor before the message thread gets
+                    // to the queued reload. The lambda therefore holds the liveness token,
+                    // not a bare `this`: the destructor marks it dead under its lock.
+                    juce::MessageManager::callAsync ([token = liveness, doLoad]
+                    {
+                        const juce::ScopedLock sl (token->lock);
+                        if (token->alive)
+                            doLoad();
+                    });
+                }
             }
         }
 }
@@ -539,6 +709,28 @@ bool BrokenProcessor::loadSnapshotJson (const juce::var& parsed, juce::String& e
     auto paramsVar = obj->getProperty ("params");
     auto* paramsObj = paramsVar.getDynamicObject();
     if (paramsObj == nullptr) { errorOut = "snapshot has no \"params\" object"; return false; }
+
+    // validate every id BEFORE touching anything, so a bad file never half-applies a reset
+    for (const auto& kv : paramsObj->getProperties())
+        if (apvts.getParameter (kv.name.toString()) == nullptr)
+        { errorOut = "unknown parameter id: " + kv.name.toString(); return false; }
+
+    // "reset": true (the 00 Init presets): every parameter back to its declared Params.h
+    // default first, then the wrapper's context default, then the listed ids below. Every
+    // other preset applies only the ids it lists (a sound design layered on the current
+    // state). The sample region markers are exempt: like the sample itself they belong to
+    // the loaded file, and no factory preset may move them (broken_cli --preset-check).
+    if ((bool) obj->getProperty ("reset"))
+    {
+        for (auto* param : getParameters())
+            if (auto* rp = dynamic_cast<juce::RangedAudioParameter*> (param))
+            {
+                if (rp->paramID == "sample.regstart" || rp->paramID == "sample.regend")
+                    continue;
+                rp->setValueNotifyingHost (rp->getDefaultValue());
+            }
+        applyContextDefaults();
+    }
 
     for (const auto& kv : paramsObj->getProperties())
     {
@@ -569,39 +761,42 @@ juce::var BrokenProcessor::snapshotToJson() const
 
 bool BrokenProcessor::loadSampleFile (const juce::File& file, juce::String& errorOut)
 {
+    // Everything slow (open, decode, mono-sum) happens here, on the calling thread, with
+    // NO lock held: the audio thread keeps playing the old buffer meanwhile. Through v0.36.0
+    // this read the file under the callback lock with processing suspended, so a large
+    // file stalled the audio callback (and suspendProcessing made the host output silence).
     juce::AudioFormatManager fm;
     fm.registerBasicFormats();
     std::unique_ptr<juce::AudioFormatReader> reader (fm.createReaderFor (file));
     if (reader == nullptr) { errorOut = "cannot read " + file.getFullPathName(); return false; }
 
-    // the audio thread reads sampleBuf through raw pointers — pause it for the swap
-    const juce::ScopedLock sl (getCallbackLock());
-    suspendProcessing (true);
+    auto slot = std::make_unique<SampleSlot>();
+    {
+        const int numCh = (int) reader->numChannels;
+        const int len = (int) reader->lengthInSamples;
+        juce::AudioBuffer<float> tmp (numCh, len);
+        reader->read (&tmp, 0, len, 0, true, true);
+        slot->data.assign ((size_t) len, 0.0f);
+        for (int ch = 0; ch < numCh; ++ch)
+            for (int i = 0; i < len; ++i)
+                slot->data[(size_t) i] += tmp.getReadPointer (ch)[i] / (float) numCh;
+    }
+    slot->sr = reader->sampleRate;
+    slot->seq = nextSampleSeq++;
 
-    juce::AudioBuffer<float> tmp ((int) reader->numChannels, (int) reader->lengthInSamples);
-    reader->read (&tmp, 0, (int) reader->lengthInSamples, 0, true, true);
+    // Publish. Whatever the exchange hands back was never adopted by the audio thread
+    // (it only takes slots out of pendingSample), so it can be freed right here.
+    auto* published = slot.get();
+    sampleSlots.push_back (std::move (slot));
+    if (auto* stale = pendingSample.exchange (published, std::memory_order_acq_rel))
+        sampleSlots.erase (std::remove_if (sampleSlots.begin(), sampleSlots.end(),
+                                           [stale] (const std::unique_ptr<SampleSlot>& s) { return s.get() == stale; }),
+                           sampleSlots.end());
+    displaySample = published;
+    collectRetiredSamples();
 
-    sampleBuf.assign ((size_t) tmp.getNumSamples(), 0.0f);
-    for (int ch = 0; ch < tmp.getNumChannels(); ++ch)
-        for (int i = 0; i < tmp.getNumSamples(); ++i)
-            sampleBuf[(size_t) i] += tmp.getReadPointer (ch)[i] / (float) tmp.getNumChannels();
-
-    sampleFileSr = reader->sampleRate;
     sampleName = file.getFileName();
     sampleMissing = false;
-    engine.setSampleData (sampleBuf.data(), sampleBuf.size(), sampleFileSr);
-#if BROKEN_FX
-    // Bug fix (item 1): a load reaching here outside prepareToPlay (drag-drop, --sample,
-    // state restore) only ever updated the L engine's own sampleData/sampleLen/sampleSr
-    // members. engineR keeps its OWN copy of those (Engine::applyParams re-pushes them to
-    // its voices every block), so without this mirror engineR served whatever buffer it
-    // last had -- null on a fresh instance, or the previous file after a reload -- until
-    // the next prepareToPlay (a host re-opening the stream) called engineR.setSampleData
-    // again. R-channel Sample source and Sample mod-source were silent/stale for the
-    // entire session in between.
-    engineR.setSampleData (sampleBuf.data(), sampleBuf.size(), sampleFileSr);
-#endif
-    suspendProcessing (false);
     apvts.state.setProperty ("samplePath", file.getFullPathName(), nullptr);
     return true;
 }
@@ -786,31 +981,49 @@ bool BrokenProcessor::saveTapeToFile (const juce::File& file, juce::String& erro
 #endif
     double sr = 48000.0;
     {
-        // a FLIP on the audio thread would swap the active buffer under us mid-read;
-        // copy under the callback lock (up to Tape maxSeconds of audio: ~11.5 MB mono at
-        // 48 kHz, ~23 MB for the FX stereo pair), write outside it
-        const juce::ScopedLock sl (getCallbackLock());
+        // Copy the latest COMPLETE take (no FLIP required, v0.33) WITHOUT the callback
+        // lock (up to Tape maxSeconds of audio: ~11.5 MB mono at 48 kHz, ~23 MB for the FX
+        // stereo pair). TapeBuffer's seqlock tells us whether a REC/FLIP on the audio thread
+        // changed the takes while we copied; if so, copy again. Through v0.36.0 this copy ran
+        // under the callback lock and stalled the audio thread for its whole length.
         auto& tape = engine.getTape();
-        const auto len = tape.latestLength(); // latest COMPLETE take; no FLIP required (v0.33)
-        if (len == 0) { errorOut = "tape is empty - press REC first"; return false; }
-        copy.assign (tape.latestData(), tape.latestData() + len);
-        sr = tape.sampleRateOfContent();
 #if BROKEN_FX
-        // item 5: each FX engine records its own channel's output into its own TapeBuffer
-        // (Engine.h), started/stopped by the identical tape.rec param applied to both
-        // engines the same block, so they record in lockstep. Equal latest-take lengths
-        // therefore mean a genuine matched stereo pair; a mismatch (e.g. one channel's
-        // take was overwritten by a REC that started/stopped a block apart from some
-        // future divergent control path) falls back to writing L alone as mono rather than
-        // guessing an alignment between two takes of different length.
         auto& tapeR = engineR.getTape();
-        const auto lenR = tapeR.latestLength();
-        if (lenR == len)
-        {
-            copyR.assign (tapeR.latestData(), tapeR.latestData() + lenR);
-            stereo = true;
-        }
 #endif
+        bool consistent = false;
+        for (int attempt = 0; attempt < 50 && ! consistent; ++attempt)
+        {
+            const auto g = tape.readBegin();
+#if BROKEN_FX
+            const auto gR = tapeR.readBegin();
+#endif
+            if ((g & 1u) != 0
+#if BROKEN_FX
+                || (gR & 1u) != 0
+#endif
+               )
+            {
+                juce::Thread::sleep (1); // a state change is in flight on the audio thread
+                continue;
+            }
+            const auto len = tape.copyLatestTo (copy);
+#if BROKEN_FX
+            // item 5: each FX engine records its own channel's output into its own
+            // TapeBuffer (Engine.h), started/stopped by the identical tape.rec param applied
+            // to both engines the same block, so they record in lockstep. Equal latest-take
+            // lengths therefore mean a genuine matched stereo pair; a mismatch falls back to
+            // writing L alone as mono rather than guessing an alignment between two takes
+            // of different length.
+            const auto lenR = tapeR.copyLatestTo (copyR);
+            stereo = lenR == len && len > 0;
+            consistent = tape.readValidate (g) && tapeR.readValidate (gR);
+#else
+            consistent = tape.readValidate (g);
+#endif
+        }
+        if (! consistent) { errorOut = "tape changed while saving - try again"; return false; }
+        if (copy.empty()) { errorOut = "tape is empty - press REC first"; return false; }
+        sr = tape.sampleRateOfContent();
     }
 
     file.getParentDirectory().createDirectory();

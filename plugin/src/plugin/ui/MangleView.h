@@ -950,7 +950,7 @@ private:
             g.setColour (colour::lcdBorder);
             g.drawRect (b, 1);
             g.setColour (colour::lcdDim);
-            g.setFont (juce::Font (juce::FontOptions (14.0f)));
+            g.setFont (BrokenLookAndFeel::floored (this, juce::Font (juce::FontOptions (14.0f))));
             g.drawText (text, b.reduced (8, 2), juce::Justification::centredLeft);
         }
         void mouseDrag (const juce::MouseEvent& e) override

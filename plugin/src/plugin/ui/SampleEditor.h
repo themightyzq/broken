@@ -85,7 +85,8 @@ struct PeakPyramid
 // Builds a PeakPyramid off the message thread for large files (>= ~2M samples);
 // smaller files build inline on the calling (message) thread. The worker only ever
 // touches its own private copy of the buffer, never the processor's live vector, so
-// there is no race with loadSampleFile() swapping sampleBuf on the message thread.
+// there is no race with loadSampleFile() replacing the displayed sample on the message
+// thread (start() copies the buffer before any worker reads it).
 class PyramidBuilder : private juce::Thread
 {
 public:

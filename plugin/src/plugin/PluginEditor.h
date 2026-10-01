@@ -58,6 +58,19 @@ public:
     static constexpr int designH      = headerH + mangleH + editH + 16;
 #endif
 
+    // Default (fresh instance) window: the design size scaled down to fit inside
+    // defaultMaxW x defaultMaxH, so it fits a 13-inch laptop screen with room for the
+    // host's own window chrome (2026-10-01; it used to open at the full 1520 px design
+    // width). Instrument: 1158 x 780 (0.76x); FX: 1211 x 780 (0.80x). The user's own size
+    // is saved with the session and wins on reopen; the resize range stays 0.65x-2x.
+    static constexpr int defaultMaxW = 1280;
+    static constexpr int defaultMaxH = 780;
+    static int defaultWidth()
+    {
+        const double s = juce::jmin (1.0, (double) defaultMaxW / designW, (double) defaultMaxH / designH);
+        return juce::roundToInt (designW * s);
+    }
+
 private:
     // Holds the whole panel at the design size; the transform on THIS is what scales.
     struct Content : juce::Component

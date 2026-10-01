@@ -7,6 +7,13 @@
 //   constrainer entirely, same as any direct setBounds() call, so this can render sizes a
 //   user could never actually drag to.)
 //
+//   broken_ui_snapshot --text-audit
+//   (2026-10-01) Constructs the editor at the 0.65x floor and at its default size and checks
+//   every visible Label, TextButton and slider readout: the font must render at >= 9 pt on
+//   screen (11 pt for the VT323 LCD readouts, whose capitals are smaller), the text must
+//   fit its box (labels may squeeze to 70 %, readouts to 80 %, buttons not at all), and the
+//   capitals must fit the box height. Exit code is the number of problems (0 = clean).
+//
 //   broken_ui_snapshot --hit-audit
 //   Constructs the editor at the house 0.65x resize floor (BrokenEditor::designW/designH
 //   * 0.65, exactly what the constrainer clamps to -- see PluginEditor.cpp), walks every
@@ -27,6 +34,7 @@
 #include "plugin/PluginProcessor.h"
 #include "plugin/PluginEditor.h"
 #include "plugin/ui/HitPad.h"
+#include "plugin/ui/BrokenLookAndFeel.h"
 #include "plugin/ui/SourceEditorPanel.h"
 #include <iostream>
 #include <vector>
@@ -105,6 +113,91 @@ int printViolations (const juce::String& section, const std::vector<HitViolation
     for (auto& item : v)
         std::cout << "    " << item.label << "  " << item.w << "x" << item.h << " px\n";
     return (int) v.size();
+}
+
+// ---- --text-audit --------------------------------------------------------------------
+struct TextProblem { juce::String what; };
+struct TextStats { int checked = 0; float minPt = 1000.0f, minLcdPt = 1000.0f; };
+
+void collectTextProblems (juce::Component& node, broken::ui::BrokenLookAndFeel& lnf,
+                          std::vector<TextProblem>& out, TextStats& st)
+{
+    using LnF = broken::ui::BrokenLookAndFeel;
+    for (int i = 0; i < node.getNumChildComponents(); ++i)
+    {
+        auto* child = node.getChildComponent (i);
+        if (child == nullptr || ! child->isVisible()) continue;
+        const float scale = LnF::screenScale (child);
+        const juce::String where = describeComponent (*child);
+
+        if (auto* l = dynamic_cast<juce::Label*> (child); l != nullptr && l->getText().isNotEmpty())
+        {
+            const bool readout = dynamic_cast<juce::Slider*> (l->getParentComponent()) != nullptr;
+            juce::Font f = readout ? lnf.lcdFont (l, (float) l->getHeight() * 0.92f) : lnf.getLabelFont (*l);
+            const auto area = readout ? l->getLocalBounds()
+                                      : lnf.getLabelBorderSize (*l).subtractedFrom (l->getLocalBounds());
+            const float minPt = readout ? LnF::minLcdScreenPt : LnF::minScreenPt;
+            const float screenPt = f.getHeightInPoints() * scale;
+            const float textW = juce::GlyphArrangement::getStringWidth (f, l->getText());
+            const float squeeze = readout ? 0.8f : 0.7f;
+            const float capH = f.getHeightInPoints() * (readout ? 0.56f : 0.70f);
+            ++st.checked;
+            (readout ? st.minLcdPt : st.minPt) = std::min (readout ? st.minLcdPt : st.minPt, screenPt);
+            if (screenPt < minPt - 0.01f)
+                out.push_back ({ "\"" + l->getText() + "\" (" + where + "): " + juce::String (screenPt, 2) + " pt on screen" });
+            if (textW * squeeze > (float) area.getWidth() + 0.5f)
+                out.push_back ({ "\"" + l->getText() + "\" (" + where + "): needs " + juce::String (textW * squeeze, 1)
+                                 + " px squeezed, box " + juce::String (area.getWidth()) });
+            if (capH > (float) l->getHeight() + 0.5f)
+                out.push_back ({ "\"" + l->getText() + "\" (" + where + "): capitals " + juce::String (capH, 1)
+                                 + " px in a " + juce::String (l->getHeight()) + " px box" });
+        }
+        else if (auto* b = dynamic_cast<juce::TextButton*> (child); b != nullptr && b->getButtonText().isNotEmpty())
+        {
+            const auto f = lnf.getTextButtonFont (*b, b->getHeight());
+            const float screenPt = f.getHeightInPoints() * scale;
+            const float textW = juce::GlyphArrangement::getStringWidth (f, b->getButtonText());
+            ++st.checked;
+            st.minPt = std::min (st.minPt, screenPt);
+            if (screenPt < LnF::minScreenPt - 0.01f)
+                out.push_back ({ "button \"" + b->getButtonText() + "\": " + juce::String (screenPt, 2) + " pt on screen" });
+            if (textW > (float) (b->getWidth() - 4) + 0.5f) // drawText, no squeeze: it would ellipsise
+                out.push_back ({ "button \"" + b->getButtonText() + "\": needs " + juce::String (textW, 1)
+                                 + " px, has " + juce::String (b->getWidth() - 4) });
+        }
+        collectTextProblems (*child, lnf, out, st);
+    }
+}
+
+int runTextAudit()
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    auto processorOwner = std::make_unique<broken::BrokenProcessor>();
+    auto& processor = *processorOwner;
+    int total = 0;
+    const int defaultW = broken::BrokenEditor::defaultWidth();
+    const struct { const char* name; int w; } sizes[] = {
+        { "0.65x floor", juce::roundToInt (broken::BrokenEditor::designW * 0.65) },
+        { "default", defaultW },
+    };
+    for (const auto& sz : sizes)
+    {
+        std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
+        const int h = juce::roundToInt ((double) sz.w * broken::BrokenEditor::designH / broken::BrokenEditor::designW);
+        editor->setSize (sz.w, h);
+        auto* lnf = dynamic_cast<broken::ui::BrokenLookAndFeel*> (&editor->getLookAndFeel());
+        if (lnf == nullptr) { std::cerr << "editor has no BrokenLookAndFeel\n"; return -1; }
+        std::vector<TextProblem> v;
+        TextStats st;
+        collectTextProblems (*editor, *lnf, v, st);
+        std::cout << "[text-audit] " << sz.name << " " << sz.w << "x" << h << ": " << st.checked
+                  << " texts, smallest " << juce::String (st.minPt, 2) << " pt (labels/buttons), "
+                  << juce::String (st.minLcdPt, 2) << " pt (LCD readouts); " << (int) v.size() << " problem(s)\n";
+        for (auto& p : v) std::cout << "    " << p.what << "\n";
+        total += (int) v.size();
+    }
+    std::cout << "[text-audit] TOTAL: " << total << " problem(s)\n";
+    return total;
 }
 
 int runHitAudit()
@@ -212,8 +305,15 @@ int main (int argc, char** argv)
     if (argc < 2)
     {
         std::cerr << "usage: broken_ui_snapshot <out.png> [scale] [width height]\n"
-                     "       broken_ui_snapshot --hit-audit\n";
+                     "       broken_ui_snapshot --hit-audit\n"
+                     "       broken_ui_snapshot --text-audit\n";
         return 2;
+    }
+
+    if (juce::String (argv[1]) == "--text-audit")
+    {
+        const int problems = runTextAudit();
+        return problems < 0 ? 1 : problems;
     }
 
     if (juce::String (argv[1]) == "--hit-audit")

@@ -860,6 +860,8 @@ int main (int argc, char* argv[])
             if (! applySet (proc, timedParams[nextTimed].spec, err))
             { std::cerr << "broken_cli error: --at: " << err << "\n"; return 2; }
             ++nextTimed;
+            // no message loop here: build the Table-mod table now, as a host's timer would
+            proc.syncModTable();
         }
 
         midi.clear();

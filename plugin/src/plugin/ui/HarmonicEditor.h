@@ -94,7 +94,7 @@ public:
         {
             auto* lnf = dynamic_cast<BrokenLookAndFeel*> (&getLookAndFeel()); // null briefly in the pop-out window
             g.setColour (colour::lcdFaint);
-            g.setFont (lnf != nullptr ? lnf->lcdFont (11.0f) : juce::Font (juce::FontOptions (9.0f)));
+            g.setFont (lnf != nullptr ? lnf->lcdFont (this, 11.0f) : juce::Font (juce::FontOptions (9.0f)));
             auto labelStrip = juce::Rectangle<float> (area.getX(), area.getBottom(),
                                                         area.getWidth(), labelH);
             g.drawText ("1", labelStrip.removeFromLeft (16.0f), juce::Justification::centredLeft);

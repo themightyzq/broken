@@ -39,19 +39,19 @@ public:
 
         // caption sits OUTSIDE the LCD screen feel: small silkscreen caption, not glowing green.
         g.setColour (colour::silkCaption);
-        g.setFont (juce::Font (juce::FontOptions (9.0f, juce::Font::bold)));
+        g.setFont (BrokenLookAndFeel::floored (this, juce::Font (juce::FontOptions (9.0f, juce::Font::bold))));
         g.drawText (caption, area.removeFromTop (10), juce::Justification::centredLeft);
 
         auto row = area.removeFromTop (16);
         auto noteArea = row.removeFromLeft (46);
-        auto hzFont = lnf != nullptr ? lnf->lcdFont (12.0f) : juce::Font (juce::FontOptions (10.0f));
+        auto hzFont = lnf != nullptr ? lnf->lcdFont (this, 12.0f) : juce::Font (juce::FontOptions (10.0f));
         if (live)
         {
             const auto name = juce::String (dsp::PitchDetector::noteName (note))
                             + juce::String (dsp::PitchDetector::octaveOf (note));
             // note name is the primary LCD value: bright lcdText, with the LnF's soft glow
             if (lnf != nullptr)
-                lnf->drawLcdText (g, name, noteArea, 16.0f, juce::Justification::centredLeft, colour::lcdText);
+                lnf->drawLcdText (g, name, noteArea, BrokenLookAndFeel::floorLcdPt (this, 16.0f), juce::Justification::centredLeft, colour::lcdText);
             else
             {
                 g.setColour (colour::lcdText);
@@ -67,7 +67,7 @@ public:
             // clarity gate not met: whole readout drops to lcdFaint, including "-- Hz"
             // (previously the Hz line was omitted entirely when unpitched)
             if (lnf != nullptr)
-                lnf->drawLcdText (g, "--", noteArea, 16.0f, juce::Justification::centredLeft, colour::lcdFaint);
+                lnf->drawLcdText (g, "--", noteArea, BrokenLookAndFeel::floorLcdPt (this, 16.0f), juce::Justification::centredLeft, colour::lcdFaint);
             else
             {
                 g.setColour (colour::lcdFaint);

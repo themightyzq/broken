@@ -198,6 +198,15 @@ target_link_libraries(broken_source_default_check
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 add_test(NAME broken_source_default_check COMMAND broken_source_default_check)
 
+# --- text-size gate for both editors (2026-10-01): every label, button and readout renders
+# at >= 9 pt on screen (11 pt for the LCD face) and fits its box, at the 0.65x floor and at
+# the default size. Exit code = number of problems. macOS only: it builds the editor, and
+# the Linux CI runner has no display for that (xvfb is installed but ctest is not wrapped).
+if(APPLE)
+  add_test(NAME broken_ui_text_audit COMMAND broken_ui_snapshot --text-audit)
+  add_test(NAME broken_fx_ui_text_audit COMMAND broken_fx_ui_snapshot --text-audit)
+endif()
+
 # --- broken_control_audit / broken_fx_control_audit: headless control-wiring audit.
 # Same link pattern as broken_cli/broken_fx_check, built for both BROKEN_FX values so it
 # can exercise each product's own gatherParams()/source forcing. Deliberately NOT

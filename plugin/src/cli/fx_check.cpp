@@ -6,20 +6,36 @@
 //   (d) different L/R input (tone in L, silence in R) leaves R silent-ish (< -60 dBFS)
 //   (e) no NaN/Inf and stable output at block sizes 64/100/1024, sample rates
 //       44100/48000/96000
-//   (f) getLatencySamples() == 0, identical across those configs
-//   (g) engaging bypass returns the input unchanged after the fade
+//   (f) getLatencySamples() == the Input FM stage's constant delay (2204/2399/4799 samples
+//       at 44.1/48/96 kHz), identical across block sizes (was 0 until 2026-10-01, when the
+//       ~50 ms delay FM added on Input was unreported)
+//   (g) engaging bypass returns the input, delayed by exactly getLatencySamples(), after
+//       the fade (was: undelayed, which jumped in time against the reported latency)
 //   (h) item 1 regression: a sample loaded via the real loadSampleFile path, mod.source=
 //       Sample, differs audibly from mod.source=Osc, AND a mono input gives bit-identical
 //       L/R output (proves engineR got the sample mirror, not just engine)
 //   (i) item 2: the Table mod source (osc.mode Draw/Harmonic) tracks the OSCILLATOR panel
 //   (j) item 3: FM now works on the live Input source (InputVarispeed.h)
 //   (k) item 5: FX tape record -> mod.source=Tape changes the output
+//   (o) an impulse comes out exactly getLatencySamples() late, FM off AND FM on, every
+//       sample rate x block size above; the bypass crossfade is time-aligned (2026-10-01)
+//   (p) loading "00 Init" resets every parameter to its FX default (2026-10-01)
+//   (q) the Table mod table is rebuilt off the audio thread: a draw-point change does not
+//       reach the output until the message-thread timer runs (2026-10-01)
+//   (r) loadSampleFile and saveTapeToFile do not wait for the callback lock (2026-10-01)
+//   (s) a deferred sample reload queued by setStateInformation on a non-message thread
+//       does nothing if the processor is destroyed first (2026-10-01; runs last, since a
+//       regression crashes the process)
 // Exit 0 on pass, 1 on any failure. Every check is printed so a failure is diagnosable
 // without re-running under a debugger.
 
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <memory>
+#include <new>
 #include <cstring>
+#include <thread>
 #include <functional>
 #include <iostream>
 #include <random>
@@ -28,6 +44,9 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "plugin/PluginProcessor.h"
 #include "plugin/PresetManager.h"
+#if JUCE_MAC
+ #include <CoreFoundation/CoreFoundation.h>
+#endif
 
 namespace
 {
@@ -161,6 +180,44 @@ void render (broken::BrokenProcessor& proc, const juce::AudioBuffer<float>& inpu
         pos += n;
     }
 }
+
+// Every module off, colour off, unity gains: the wet path is then the Input FM stage's
+// delay and nothing else, so an impulse's arrival time IS the processing latency.
+void setNeutralChain (broken::BrokenProcessor& proc)
+{
+    for (const char* id : { "ws.on", "flt.on", "res.on", "inv.on", "dly.on", "mod.on", "flat.on" })
+        setParam (proc, id, 0.0f);
+    setParam (proc, "col.mode", 0.0f);
+    setParam (proc, "out.level", 0.0f);
+    setParam (proc, "source.intrim", 0.0f);
+    setParam (proc, "source.pitch", 0.0f);
+    setParam (proc, "source.finecents", 0.0f);
+    setParam (proc, "chain.mix", 1.0f);
+}
+
+double elapsedMs (std::chrono::steady_clock::time_point t0)
+{
+    return std::chrono::duration<double, std::milli> (std::chrono::steady_clock::now() - t0).count();
+}
+
+// Holds the processor's callback lock on another thread for holdMs, the way a host's audio
+// callback holds it around processBlock. Returns once the lock is actually held.
+struct CallbackLockHolder
+{
+    CallbackLockHolder (broken::BrokenProcessor& p, int holdMs)
+        : thread ([&p, holdMs, this]
+          {
+              const juce::ScopedLock sl (p.getCallbackLock());
+              held.store (true);
+              std::this_thread::sleep_for (std::chrono::milliseconds (holdMs));
+          })
+    {
+        while (! held.load()) std::this_thread::yield();
+    }
+    ~CallbackLockHolder() { thread.join(); }
+    std::atomic<bool> held { false };
+    std::thread thread;
+};
 
 int failures = 0;
 void check (bool ok, const juce::String& what)
@@ -314,7 +371,7 @@ int main()
                 bitIdentical = false;
         check (bitIdentical, "(c) identical L/R input gives bit-identical L/R output");
 
-        check (proc.getLatencySamples() == 0, "(f) getLatencySamples() == 0 @ 48000/512");
+        check (proc.getLatencySamples() == 2399, "(f) getLatencySamples() == 2399 @ 48000/512");
     }
 
     // ---- (d): tone in L only, silence in R -> R stays silent-ish -------------------
@@ -346,7 +403,7 @@ int main()
     {
         const int blockSizes[] = { 64, 100, 1024 };
         const double sampleRates[] = { 44100.0, 48000.0, 96000.0 };
-        bool allFinite = true, allStable = true, allLatencyZero = true;
+        bool allFinite = true, allStable = true, allLatencyExpected = true;
 
         for (double sr : sampleRates)
         {
@@ -369,12 +426,13 @@ int main()
                 // "stable" = no runaway: a -14 dBFS input through a mild default chain
                 // must never reach anywhere near clipping headroom repeatedly-summed gain
                 if (sL.peak > 4.0f || sR.peak > 4.0f) allStable = false;
-                if (proc.getLatencySamples() != 0) allLatencyZero = false;
+                const int expected = sr < 45000.0 ? 2204 : (sr < 50000.0 ? 2399 : 4799);
+                if (proc.getLatencySamples() != expected) allLatencyExpected = false;
             }
         }
         check (allFinite, "(e) no NaN/Inf at block sizes {64,100,1024} x sample rates {44100,48000,96000}");
         check (allStable, "(e) stable (non-runaway) output across the same matrix");
-        check (allLatencyZero, "(f) getLatencySamples() == 0 and identical across the same matrix");
+        check (allLatencyExpected, "(f) getLatencySamples() == 2204/2399/4799 at 44.1/48/96 kHz, the same at every block size");
     }
 
     // ---- (g): bypass returns the input unchanged after the fade --------------------
@@ -387,30 +445,38 @@ int main()
         proc.setPlayConfigDetails (2, 2, sr, blockSize);
         proc.prepareToPlay (sr, blockSize); // prepare snaps the fade: no fade-in from a restored bypass
 
+        // the whole input history, so output sample i can be checked against input i - L
+        const int blocks = 20, total = blocks * blockSize;
+        const int lat = proc.getLatencySamples();
         juce::Random rng (0x5EED);
-        juce::AudioBuffer<float> block (2, blockSize), input (2, blockSize);
+        juce::AudioBuffer<float> block (2, blockSize), input (2, total);
+        for (int ch = 0; ch < 2; ++ch)
+            for (int i = 0; i < total; ++i)
+            {
+                const float v = rng.nextFloat() * 2.0f - 1.0f;
+                input.setSample (ch, i, ch == 0 ? v : -0.5f * v); // distinct per-channel noise
+            }
         juce::MidiBuffer midi;
         int mismatches = 0;
         float worst = 0.0f;
-        for (int blk = 0; blk < 20; ++blk)
+        for (int blk = 0; blk < blocks; ++blk)
         {
             for (int ch = 0; ch < 2; ++ch)
-                for (int i = 0; i < blockSize; ++i)
-                {
-                    const float v = rng.nextFloat() * 2.0f - 1.0f;
-                    input.setSample (ch, i, ch == 0 ? v : -0.5f * v); // distinct per-channel noise
-                }
-            block.makeCopyOf (input);
+                block.copyFrom (ch, 0, input, ch, blk * blockSize, blockSize);
             proc.processBlock (block, midi);
             for (int ch = 0; ch < 2; ++ch)
                 for (int i = 0; i < blockSize; ++i)
                 {
-                    const float diff = std::abs (block.getSample (ch, i) - input.getSample (ch, i));
+                    const int g = blk * blockSize + i;
+                    const float expected = g >= lat ? input.getSample (ch, g - lat) : 0.0f;
+                    const float diff = std::abs (block.getSample (ch, i) - expected);
                     if (diff != 0.0f) { ++mismatches; worst = std::max (worst, diff); }
                 }
         }
-        std::cout << "  bypass: " << mismatches << " non-identical samples over 20 blocks (worst " << worst << ")\n";
-        check (mismatches == 0, "(g) bypass returns the input unchanged after the fade");
+        std::cout << "  bypass: " << mismatches << " samples differ from the input delayed by "
+                  << lat << " over " << blocks << " blocks (worst " << worst << ")\n";
+        check (lat > 0 && mismatches == 0,
+               "(g) bypass returns the input, delayed by exactly getLatencySamples(), unchanged");
     }
 
     // ---- (h) item 1 regression: real sample load, mod.source=Sample vs Osc, L/R mirror --
@@ -482,6 +548,7 @@ int main()
             setParam (proc, "mod.source", 4.0f); // Table
             setParam (proc, "osc.mode", (float) oscModeIdx);
             if (setBank) setBank (proc);
+            proc.syncModTable(); // no message loop here: what a host's timer would do
 
             juce::AudioBuffer<float> input (2, total), output (2, total);
             makeTestBuffer (input, sr, total, 20, false);
@@ -749,6 +816,298 @@ int main()
             check (idx == 4, juce::String ("(n) FX fresh ") + c.name + " instance: source.mode == Input (4)");
         }
     }
+
+    // ---- (o) the reported latency is the real one, FM off and FM on ----------------
+    // Until 2026-10-01 FM on the live input added a ~50 ms delay (InputVarispeed's centre
+    // tap) that was reported to nobody, and it came and went as FM was engaged. Now the
+    // delay is constant and reported: an impulse must come out exactly
+    // getLatencySamples() late with FM off and with FM engaged (amount 0, so the read head
+    // stays on the centre tap), at every sample rate x block size.
+    {
+        const double sampleRates[] = { 44100.0, 48000.0, 96000.0 };
+        const int blockSizes[] = { 64, 100, 1024 };
+        bool allExact = true, fmSame = true;
+        for (double sr : sampleRates)
+            for (int bs : blockSizes)
+            {
+                int peakIdx[2] = { -1, -1 };
+                int reported = -1;
+                for (int fm = 0; fm < 2; ++fm)
+                {
+                    auto procOwner = std::make_unique<broken::BrokenProcessor>();
+                    auto& proc = *procOwner;
+                    setNeutralChain (proc);
+                    if (fm == 1)
+                    {
+                        setParam (proc, "mod.on", 1.0f);
+                        setParam (proc, "mod.mode", 2.0f);   // FM
+                        setParam (proc, "mod.amount", 0.0f); // engaged, zero deviation
+                    }
+                    proc.setPlayConfigDetails (2, 2, sr, bs);
+                    proc.prepareToPlay (sr, bs);
+                    reported = proc.getLatencySamples();
+
+                    const int total = (int) (sr * 0.2);
+                    juce::AudioBuffer<float> input (2, total), output (2, total);
+                    input.clear();
+                    input.setSample (0, 100, 1.0f);
+                    input.setSample (1, 100, 1.0f);
+                    render (proc, input, output, bs);
+
+                    float best = 0.0f;
+                    for (int i = 0; i < total; ++i)
+                        if (std::abs (output.getSample (0, i)) > best)
+                        { best = std::abs (output.getSample (0, i)); peakIdx[fm] = i; }
+                    const bool exact = peakIdx[fm] - 100 == reported && std::abs (best - 1.0f) < 1.0e-6f;
+                    if (! exact)
+                    {
+                        allExact = false;
+                        std::cout << "  (o) sr " << sr << " block " << bs << (fm ? " FM on" : " FM off")
+                                  << ": impulse delay " << (peakIdx[fm] - 100) << ", reported " << reported
+                                  << ", peak " << best << "\n";
+                    }
+                }
+                if (peakIdx[0] != peakIdx[1]) fmSame = false;
+            }
+        check (allExact, "(o) an impulse arrives exactly getLatencySamples() late (FM off and on, 44.1/48/96 kHz x 64/100/1024)");
+        check (fmSame, "(o) engaging FM does not change the delay");
+
+        // bypass crossfade: with a neutral chain the wet signal IS the delayed input, so a
+        // time-aligned crossfade leaves the output equal to the delayed input throughout
+        const double sr = 48000.0;
+        const int bs = 512;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>();
+        auto& proc = *procOwner;
+        setNeutralChain (proc);
+        setParam (proc, "mod.on", 1.0f);
+        setParam (proc, "mod.mode", 2.0f);
+        setParam (proc, "mod.amount", 0.0f);
+        proc.setPlayConfigDetails (2, 2, sr, bs);
+        proc.prepareToPlay (sr, bs);
+        const int lat = proc.getLatencySamples();
+        const int total = (int) sr;
+        juce::AudioBuffer<float> input, output (2, total);
+        makeTestBuffer (input, sr, total, 80, false);
+        juce::AudioBuffer<float> block (2, bs);
+        juce::MidiBuffer midi;
+        float worst = 0.0f;
+        for (int pos = 0; pos < total; pos += bs)
+        {
+            if (pos == total / 2) setParam (proc, "bypass", 1.0f); // engage mid-stream
+            const int n = std::min (bs, total - pos);
+            block.setSize (2, n, false, false, true);
+            for (int ch = 0; ch < 2; ++ch) block.copyFrom (ch, 0, input, ch, pos, n);
+            proc.processBlock (block, midi);
+            for (int i = 0; i < n; ++i)
+            {
+                const int g = pos + i;
+                const float expected = g >= lat ? input.getSample (0, g - lat) : 0.0f;
+                worst = std::max (worst, std::abs (block.getSample (0, i) - expected));
+            }
+        }
+        std::cout << "  (o) bypass engaged mid-stream (FM on): worst |out - delayed in| " << worst << "\n";
+        check (worst < 1.0e-6f, "(o) the bypass crossfade is time-aligned with the processed signal");
+    }
+
+    // ---- (p) "00 Init" is a full reset -------------------------------------------------
+    {
+        juce::AudioProcessor::setTypeOfNextNewPlugin (juce::AudioProcessor::wrapperType_VST3);
+        auto procOwner = std::make_unique<broken::BrokenProcessor>();
+        juce::AudioProcessor::setTypeOfNextNewPlugin (juce::AudioProcessor::wrapperType_Undefined);
+        auto& proc = *procOwner;
+        // dirty a spread of parameters, including some no preset lists
+        setParam (proc, "ws.drive", 30.0f);
+        setParam (proc, "flt.cutoff", 900.0f);
+        setParam (proc, "mod.on", 1.0f);
+        setParam (proc, "osc.h05", 77.0f);
+        setParam (proc, "osc.d010", -0.5f);
+        setParam (proc, "dly.time", 900.0f);
+        setParam (proc, "chain.mix", 0.4f);
+        setParam (proc, "sample.regstart", 0.3f);
+        juce::String err;
+        const int idx = proc.presets.indexOf ("00-init");
+        const bool ok = idx >= 0 && proc.presets.load (idx, err);
+        check (ok, "(p) 00-init loads" + (ok ? juce::String() : ": " + err));
+        int wrong = 0;
+        for (auto* prm : proc.getParameters())
+            if (auto* rp = dynamic_cast<juce::RangedAudioParameter*> (prm))
+            {
+                if (rp->paramID == "sample.regstart" || rp->paramID == "sample.regend") continue;
+                if (std::abs (rp->getValue() - rp->getDefaultValue()) > 1.0e-6f)
+                {
+                    ++wrong;
+                    std::cout << "  (p) not at default after Init: " << rp->paramID << "\n";
+                }
+            }
+        check (wrong == 0, "(p) after 00 Init every parameter is at its Broken FX default");
+        auto* rs = proc.apvts.getParameter ("sample.regstart");
+        check (std::abs (rs->convertFrom0to1 (rs->getValue()) - 0.3f) < 1.0e-4f,
+               "(p) 00 Init leaves the sample region alone");
+
+        // other presets keep their layered semantics: an id they do not list is untouched
+        setParam (proc, "osc.h05", 77.0f);
+        const int idx1 = proc.presets.indexOf ("01-ringing-drive");
+        const bool ok1 = idx1 >= 0 && proc.presets.load (idx1, err);
+        auto* h5 = proc.apvts.getParameter ("osc.h05");
+        check (ok1 && std::abs (h5->convertFrom0to1 (h5->getValue()) - 77.0f) < 1.0e-3f,
+               "(p) a normal preset still applies only the ids it lists");
+    }
+
+    // ---- (q) the Table mod table is built off the audio thread -------------------------
+    // A draw-point change must NOT reach the output from processBlock alone (that was the
+    // audio-thread rebuild); it arrives once the processor's message-thread timer runs.
+    {
+        const double sr = 48000.0;
+        const int bs = 512;
+        const int seg = (int) (sr * 0.25);
+        auto makeProc = [&]
+        {
+            auto procOwner = std::make_unique<broken::BrokenProcessor>();
+            auto& proc = *procOwner;
+            setParam (proc, "mod.on", 1.0f);
+            setParam (proc, "mod.mode", 0.0f);   // AM
+            setParam (proc, "mod.amount", 0.8f);
+            setParam (proc, "mod.source", 4.0f); // Table
+            setParam (proc, "osc.mode", 2.0f);   // Draw
+            proc.setPlayConfigDetails (2, 2, sr, bs);
+            proc.prepareToPlay (sr, bs);
+            return procOwner;
+        };
+        juce::AudioBuffer<float> input;
+        makeTestBuffer (input, sr, 3 * seg, 90, false);
+        auto segment = [&] (int k)
+        {
+            juce::AudioBuffer<float> b (2, seg);
+            for (int ch = 0; ch < 2; ++ch) b.copyFrom (ch, 0, input, ch, k * seg, seg);
+            return b;
+        };
+        auto ref = makeProc();
+        auto test = makeProc();
+        juce::AudioBuffer<float> r0 (2, seg), r1 (2, seg), r2 (2, seg), t0 (2, seg), t1 (2, seg), t2 (2, seg);
+        render (*ref, segment (0), r0, bs);
+        render (*test, segment (0), t0, bs);
+        for (int k = 0; k < broken::params::drawPointCount; ++k)
+            setParam (*test, broken::params::drawPointId (k + 1).toRawUTF8(), (k % 2 == 0) ? 1.0f : -1.0f);
+        render (*ref, segment (1), r1, bs);
+        render (*test, segment (1), t1, bs);
+        bool same = true;
+        for (int ch = 0; ch < 2 && same; ++ch)
+            same = std::memcmp (r1.getReadPointer (ch), t1.getReadPointer (ch), sizeof (float) * (size_t) seg) == 0;
+        check (same, "(q) processBlock alone does not rebuild the Table mod table (no audio-thread rebuild)");
+
+        // With no message loop, JUCE's timer thread sits in 300 ms waits for a dispatch that
+        // never comes, and only counts timers down between those waits: sleep well past that,
+        // then run the due timers on this (the message) thread, as the message loop would.
+        std::this_thread::sleep_for (std::chrono::milliseconds (750));
+        juce::Timer::callPendingTimersSynchronously();
+        render (*ref, segment (2), r2, bs);
+        render (*test, segment (2), t2, bs);
+        const double d = diffDbBetween (r2, t2, 0, 0, seg);
+        std::cout << "  (q) after the message-thread timer: drawn vs default table diff " << d << " dB\n";
+        check (d > -40.0, "(q) the timer-built table reaches the output (diff > -40 dB)");
+    }
+
+    // ---- (r) sample load and tape save never wait for the callback lock -----------------
+    {
+        const double sr = 48000.0;
+        const int bs = 512;
+        auto procOwner = std::make_unique<broken::BrokenProcessor>();
+        auto& proc = *procOwner;
+        proc.setPlayConfigDetails (2, 2, sr, bs);
+        proc.prepareToPlay (sr, bs);
+        juce::AudioBuffer<float> input;
+        makeTestBuffer (input, sr, (int) sr, 95, false);
+        recordAndFlipTape (proc, input, sr, bs, 0.5);
+        const auto sampleFile = makeToneSample (sr);
+        const auto tapeOut = tempFile ("fx_check_tape_save.wav");
+
+        double loadMs = 0.0, saveMs = 0.0;
+        bool loaded = false, saved = false;
+        juce::String err;
+        {
+            CallbackLockHolder hold (proc, 1000); // an "audio callback" that takes 1 s
+            const auto t0 = std::chrono::steady_clock::now();
+            loaded = proc.loadSampleFile (sampleFile, err);
+            loadMs = elapsedMs (t0);
+        }
+        {
+            CallbackLockHolder hold (proc, 1000);
+            const auto t0 = std::chrono::steady_clock::now();
+            saved = proc.saveTapeToFile (tapeOut, err);
+            saveMs = elapsedMs (t0);
+        }
+        std::cout << "  (r) with the callback lock held for 1 s: loadSampleFile " << loadMs
+                  << " ms, saveTapeToFile " << saveMs << " ms\n";
+        check (loaded && loadMs < 300.0, "(r) loadSampleFile does not wait for the callback lock (< 300 ms)");
+        check (saved && saveMs < 300.0, "(r) saveTapeToFile does not wait for the callback lock (< 300 ms)");
+
+        // and the loaded sample does reach both engines (mod.source=Sample), bit-identical L/R
+        setParam (proc, "mod.on", 1.0f);
+        setParam (proc, "mod.mode", 0.0f);
+        setParam (proc, "mod.amount", 0.8f);
+        setParam (proc, "mod.source", 2.0f);
+        juce::AudioBuffer<float> out (2, (int) sr);
+        render (proc, input, out, bs);
+        const auto st = measure (out, 0, 0, (int) sr);
+        bool lr = true;
+        for (int i = 0; i < (int) sr && lr; ++i)
+            lr = bitIdenticalFloat (out.getSample (0, i), out.getSample (1, i));
+        check (st.rms > 1.0e-5 && lr, "(r) the handed-off sample plays in both engines (bit-identical L/R)");
+        tapeOut.deleteFile();
+    }
+
+    // ---- (s) a deferred sample reload never touches a destroyed processor --------------
+    // setStateInformation on a non-message thread queues the sample reload with callAsync.
+    // If the host destroys the processor before the message thread runs it, the reload
+    // must do nothing. The processor lives in static storage that is overwritten after
+    // its destructor runs, so a reload that still used it would crash this process.
+   #if JUCE_MAC
+    {
+        const auto sampleFile = makeToneSample (48000.0);
+        juce::MemoryBlock state;
+        {
+            auto donor = std::make_unique<broken::BrokenProcessor>();
+            juce::String err;
+            donor->loadSampleFile (sampleFile, err);
+            donor->getStateInformation (state);
+        }
+        auto pumpUntil = [] (const std::function<bool()>& done)
+        {
+            for (int i = 0; i < 200 && ! done(); ++i)
+                CFRunLoopRunInMode (kCFRunLoopDefaultMode, 0.01, true);
+        };
+
+        // control: a live processor restored from a non-message thread does get its sample
+        // back once the message thread runs the queued reload
+        {
+            auto live = std::make_unique<broken::BrokenProcessor>();
+            std::thread t ([&live, &state] { live->setStateInformation (state.getData(), (int) state.getSize()); });
+            t.join();
+            pumpUntil ([&live] { return ! live->getSampleBuffer().empty(); });
+            check (live->getSampleName() == sampleFile.getFileName() && ! live->getSampleBuffer().empty(),
+                   "(s) a live processor restored off the message thread reloads its sample");
+        }
+
+        alignas (broken::BrokenProcessor) static unsigned char storage[sizeof (broken::BrokenProcessor)];
+        auto* doomed = new (storage) broken::BrokenProcessor();
+        std::thread hostThread ([doomed, &state] { doomed->setStateInformation (state.getData(), (int) state.getSize()); });
+        hostThread.join();
+        doomed->~BrokenProcessor();
+        std::memset (storage, 0xA5, sizeof (storage));
+
+        // messages run in order: the reload queued above, then this marker
+        static std::atomic<bool> dispatched { false };
+        juce::MessageManager::callAsync ([] { dispatched.store (true); });
+        // a console app has no NSApp to run, but JUCE's message queue is a run-loop source
+        // on this (the main) thread's CFRunLoop: run that until the marker has been seen
+        pumpUntil ([] { return dispatched.load(); });
+        check (dispatched.load(), "(s) the message loop ran the queued reload after the processor was destroyed");
+        check (true, "(s) ... and the reload did not touch the destroyed processor (a regression crashes here)");
+    }
+   #else
+    // pumping the message queue from a console app is only wired up for macOS here
+    std::cout << "  (s) skipped on this platform\n";
+   #endif
 
     std::cout << "broken_fx_check: " << failures << " failures\n";
     return failures == 0 ? 0 : 1;

@@ -82,7 +82,11 @@ and `Broken FX.vst3`) and auval against the AUs (`aumu Brkn ZQSF` and
 
 ## Licence
 
-GPL-3.0-or-later. See LICENSE. Built with JUCE. Third-party assets (knob
-artwork, embedded fonts) keep their own licences; see LICENSE for details.
+GPL-3.0-or-later. See LICENSE. Built with JUCE.
+
+Fonts: Barlow Condensed, VT323 and IBM Plex Mono, embedded through the zqsfx_ui
+module, are licensed under the SIL Open Font License 1.1. The licence texts are in
+licenses/fonts/. Knob artwork: CC0 filmstrips from the g200kg KnobGallery, shipped
+with zqsfx_ui.
 
 ZQ SFX, https://www.zq-sfx.com, connect@zq-sfx.com.
