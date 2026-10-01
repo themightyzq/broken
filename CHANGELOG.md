@@ -1459,7 +1459,7 @@ plus my own findings on the same shot.
 - **Verification.** ctest **116/116**. pluginval strictness 5 SUCCESS on `Broken.vst3` and
   `Broken FX.vst3`.
 
-## 2026-10-01 - Unreleased: Real-time hand-offs, reported FX latency, full Init, readable small windows
+## 2026-10-01 - v0.37.0: Real-time hand-offs, reported FX latency, full Init, readable small windows
 - **Sample loads no longer stall the audio thread.** `loadSampleFile` used to open and
   decode the file while holding the callback lock with processing suspended, so a large
   file stalled the audio callback and the host output dropped to silence. It now decodes
@@ -1550,7 +1550,7 @@ plus my own findings on the same shot.
   - `broken_ui_snapshot --hit-audit` / `broken_fx_ui_snapshot --hit-audit`: 0 / 0.
   - ctest **122/122** (was 116).
 
-## 2026-10-01 - Unreleased: User preset folder per OS
+## 2026-10-01 - v0.37.0: User preset folder per OS
 - **User presets on Windows and Linux move to the OS's per-user folder.** Every build until
   now saved user presets to `~/Library/Audio/Presets/ZQ SFX/<product>` on every OS, a
   macOS-style path that does not belong on Windows or Linux. They now live in
