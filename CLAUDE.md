@@ -125,7 +125,11 @@ its own width. `ui::BrokenLookAndFeel` is a subclass of the zqsfx_ui LookAndFeel
 keeps text at >= 9 pt on screen (11 pt for the VT323 LCD face) at any window scale; a new
 direct `g.setFont` in a view must go through its `floorPt`/`floored`/`silkFont (this, ...)`/
 `lcdFont (this, ...)` helpers. Gate: `broken_ui_snapshot --text-audit` and
-`broken_fx_ui_snapshot --text-audit` (both in ctest).
+`broken_fx_ui_snapshot --text-audit` (both in ctest). Every parameter control is a
+`zqsfx::ui::Knob` (its dial takes keyboard focus, arrow and Shift+arrow, and double-click returns
+to the parameter default); `--slider-audit` on both snapshot tools (in ctest) walks every
+`juce::Slider` in the editor and the pop-out panel and fails on any that is not a house
+`zqsfx::ui::Dial` with that behaviour, so a plain `juce::Slider` cannot be added unnoticed.
 
 Broken FX reports latency: the Input FM stage (`InputVarispeed`) runs at a constant
 `D0 - 1` samples in the FX build (2399 at 48 kHz) and the bypass path is delayed to

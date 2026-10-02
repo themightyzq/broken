@@ -14,6 +14,13 @@
 //   fit its box (labels may squeeze to 70 %, readouts to 80 %, buttons not at all), and the
 //   capitals must fit the box height. Exit code is the number of problems (0 = clean).
 //
+//   broken_ui_snapshot --slider-audit
+//   Walks every juce::Slider in the main editor and in the pop-out source editor panel (hidden
+//   ones included) and checks the house control behaviour: it is a zqsfx::ui::Dial, wants
+//   keyboard focus, its double-click value is the parameter default and a real double-click
+//   restores it, an arrow key moves it, and Shift+arrow moves a continuous one by about a
+//   tenth of that. Exit code is the number of problems (0 = clean).
+//
 //   broken_ui_snapshot --hit-audit
 //   Constructs the editor at the house 0.65x resize floor (BrokenEditor::designW/designH
 //   * 0.65, exactly what the constrainer clamps to -- see PluginEditor.cpp), walks every
@@ -200,6 +207,115 @@ int runTextAudit()
     return total;
 }
 
+// ---- --slider-audit ------------------------------------------------------------------
+void collectSliders (juce::Component& node, std::vector<juce::Slider*>& out)
+{
+    for (int i = 0; i < node.getNumChildComponents(); ++i)
+    {
+        auto* child = node.getChildComponent (i);
+        if (child == nullptr) continue;
+        if (auto* s = dynamic_cast<juce::Slider*> (child))
+            out.push_back (s);
+        collectSliders (*child, out);
+    }
+}
+
+// Puts every parameter on its own default. A slider has no public link to its parameter, so
+// the audit builds each editor from this state: a slider's value then IS the default its
+// double-click must restore.
+void resetToDefaults (broken::BrokenProcessor& processor)
+{
+    for (auto* prm : processor.getParameters())
+        if (auto* r = dynamic_cast<juce::RangedAudioParameter*> (prm))
+            r->setValueNotifyingHost (r->getDefaultValue());
+}
+
+int auditSliders (const juce::String& section, juce::Component& root)
+{
+    std::vector<juce::Slider*> sliders;
+    collectSliders (root, sliders);
+
+    std::vector<double> defaults;
+    for (auto* s : sliders) defaults.push_back (s->getValue());
+
+    std::vector<juce::String> problems;
+    int exercised = 0;
+    const auto name = [] (juce::Slider& s) { return "'" + describeComponent (s) + "'"; };
+    for (size_t i = 0; i < sliders.size(); ++i)
+    {
+        auto& s = *sliders[i];
+        const double def = defaults[i];
+        const double tol = 1.0e-4 * juce::jmax (1.0, std::abs (s.getMaximum()));
+
+        if (dynamic_cast<zqsfx::ui::Dial*> (&s) == nullptr) problems.push_back (name (s) + " is not a zqsfx::ui::Dial");
+        if (! s.getWantsKeyboardFocus())                    problems.push_back (name (s) + " refuses keyboard focus");
+        if (! s.isDoubleClickReturnEnabled())               { problems.push_back (name (s) + " has no double-click value"); continue; }
+        if (std::abs (s.getDoubleClickReturnValue() - def) > tol)
+            problems.push_back (name (s) + " double-click value " + juce::String (s.getDoubleClickReturnValue())
+                                + " is not the default " + juce::String (def));
+        if (! s.isEnabled()) continue; // a dimmed control ignores keys and clicks by design
+        ++exercised;
+
+        const double mid = s.getMinimum() + 0.4 * (s.getMaximum() - s.getMinimum());
+        s.setValue (mid, juce::dontSendNotification);
+        s.keyPressed (juce::KeyPress (juce::KeyPress::rightKey));
+        const double plainStep = s.getValue() - mid;
+        if (! (plainStep > 0.0)) problems.push_back (name (s) + ": an arrow key did not move it");
+        // Shift+arrow is the Dial's fine step: a plain slider does not handle it at all. A slider
+        // quantised to an interval snaps a tenth of a step back, so only a continuous one moves.
+        s.setValue (mid, juce::dontSendNotification);
+        if (! s.keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::shiftModifier, 0)))
+            problems.push_back (name (s) + ": Shift+arrow is not handled");
+        if (juce::approximatelyEqual (s.getInterval(), 0.0))
+        {
+            const double fineStep = s.getValue() - mid;
+            if (! (fineStep > 0.05 * plainStep && fineStep < 0.2 * plainStep))
+                problems.push_back (name (s) + ": Shift+arrow is not about a tenth of the arrow step");
+        }
+        s.setValue (mid, juce::dontSendNotification);
+        const auto now = juce::Time::getCurrentTime();
+        s.mouseDoubleClick (juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), juce::Point<float>(),
+                                              juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, &s, &s, now,
+                                              juce::Point<float>(), now, 2, false));
+        if (std::abs (s.getValue() - def) > tol) problems.push_back (name (s) + ": a double-click did not restore the default");
+    }
+
+    std::cout << "[slider-audit] " << section << ": " << sliders.size() << " sliders (" << exercised
+              << " enabled, keys and double-click exercised), " << (int) problems.size() << " problem(s)\n";
+    for (auto& p : problems) std::cout << "    " << p << "\n";
+    return (int) problems.size();
+}
+
+int runSliderAudit()
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    int total = 0;
+
+    {
+        auto processorOwner = std::make_unique<broken::BrokenProcessor>(); // heap: too big for a thread stack
+        resetToDefaults (*processorOwner);
+        std::unique_ptr<juce::AudioProcessorEditor> editor (processorOwner->createEditor());
+        if (editor == nullptr) { std::cerr << "createEditor returned null\n"; return -1; }
+        total += auditSliders ("main editor", *editor);
+    }
+    {
+        auto processorOwner = std::make_unique<broken::BrokenProcessor>();
+        resetToDefaults (*processorOwner);
+        broken::ui::SourceEditorPanel panel (*processorOwner);
+        panel.setSize (640, 340);
+        total += auditSliders ("pop-out window (Sample/Cycle/Tape view)", panel);
+#if !BROKEN_FX
+        if (auto* p = processorOwner->apvts.getParameter ("source.mode"))
+            p->setValueNotifyingHost (p->convertTo0to1 (2.0f)); // Osc: swaps OscEditor in
+        panel.show();
+        panel.resized();
+        total += auditSliders ("pop-out window (Osc view)", panel);
+#endif
+    }
+    std::cout << "[slider-audit] TOTAL: " << total << " problem(s)\n";
+    return total;
+}
+
 int runHitAudit()
 {
     juce::ScopedJuceInitialiser_GUI gui;
@@ -306,13 +422,20 @@ int main (int argc, char** argv)
     {
         std::cerr << "usage: broken_ui_snapshot <out.png> [scale] [width height]\n"
                      "       broken_ui_snapshot --hit-audit\n"
-                     "       broken_ui_snapshot --text-audit\n";
+                     "       broken_ui_snapshot --text-audit\n"
+                     "       broken_ui_snapshot --slider-audit\n";
         return 2;
     }
 
     if (juce::String (argv[1]) == "--text-audit")
     {
         const int problems = runTextAudit();
+        return problems < 0 ? 1 : problems;
+    }
+
+    if (juce::String (argv[1]) == "--slider-audit")
+    {
+        const int problems = runSliderAudit();
         return problems < 0 ? 1 : problems;
     }
 

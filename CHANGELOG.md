@@ -1575,3 +1575,9 @@ plus my own findings on the same shot.
   host, because it sweeps continuously as the shifter runs; README says so.
   Reporting a fixed worst case would add up to 760 ms of latency at all
   PITCH settings.
+
+## 2026-10-02 - zqsfx_ui v0.5.0
+- zqsfx_ui moves from v0.4.0 to v0.5.0 (the dial becomes the namespace-level `zqsfx::ui::Dial`;
+  every Broken and Broken FX knob already had keyboard focus, Shift+arrow and double-click to
+  default). New `broken_ui_slider_audit` and `broken_fx_ui_slider_audit` ctest entries check it for every slider
+  in both editors (ctest 148, was 146).

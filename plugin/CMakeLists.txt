@@ -23,7 +23,7 @@ FetchContent_MakeAvailable(JUCE)
 # broken_ui_snapshot and compare (see CHANGELOG).
 FetchContent_Declare(zqsfx_ui
   GIT_REPOSITORY https://github.com/themightyzq/zqsfx_ui.git
-  GIT_TAG v0.4.0
+  GIT_TAG v0.5.0
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(zqsfx_ui)
 
@@ -227,6 +227,9 @@ add_test(NAME broken_source_default_check COMMAND broken_source_default_check)
 if(APPLE)
   add_test(NAME broken_ui_text_audit COMMAND broken_ui_snapshot --text-audit)
   add_test(NAME broken_fx_ui_text_audit COMMAND broken_fx_ui_snapshot --text-audit)
+  # every slider is a house Dial: keyboard focus, arrow and Shift+arrow, double-click default
+  add_test(NAME broken_ui_slider_audit COMMAND broken_ui_snapshot --slider-audit)
+  add_test(NAME broken_fx_ui_slider_audit COMMAND broken_fx_ui_snapshot --slider-audit)
 endif()
 
 # --- broken_control_audit / broken_fx_control_audit: headless control-wiring audit.
