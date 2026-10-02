@@ -22,7 +22,7 @@ save, rename, and delete your own. AU, VST3, and Standalone, macOS.
 ## Install
 
 Binary releases are available for download from the
-[v0.37.0 release](https://github.com/themightyzq/broken/releases/tag/v0.37.0)
+[v0.38.0 release](https://github.com/themightyzq/broken/releases/tag/v0.38.0)
 (Broken-macOS-VST3.zip, Broken-macOS-AU-Standalone.zip, BrokenFX-macOS-VST3.zip,
 BrokenFX-macOS-AU-Standalone.zip, plus Linux and Windows VST3). The built plugins are
 unsigned, so a standalone app's first launch needs right-click, Open, and some hosts may
